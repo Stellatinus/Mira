@@ -6,7 +6,10 @@ import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
 import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
+import { compareRepos, isRepoSection, matchesRepoFilter } from './repoview';
+import type { RepoFilter, RepoSort } from './repoview';
 import type { ViewConfig } from './sections';
+import { Tile } from './Tile';
 import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
 
 export type Mode = 'grid' | 'list' | 'compact';
@@ -25,6 +28,9 @@ interface Props {
   selectedId: string | null;
   /** Cosa c'è di aperto per ogni repository, ricavato dagli elementi già scaricati. */
   attention: Map<string, Attention>;
+  /** Ordinamento e filtro dei repository (valgono solo per le sezioni di repository). */
+  repoSort: RepoSort;
+  repoFilter: RepoFilter;
   onSelect: (id: string) => void;
   onManageAccounts: () => void;
 }
@@ -45,6 +51,8 @@ export function ItemsView({
   mode,
   selectedId,
   attention,
+  repoSort,
+  repoFilter,
   onSelect,
   onManageAccounts,
 }: Props) {
@@ -59,15 +67,34 @@ export function ItemsView({
   );
   const needle = query.trim().toLowerCase();
 
+  // Il filtro dei repository restringe l'elenco: i totali di GitHub non valgono più.
+  const narrowedByRepoFilter = (key: Section) => isRepoSection(key) && repoFilter !== 'all';
+
   const bySection = useMemo(() => {
     const groups = new Map<Section, DashboardItem[]>(view.sections.map((key) => [key, []]));
     for (const item of data.items) {
       if (filter !== 'all' && item.account !== filter) continue;
       if (needle && !matches(item, needle)) continue;
+      if (isRepoSection(item.section) && !matchesRepoFilter(item, repoFilter, attention.get(repoKey(item.repo)))) continue;
       groups.get(item.section)?.push(item);
     }
+    for (const [key, items] of groups) {
+      if (isRepoSection(key)) items.sort(compareRepos(repoSort, (i) => attention.get(repoKey(i.repo))));
+    }
     return groups;
-  }, [data.items, view.sections, filter, needle]);
+  }, [data.items, view.sections, filter, needle, repoFilter, repoSort, attention]);
+
+  // Quanti repository ci sono prima del filtro dei repository, per scrivere «12 di 55».
+  const repoBase = useMemo(() => {
+    const base = new Map<Section, number>();
+    for (const item of data.items) {
+      if (!isRepoSection(item.section)) continue;
+      if (filter !== 'all' && item.account !== filter) continue;
+      if (needle && !matches(item, needle)) continue;
+      base.set(item.section, (base.get(item.section) ?? 0) + 1);
+    }
+    return base;
+  }, [data.items, filter, needle]);
 
   // Totale reale per sezione (anche oltre gli elementi scaricati). Se per almeno un account
   // GitHub non lo indica, si mostra "N+". Con una ricerca attiva contano solo gli elementi trovati.
@@ -84,10 +111,11 @@ export function ItemsView({
         if (total.total === null) unknown = true;
         else count += total.total;
       }
-      result.set(key, !found || needle ? { count: shown, unknown: false } : { count: Math.max(count, shown), unknown });
+      const exact = !found || needle !== '' || narrowedByRepoFilter(key);
+      result.set(key, exact ? { count: shown, unknown: false } : { count: Math.max(count, shown), unknown });
     }
     return result;
-  }, [data.totals, bySection, view.sections, filter, needle]);
+  }, [data.totals, bySection, view.sections, filter, needle, repoFilter]);
 
   function totalLabel(key: Section): string {
     const total = totals.get(key);
@@ -108,6 +136,7 @@ export function ItemsView({
   }
 
   const shownTotal = view.sections.reduce((sum, key) => sum + (bySection.get(key)?.length ?? 0), 0);
+  const repoFiltering = view.sections.some(narrowedByRepoFilter);
   const collapsedCount = view.key === 'home' ? COLLAPSED_HOME : COLLAPSED_OTHER;
   const showAccount = data.accounts.length > 1 && filter === 'all';
 
@@ -132,8 +161,14 @@ export function ItemsView({
 
       {shownTotal === 0 && (
         <div className="empty">
-          <h2>{needle ? t('items.noResults.title') : t('items.empty.title')}</h2>
-          <p className="muted">{needle ? t('items.noResults.text') : t('items.empty.text')}</p>
+          <h2>{needle || repoFiltering ? t('items.noResults.title') : t('items.empty.title')}</h2>
+          <p className="muted">
+            {needle
+              ? t('items.noResults.text')
+              : repoFiltering
+                ? t('items.noResults.filterText')
+                : t('items.empty.text')}
+          </p>
         </div>
       )}
 
@@ -151,7 +186,11 @@ export function ItemsView({
             <header className="group-head">
               <h2>{t(sectionTitle(key))}</h2>
               <span className="count" title={truncated ? t('items.mostRecent') : undefined}>
-                {truncated ? t('items.countOf', { shown: items.length, total: totalLabel(key) }) : items.length}
+                {narrowedByRepoFilter(key)
+                  ? t('items.countOf', { shown: items.length, total: repoBase.get(key) ?? items.length })
+                  : truncated
+                    ? t('items.countOf', { shown: items.length, total: totalLabel(key) })
+                    : items.length}
               </span>
               <span className="hint muted">{t(sectionHint(key))}</span>
             </header>
@@ -288,9 +327,7 @@ function ItemCard({ item, account, starred, attention, selected, showAccount, on
       >
         <ExternalIcon size={15} />
       </a>
-      <div className="tile">
-        <ItemIcon type={item.type} size={26} />
-      </div>
+      <Tile item={item} iconSize={26} />
       <h3 className="ci-title" title={item.title}>
         {item.title}
       </h3>

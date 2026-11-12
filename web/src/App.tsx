@@ -14,11 +14,14 @@ import { Sidebar } from './Sidebar';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
+import { DEFAULT_REPO_SORT, isRepoSection, REPO_FILTERS, REPO_SORTS } from './repoview';
+import type { RepoFilter, RepoSort } from './repoview';
 import { useTheme } from './theme';
 import type { Dashboard } from './types';
 
 const FILTER_KEY = 'mira.accountFilter';
 const MODE_KEY = 'mira.mode';
+const REPO_SORT_KEY = 'mira.repoSort';
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -55,6 +58,12 @@ export default function App() {
     const saved = readStored(MODE_KEY, 'grid');
     return saved === 'list' || saved === 'compact' ? saved : 'grid';
   });
+  const [repoSort, setRepoSort] = useState<RepoSort>(() => {
+    const saved = readStored(REPO_SORT_KEY, DEFAULT_REPO_SORT);
+    return REPO_SORTS.find((s) => s === saved) ?? DEFAULT_REPO_SORT;
+  });
+  // Il filtro non si ricorda: riaprendo Mira si devono rivedere tutti i repository.
+  const [repoFilter, setRepoFilter] = useState<RepoFilter>('all');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -109,6 +118,7 @@ export default function App() {
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
+  const isRepoView = config.sections.some(isRepoSection);
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
   const selectedAccount = selected ? data?.accounts.find((a) => a.login === selected.account) : undefined;
   const selectedStarred =
@@ -119,6 +129,11 @@ export default function App() {
   function chooseFilter(login: string) {
     setStoredFilter(login);
     writeStored(FILTER_KEY, login);
+  }
+
+  function chooseRepoSort(next: RepoSort) {
+    setRepoSort(next);
+    writeStored(REPO_SORT_KEY, next);
   }
 
   function chooseMode(next: Mode) {
@@ -179,6 +194,37 @@ export default function App() {
         <div className="scroll">
           <div className="toolbar">
             <h2>{t(`view.${config.key}.title` as 'view.home.title')}</h2>
+            {isRepoView && (
+              <div className="tools">
+                <div className="seg small" role="radiogroup" aria-label={t('repo.filter.label')}>
+                  {REPO_FILTERS.map((option) => (
+                    <button
+                      key={option}
+                      role="radio"
+                      aria-checked={repoFilter === option}
+                      className={repoFilter === option ? 'seg-btn active' : 'seg-btn'}
+                      onClick={() => setRepoFilter(option)}
+                    >
+                      {t(`repo.filter.${option}` as 'repo.filter.all')}
+                    </button>
+                  ))}
+                </div>
+                <label className="sort">
+                  <span className="muted small">{t('repo.sort.label')}</span>
+                  <select
+                    className="select compact"
+                    value={repoSort}
+                    onChange={(e) => chooseRepoSort(e.target.value as RepoSort)}
+                  >
+                    {REPO_SORTS.map((option) => (
+                      <option key={option} value={option}>
+                        {t(`repo.sort.${option}` as 'repo.sort.updated')}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
             {showItems && (
               <div className="modes" role="group" aria-label={t('mode.group')}>
                 {MODES.map((m) => {
@@ -226,6 +272,8 @@ export default function App() {
               mode={mode}
               selectedId={selected?.id ?? null}
               attention={attention}
+              repoSort={repoSort}
+              repoFilter={repoFilter}
               onSelect={setSelectedId}
               onManageAccounts={() => chooseView('settings')}
             />

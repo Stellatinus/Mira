@@ -48,7 +48,12 @@ public sealed record GqlRepo(
     DateTimeOffset? UpdatedAt,
     GqlLanguage? PrimaryLanguage,
     GqlCount Issues,
-    GqlCount PullRequests);
+    GqlCount PullRequests,
+    string? OpenGraphImageUrl,
+    bool UsesCustomOpenGraphImage,
+    GqlOwner? Owner);
+
+public sealed record GqlOwner(string? AvatarUrl);
 
 public sealed record GqlLanguage(string Name);
 
