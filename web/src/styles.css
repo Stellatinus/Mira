@@ -109,6 +109,19 @@ h1, h2, h3, p { margin: 0; }
 .dd-item:hover, .dd-item:focus-visible { background: var(--card-hover); outline: none; }
 .dd-item.active { color: var(--accent); }
 .dd-check { display: inline-grid; place-items: center; width: 16px; flex: none; }
+
+/* Pannello dei filtri dei repository. */
+.popover { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: min(400px, 90vw); max-height: 70vh; overflow-y: auto; padding: 14px 16px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); scrollbar-width: thin; }
+.filter-group { margin-bottom: 14px; }
+.filter-label { display: block; margin-bottom: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 5px 11px; border: 0; border-radius: 999px; background: var(--card); color: var(--text); font-size: 12.5px; cursor: pointer; }
+.chip:hover { background: var(--card-hover); }
+.chip.active { background: var(--accent); color: var(--accent-text); }
+.select.full { width: 100%; }
+.popover-foot { display: flex; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--line); }
+.link-btn { border: 0; background: none; color: var(--accent); font-size: 13px; cursor: pointer; }
+.link-btn:disabled { color: var(--muted); cursor: default; }
 .toolbar h2 { flex: 1 1 auto; font-size: 16px; font-weight: 600; }
 .view-title { display: flex; align-items: center; gap: 10px; }
 .toolbar > .modes { margin-left: auto; }

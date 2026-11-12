@@ -6,7 +6,7 @@ import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
-import { CompactIcon, FilterIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon } from './icons';
+import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
@@ -15,8 +15,9 @@ import { Sidebar } from './Sidebar';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
-import { DEFAULT_REPO_SORT, isRepoSection, REPO_FILTERS, REPO_SORTS } from './repoview';
-import type { RepoFilter, RepoSort } from './repoview';
+import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, isRepoSection, REPO_SORTS } from './repoview';
+import type { RepoFilters, RepoSort } from './repoview';
+import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
 import type { Dashboard } from './types';
 import { useViewModel } from './viewmodel';
@@ -65,7 +66,7 @@ export default function App() {
     return REPO_SORTS.find((s) => s === saved) ?? DEFAULT_REPO_SORT;
   });
   // Il filtro non si ricorda: riaprendo Mira si devono rivedere tutti i repository.
-  const [repoFilter, setRepoFilter] = useState<RepoFilter>('all');
+  const [repoFilters, setRepoFilters] = useState<RepoFilters>(DEFAULT_REPO_FILTERS);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -121,7 +122,7 @@ export default function App() {
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
   const isRepoView = config.sections.some(isRepoSection);
-  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilter, t });
+  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, t });
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
@@ -208,14 +209,11 @@ export default function App() {
             </h2>
             {isRepoView && (
               <div className="tools">
-                <Dropdown
-                  label={t('repo.filter.label')}
-                  icon={<FilterIcon size={15} />}
-                  text={repoFilter === 'all' ? t('repo.filter.button') : t(`repo.filter.${repoFilter}` as 'repo.filter.all')}
-                  value={repoFilter}
-                  options={REPO_FILTERS.map((value) => ({ value, label: t(`repo.filter.${value}` as 'repo.filter.all') }))}
-                  onChange={setRepoFilter}
-                  highlighted={repoFilter !== 'all'}
+                <RepoFilterMenu
+                  filters={repoFilters}
+                  onChange={setRepoFilters}
+                  facets={model.facets}
+                  showStarred={config.sections.includes('repos')}
                 />
                 <Dropdown
                   label={t('repo.sort.label')}
