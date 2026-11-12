@@ -35,7 +35,8 @@ public sealed record DashboardItem(
     string? Description = null,
     string? Language = null,
     int Stars = 0,
-    bool Private = false);
+    bool Private = false,
+    int OpenIssues = 0);
 
 /// <summary>
 /// Quanti elementi ci sono davvero in una sezione per un account, anche oltre quelli scaricati.

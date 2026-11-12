@@ -139,7 +139,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
                 Shorten(r.Description),
                 r.Language,
                 r.StargazersCount,
-                r.Private))
+                r.Private,
+                r.OpenIssuesCount))
             .ToList();
         // Una pagina piena significa che potrebbero essercene altri: il totale non è noto.
         int? total = items.Count < ReposPageSize ? items.Count : null;

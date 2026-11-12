@@ -38,6 +38,8 @@ export interface DashboardItem {
   language: string | null;
   stars: number;
   private: boolean;
+  /** Issue e PR aperte nel repository (solo per gli elementi di tipo "repo"). */
+  openIssues: number;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */

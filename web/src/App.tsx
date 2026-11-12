@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getDashboard } from './api';
 import { accountAlerts } from './alerts';
+import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon } from './icons';
@@ -94,6 +95,7 @@ export default function App() {
 
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
   const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
+  const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
@@ -212,6 +214,7 @@ export default function App() {
               query={query}
               mode={mode}
               selectedId={selected?.id ?? null}
+              attention={attention}
               onSelect={setSelectedId}
               onManageAccounts={() => chooseView('settings')}
             />
@@ -232,6 +235,7 @@ export default function App() {
           item={selected}
           account={selectedAccount}
           starred={selectedStarred}
+          attention={selected?.type === 'repo' ? attention.get(repoKey(selected.account, selected.repo)) : undefined}
           onClose={() => setSelectedId(null)}
         />
       )}

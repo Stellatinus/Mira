@@ -32,6 +32,7 @@ public sealed record GhRepo(
     string HtmlUrl,
     string? Language,
     int StargazersCount,
+    int OpenIssuesCount,
     bool Private,
     DateTimeOffset? PushedAt,
     DateTimeOffset? UpdatedAt);
