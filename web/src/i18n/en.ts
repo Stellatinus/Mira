@@ -158,6 +158,16 @@ export const en: Messages = {
   'settings.languageLabel': 'Interface language',
   'settings.languageHint': 'Applies to the whole interface, including dates.',
 
+  'settings.refresh': 'Automatic refresh',
+  'settings.refreshLabel': 'Refresh data every',
+  'settings.refreshHint':
+    'GitHub limits searches to 30 per minute, so intervals under 5 minutes are not offered. You can always refresh by hand with the button at the top.',
+  'refresh.off': 'Never (manual only)',
+  'refresh.minutes.one': '{count} minute',
+  'refresh.minutes.other': '{count} minutes',
+  'refresh.hours.one': '{count} hour',
+  'refresh.hours.other': '{count} hours',
+
   'accounts.title': 'Connected accounts',
   'accounts.none': 'No accounts yet. Add one below.',
   'accounts.remove': 'Remove',

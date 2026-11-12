@@ -1,5 +1,6 @@
 import { AccountsView } from './AccountsView';
 import { useI18n } from './i18n';
+import { REFRESH_OPTIONS } from './refresh';
 import { THEMES } from './theme';
 import type { ThemePreference } from './theme';
 import type { AccountStatus } from './types';
@@ -9,10 +10,20 @@ interface Props {
   onAccountsChanged: () => Promise<void>;
   theme: ThemePreference;
   onTheme: (theme: ThemePreference) => void;
+  /** Ogni quanti minuti si aggiorna da sola (0 = mai). */
+  refreshMinutes: number;
+  onRefreshMinutes: (minutes: number) => void;
 }
 
-export function SettingsView({ accounts, onAccountsChanged, theme, onTheme }: Props) {
+export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refreshMinutes, onRefreshMinutes }: Props) {
   const { t, language, languages, setLanguage } = useI18n();
+
+  const refreshLabel = (minutes: number) =>
+    minutes === 0
+      ? t('refresh.off')
+      : minutes < 60
+        ? t('refresh.minutes', { count: minutes })
+        : t('refresh.hours', { count: minutes / 60 });
 
   return (
     <>
@@ -56,6 +67,32 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme }: Pr
             {languages.map((l) => (
               <option key={l.code} value={l.code} lang={l.code}>
                 {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      <section className="card">
+        <header className="card-head">
+          <h2>{t('settings.refresh')}</h2>
+        </header>
+        <div className="setting">
+          <div className="setting-text">
+            <label htmlFor="refresh" className="strong">
+              {t('settings.refreshLabel')}
+            </label>
+            <p className="muted small">{t('settings.refreshHint')}</p>
+          </div>
+          <select
+            id="refresh"
+            className="select"
+            value={refreshMinutes}
+            onChange={(e) => onRefreshMinutes(Number(e.target.value))}
+          >
+            {REFRESH_OPTIONS.map((minutes) => (
+              <option key={minutes} value={minutes}>
+                {refreshLabel(minutes)}
               </option>
             ))}
           </select>

@@ -165,6 +165,16 @@ export const it = {
   'settings.languageLabel': 'Lingua dell’interfaccia',
   'settings.languageHint': 'Vale per tutta l’interfaccia, comprese le date.',
 
+  'settings.refresh': 'Aggiornamento automatico',
+  'settings.refreshLabel': 'Aggiorna i dati ogni',
+  'settings.refreshHint':
+    'GitHub limita le ricerche a 30 al minuto, per questo non si scende sotto i 5 minuti. Puoi sempre aggiornare a mano con il pulsante in alto.',
+  'refresh.off': 'Mai (solo a mano)',
+  'refresh.minutes.one': '{count} minuto',
+  'refresh.minutes.other': '{count} minuti',
+  'refresh.hours.one': '{count} ora',
+  'refresh.hours.other': '{count} ore',
+
   'accounts.title': 'Account collegati',
   'accounts.none': 'Nessun account ancora. Aggiungine uno qui sotto.',
   'accounts.remove': 'Rimuovi',
