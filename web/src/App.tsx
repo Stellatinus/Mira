@@ -15,6 +15,7 @@ import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
+import { loadSnapshot, saveSnapshot } from './snapshot-cache';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
@@ -57,7 +58,10 @@ export default function App() {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const [theme, setTheme] = useTheme();
-  const [data, setData] = useState<Dashboard | null>(null);
+  // Si parte dall'ultima fotografia salvata (se c'è), così all'apertura si vede subito qualcosa.
+  const [saved] = useState<Dashboard | null>(loadSnapshot);
+  const [data, setData] = useState<Dashboard | null>(saved);
+  const [fromCache, setFromCache] = useState(saved !== null);
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewKey>('home');
@@ -93,6 +97,8 @@ export default function App() {
       const next = await getDashboard(force);
       lastLoad.current = Date.now();
       setData(next);
+      setFromCache(false);
+      saveSnapshot(next);
       setError(null);
       if (firstLoad.current) {
         firstLoad.current = false;
@@ -202,7 +208,11 @@ export default function App() {
         <header className="main-head">
           <h1>{t(`view.${config.key}.title` as 'view.home.title')}</h1>
           <div className="head-actions">
-            {data && <span className="updated">{t('app.updated', { when: timeAgo(data.generatedAt) })}</span>}
+            {data && (
+              <span className="updated">
+                {t(fromCache ? 'app.cachedUpdating' : 'app.updated', { when: timeAgo(data.generatedAt) })}
+              </span>
+            )}
             {showItems && (
               <label className="search">
                 <SearchIcon />

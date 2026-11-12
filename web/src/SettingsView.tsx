@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { AccountsView } from './AccountsView';
 import { useI18n } from './i18n';
 import { REFRESH_OPTIONS } from './refresh';
+import { clearSnapshot, snapshotSizeKb } from './snapshot-cache';
 import { THEMES } from './theme';
 import type { ThemePreference } from './theme';
 import type { AccountStatus } from './types';
@@ -17,6 +19,7 @@ interface Props {
 
 export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refreshMinutes, onRefreshMinutes }: Props) {
   const { t, language, languages, setLanguage } = useI18n();
+  const [cleared, setCleared] = useState(false);
 
   const refreshLabel = (minutes: number) =>
     minutes === 0
@@ -96,6 +99,28 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refr
               </option>
             ))}
           </select>
+        </div>
+      </section>
+
+      <section className="card">
+        <header className="card-head">
+          <h2>{t('settings.cache')}</h2>
+        </header>
+        <div className="setting">
+          <div className="setting-text">
+            <strong>{t('settings.cacheLabel')}</strong>
+            <p className="muted small">{t('settings.cacheHint', { size: snapshotSizeKb() })}</p>
+          </div>
+          <button
+            className="btn"
+            disabled={cleared}
+            onClick={() => {
+              clearSnapshot();
+              setCleared(true);
+            }}
+          >
+            {cleared ? t('settings.cacheCleared') : t('settings.cacheClear')}
+          </button>
         </div>
       </section>
 

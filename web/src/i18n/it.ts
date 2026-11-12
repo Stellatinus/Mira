@@ -16,6 +16,7 @@ export const it = {
   'app.refresh': 'Aggiorna',
   'app.serverDown': '{error}. Controlla che il server di Mira sia avviato.',
   'app.manageAccounts': 'Gestisci account',
+  'app.cachedUpdating': 'Dati salvati {when} · aggiorno…',
   'time.now': 'ora',
 
   'mode.group': 'Modalità di visualizzazione',
@@ -234,6 +235,12 @@ export const it = {
   'settings.refreshLabel': 'Aggiorna i dati ogni',
   'settings.refreshHint':
     'GitHub limita le ricerche a 30 al minuto, per questo non si scende sotto i 5 minuti. Puoi sempre aggiornare a mano con il pulsante in alto.',
+  'settings.cache': 'Dati salvati',
+  'settings.cacheLabel': 'Ultima fotografia dei dati',
+  'settings.cacheHint':
+    'Mira la salva in questo browser ({size} KB) per mostrarla subito all’apertura, mentre aggiorna. Contiene titoli di issue e PR, anche dei repository privati, ma mai i token; resta su questo computer.',
+  'settings.cacheClear': 'Cancella i dati salvati',
+  'settings.cacheCleared': 'Cancellati',
   'refresh.off': 'Mai (solo a mano)',
   'refresh.minutes.one': '{count} minuto',
   'refresh.minutes.other': '{count} minuti',

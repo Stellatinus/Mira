@@ -9,6 +9,7 @@ export const en: Messages = {
   'app.refresh': 'Refresh',
   'app.serverDown': '{error}. Check that the Mira server is running.',
   'app.manageAccounts': 'Manage accounts',
+  'app.cachedUpdating': 'Saved data from {when} · updating…',
   'time.now': 'now',
 
   'mode.group': 'Display mode',
@@ -227,6 +228,12 @@ export const en: Messages = {
   'settings.refreshLabel': 'Refresh data every',
   'settings.refreshHint':
     'GitHub limits searches to 30 per minute, so intervals under 5 minutes are not offered. You can always refresh by hand with the button at the top.',
+  'settings.cache': 'Saved data',
+  'settings.cacheLabel': 'Last snapshot of the data',
+  'settings.cacheHint':
+    'Mira saves it in this browser ({size} KB) to show it right away on opening while it updates. It contains issue and PR titles, including private repositories, but never the tokens; it stays on this computer.',
+  'settings.cacheClear': 'Clear saved data',
+  'settings.cacheCleared': 'Cleared',
   'refresh.off': 'Never (manual only)',
   'refresh.minutes.one': '{count} minute',
   'refresh.minutes.other': '{count} minutes',
