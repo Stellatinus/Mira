@@ -1,0 +1,65 @@
+# Controlli automatici su ogni pull request e su ogni push a main.
+#
+# Cosa controlla:
+#  - frontend: installa le dipendenze (npm ci) e compila (npm run build), che include il controllo
+#    dei tipi di TypeScript e quindi anche le traduzioni mancanti;
+#  - backend: compila il server .NET trattando gli avvisi come errori.
+#
+# Gli stessi comandi si lanciano in locale: vedi CONTRIBUTING.md.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Il token di questo workflow può solo leggere il repository.
+permissions:
+  contents: read
+
+# Un nuovo push alla stessa PR annulla l'esecuzione precedente, ancora in corso.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Installa le dipendenze
+        run: npm ci
+        working-directory: web
+
+      - name: Controlla i tipi e compila
+        run: npm run build
+        working-directory: web
+
+  backend:
+    name: Backend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS NON è incluso: è una scelta del progetto (novembre 2026), per ora si controllano
+        # solo Linux e Windows. Per aggiungerlo basta inserire `macos-latest` in questo elenco.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compila (gli avvisi sono errori)
+        run: dotnet build src/Mira.Server --configuration Release -warnaserror
