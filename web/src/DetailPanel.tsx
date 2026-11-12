@@ -10,14 +10,16 @@ import type { AccountStatus, DashboardItem } from './types';
 
 interface Props {
   item: DashboardItem | null;
-  account?: AccountStatus;
-  starred: boolean;
+  /** Gli account che vedono l'elemento (più di uno per un repository). */
+  accounts: Pick<AccountStatus, 'login' | 'avatarUrl'>[];
+  /** Gli account che hanno messo la stella al repository. */
+  starredBy: string[];
   /** Cosa c'è di aperto nel repository selezionato (solo per gli elementi di tipo "repo"). */
   attention?: Attention;
   onClose: () => void;
 }
 
-export function DetailPanel({ item, account, starred, attention, onClose }: Props) {
+export function DetailPanel({ item, accounts, starredBy, attention, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const [copied, setCopied] = useState(false);
@@ -96,7 +98,7 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
                   <dt>{t('detail.stars')}</dt>
                   <dd>
                     {item.stars}
-                    {starred ? t('detail.starredByYou') : ''}
+                    {starredBy.length > 0 ? t('detail.starredBy', { accounts: starredBy.join(', ') }) : ''}
                   </dd>
                   <dt>{t('detail.fork')}</dt>
                   <dd>
@@ -123,9 +125,13 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
               KINDS.map((kind) => <KindSection key={kind} kind={kind} item={item} attention={attention} />)}
 
             <h3 className="panel-label">{t('detail.seenBy')}</h3>
-            <div className="shared">
-              <Avatar account={account ?? { login: item.account, avatarUrl: null }} size={28} />
-              <span>{item.account}</span>
+            <div className="shared-list">
+              {accounts.map((account) => (
+                <div key={account.login} className="shared">
+                  <Avatar account={account} size={28} />
+                  <span>{account.login}</span>
+                </div>
+              ))}
             </div>
           </div>
 

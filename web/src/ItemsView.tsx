@@ -4,7 +4,7 @@ import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
-import { ExternalIcon, ItemIcon, PullRequestIcon } from './icons';
+import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
 import { Tile } from './Tile';
@@ -115,17 +115,23 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
             )}
 
             <div className={`cards ${mode}`}>
-              {visible.map((item) => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  account={accountsByLogin.get(item.account)}
-                  attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
-                  selected={item.id === selectedId}
-                  showAccount={showAccount}
-                  onSelect={onSelect}
-                />
-              ))}
+              {visible.map((item) => {
+                // Un repository è una card sola anche se lo vedono più account: gli avatar sono tutti i suoi account.
+                const info = item.type === 'repo' ? model.repoInfo.get(item.id) : undefined;
+                const logins = info?.accounts ?? [item.account];
+                return (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    accounts={logins.map((login) => accountsByLogin.get(login) ?? { login, avatarUrl: null })}
+                    starredBy={info?.starredBy ?? []}
+                    attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
+                    selected={item.id === selectedId}
+                    showAccount={showAccount}
+                    onSelect={onSelect}
+                  />
+                );
+              })}
             </div>
 
             {items.length > collapsedCount && (
@@ -162,7 +168,10 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
 
 interface CardProps {
   item: DashboardItem;
-  account?: AccountStatus;
+  /** Gli account da mostrare come avatar (più di uno per un repository visto da più account). */
+  accounts: Pick<AccountStatus, 'login' | 'avatarUrl'>[];
+  /** Gli account che hanno messo la stella al repository. */
+  starredBy: string[];
   attention?: Attention;
   selected: boolean;
   showAccount: boolean;
@@ -194,7 +203,7 @@ function AttentionBadges({ item, attention }: { item: DashboardItem; attention?:
   return <span className="ci-attns">{badges}</span>;
 }
 
-function ItemCard({ item, account, attention, selected, showAccount, onSelect }: CardProps) {
+function ItemCard({ item, accounts, starredBy, attention, selected, showAccount, onSelect }: CardProps) {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
@@ -225,16 +234,24 @@ function ItemCard({ item, account, attention, selected, showAccount, onSelect }:
           <span className="tag-text">{tagLabel(item, i18n)}</span>
         </span>
       )}
-      <a
-        className="ci-open"
-        href={item.url}
-        target="_blank"
-        rel="noreferrer"
-        onClick={stop}
-        aria-label={t('items.openOnGitHub')}
-      >
-        <ExternalIcon size={15} />
-      </a>
+      <span className="ci-actions">
+        {starredBy.length > 0 && (
+          // Preferito: la stella (senza numero) dice che almeno un account l'ha messa; il tooltip dice chi.
+          <span className="ci-star" title={t('repo.starredBy', { accounts: starredBy.join(', ') })}>
+            <StarIcon size={14} filled />
+          </span>
+        )}
+        <a
+          className="ci-open"
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={stop}
+          aria-label={t('items.openOnGitHub')}
+        >
+          <ExternalIcon size={15} />
+        </a>
+      </span>
       <Tile item={item} iconSize={26} />
       <h3 className="ci-title" title={item.title}>
         {item.title}
@@ -245,8 +262,10 @@ function ItemCard({ item, account, attention, selected, showAccount, onSelect }:
         <span className="v">{when}</span>
       </div>
       {showAccount && (
-        <span className="ci-acct" title={item.account}>
-          <Avatar account={account ?? { login: item.account, avatarUrl: null }} size={22} />
+        <span className="ci-acct" title={accounts.map((a) => a.login).join(', ')}>
+          {accounts.slice(0, 3).map((account) => (
+            <Avatar key={account.login} account={account} size={22} />
+          ))}
         </span>
       )}
     </article>
