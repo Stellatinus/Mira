@@ -67,6 +67,13 @@ export const RepoIcon = ({ size = 16 }: IconProps) => (
   </Svg>
 );
 
+export const BellIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M3.5 11.5h9l-1-1.5V7a3.5 3.5 0 0 0-7 0v3z" />
+    <path d="M6.5 13.5a1.6 1.6 0 0 0 3 0" />
+  </Svg>
+);
+
 export const HomeIcon = ({ size = 16 }: IconProps) => (
   <Svg size={size}>
     <path d="M2.5 7.5 8 2.5l5.5 5V13a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5z" />

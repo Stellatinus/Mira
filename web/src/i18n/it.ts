@@ -41,6 +41,8 @@ export const it = {
   'view.starred.title': 'Repository preferiti',
   'view.prs.label': 'PR',
   'view.prs.title': 'Pull request',
+  'view.notifications.label': 'Notifiche',
+  'view.notifications.title': 'Notifiche',
   'view.settings.label': 'Impostazioni',
   'view.settings.title': 'Impostazioni',
 
