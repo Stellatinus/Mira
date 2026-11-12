@@ -169,3 +169,27 @@ export const DotsIcon = ({ size = 16 }: IconProps) => (
     <circle cx="12.5" cy="8" r="1" fill="currentColor" />
   </Svg>
 );
+
+export const FilterIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M2 3.5h12L9.5 9v4l-3-1.5V9z" />
+  </Svg>
+);
+
+export const SortIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M4.5 13V3M2.5 5l2-2 2 2M11.5 3v10M9.5 11l2 2 2-2" />
+  </Svg>
+);
+
+export const ChevronDownIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="m4 6 4 4 4-4" />
+  </Svg>
+);
+
+export const CheckIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="m3.5 8.5 3 3 6-7" />
+  </Svg>
+);

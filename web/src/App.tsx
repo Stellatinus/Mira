@@ -5,7 +5,8 @@ import { accountAlerts } from './alerts';
 import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
-import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon } from './icons';
+import { Dropdown } from './Dropdown';
+import { CompactIcon, FilterIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
@@ -18,6 +19,7 @@ import { DEFAULT_REPO_SORT, isRepoSection, REPO_FILTERS, REPO_SORTS } from './re
 import type { RepoFilter, RepoSort } from './repoview';
 import { useTheme } from './theme';
 import type { Dashboard } from './types';
+import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
 const MODE_KEY = 'mira.mode';
@@ -119,6 +121,9 @@ export default function App() {
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
   const isRepoView = config.sections.some(isRepoSection);
+  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilter, t });
+  // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
+  const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
   const selectedAccount = selected ? data?.accounts.find((a) => a.login === selected.account) : undefined;
   const selectedStarred =
@@ -193,36 +198,33 @@ export default function App() {
 
         <div className="scroll">
           <div className="toolbar">
-            <h2>{t(`view.${config.key}.title` as 'view.home.title')}</h2>
+            <h2 className="view-title">
+              {t(`view.${config.key}.title` as 'view.home.title')}
+              {countKey && (
+                <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
+                  {model.countText(countKey)}
+                </span>
+              )}
+            </h2>
             {isRepoView && (
               <div className="tools">
-                <div className="seg small" role="radiogroup" aria-label={t('repo.filter.label')}>
-                  {REPO_FILTERS.map((option) => (
-                    <button
-                      key={option}
-                      role="radio"
-                      aria-checked={repoFilter === option}
-                      className={repoFilter === option ? 'seg-btn active' : 'seg-btn'}
-                      onClick={() => setRepoFilter(option)}
-                    >
-                      {t(`repo.filter.${option}` as 'repo.filter.all')}
-                    </button>
-                  ))}
-                </div>
-                <label className="sort">
-                  <span className="muted small">{t('repo.sort.label')}</span>
-                  <select
-                    className="select compact"
-                    value={repoSort}
-                    onChange={(e) => chooseRepoSort(e.target.value as RepoSort)}
-                  >
-                    {REPO_SORTS.map((option) => (
-                      <option key={option} value={option}>
-                        {t(`repo.sort.${option}` as 'repo.sort.updated')}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Dropdown
+                  label={t('repo.filter.label')}
+                  icon={<FilterIcon size={15} />}
+                  text={repoFilter === 'all' ? t('repo.filter.button') : t(`repo.filter.${repoFilter}` as 'repo.filter.all')}
+                  value={repoFilter}
+                  options={REPO_FILTERS.map((value) => ({ value, label: t(`repo.filter.${value}` as 'repo.filter.all') }))}
+                  onChange={setRepoFilter}
+                  highlighted={repoFilter !== 'all'}
+                />
+                <Dropdown
+                  label={t('repo.sort.label')}
+                  icon={<SortIcon size={15} />}
+                  text={t(`repo.sort.${repoSort}` as 'repo.sort.updated')}
+                  value={repoSort}
+                  options={REPO_SORTS.map((value) => ({ value, label: t(`repo.sort.${value}` as 'repo.sort.updated') }))}
+                  onChange={chooseRepoSort}
+                />
               </div>
             )}
             {showItems && (
@@ -268,12 +270,10 @@ export default function App() {
               data={data}
               view={config}
               filter={filter}
-              query={query}
               mode={mode}
               selectedId={selected?.id ?? null}
               attention={attention}
-              repoSort={repoSort}
-              repoFilter={repoFilter}
+              model={model}
               onSelect={setSelectedId}
               onManageAccounts={() => chooseView('settings')}
             />
