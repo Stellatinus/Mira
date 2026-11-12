@@ -73,7 +73,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
       {view.key === 'home' && (
         <div className="stats">
           {view.sections.map((key) => (
-            <a key={key} className="stat" href={`#sec-${key}`}>
+            <a key={key} className="stat" data-section={key} href={`#sec-${key}`}>
               <strong>{totalLabel(key)}</strong>
               <span>{t(sectionTitle(key))}</span>
             </a>
@@ -103,7 +103,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
         const truncated = model.truncated(key);
 
         return (
-          <section key={key} id={`sec-${key}`} className="group">
+          <section key={key} id={`sec-${key}`} className="group" data-section={key}>
             {showGroupHeader && (
               <header className="group-head">
                 <h2>{t(sectionTitle(key))}</h2>

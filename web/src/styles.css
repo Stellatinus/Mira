@@ -17,6 +17,11 @@
   --tile-ink: #24252b;
   --c-pr: #5aa9ff;
   --c-issue: #f2a33a;
+  /* Un colore per ogni sezione; le PR sono blu e le issue arancio, come negli indicatori dei repository. */
+  --c-review: #a78bfa;
+  --c-assigned: #4ade80;
+  --c-notifications: #22d3ee;
+  --c-mentions: #f472b6;
   --danger: #ff8a80;
   --danger-bg: #3a1c1f;
   --warn: #f2b84b;
@@ -42,6 +47,10 @@
   --tile-ink: #ffffff;
   --c-pr: #1f6fd6;
   --c-issue: #b45f06;
+  --c-review: #6d4fd1;
+  --c-assigned: #1a8f4a;
+  --c-notifications: #0e7f96;
+  --c-mentions: #c2307a;
   --danger: #b42318;
   --danger-bg: #fdecea;
   --warn: #8a5a00;
@@ -179,15 +188,24 @@ h1, h2, h3, p { margin: 0; }
 /* ---------- Statistiche e gruppi ---------- */
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 28px; }
-.stat { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 12px; background: var(--card); text-decoration: none; }
+/* Il colore della sezione: sul riquadro del conteggio e sull'intestazione. */
+[data-section='review'] { --sec: var(--c-review); }
+[data-section='assigned'] { --sec: var(--c-assigned); }
+[data-section='notifications'] { --sec: var(--c-notifications); }
+[data-section='mentions'] { --sec: var(--c-mentions); }
+[data-section='mine-prs'] { --sec: var(--c-pr); }
+[data-section='mine-issues'] { --sec: var(--c-issue); }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 14px 18px; border-radius: 12px; background: var(--card); box-shadow: inset 4px 0 0 var(--sec, var(--line)); text-decoration: none; }
 .stat:hover { background: var(--card-hover); }
-.stat strong { font-size: 24px; line-height: 1.1; }
+.stat strong { font-size: 24px; line-height: 1.1; color: var(--sec, var(--text)); }
 .stat span { font-size: 12px; color: var(--muted); }
 
 .group { margin-bottom: 30px; scroll-margin-top: 12px; }
 .group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.group-head::before { content: ''; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--sec, var(--muted)); }
 .group-head h2 { font-size: 13px; font-weight: 600; }
 .count { font-size: 11.5px; background: var(--card); border-radius: 999px; padding: 1px 9px; color: var(--muted); }
+.group-head .count { background: color-mix(in srgb, var(--sec, var(--muted)) 20%, transparent); color: var(--sec, var(--muted)); font-weight: 600; }
 .hint { margin-left: auto; font-size: 12px; }
 
 .more { display: block; margin: 14px auto 0; padding: 7px 16px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--muted); font-size: 13px; cursor: pointer; }
