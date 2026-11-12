@@ -3,7 +3,7 @@ import type { DashboardItem, Section } from './types';
 
 /** Cose che aspettano te: review richieste, assegnate, menzioni, notifiche non lette. */
 const NEEDS_ATTENTION: Section[] = ['review', 'assigned', 'mentions', 'notifications'];
-/** Cose tue ancora aperte: le mostriamo nel tooltip, ma non rendono urgente l'indicatore. */
+/** Cose tue ancora aperte: si mostrano accanto al totale («31 aperte (26 tue)»), ma non rendono urgente l'indicatore. */
 const MINE_OPEN: Section[] = ['mine-prs', 'mine-issues'];
 
 /** Le PR e tutto il resto (issue, ma anche release, discussioni… che arrivano dalle notifiche). */
@@ -76,7 +76,10 @@ export function indicator(
   return { count: Math.max(open, needs), urgent: needs > 0 };
 }
 
-/** Le righe di spiegazione («2 aperte», «1 assegnata a te»…), nell'ordine di importanza. */
+/**
+ * Le righe di spiegazione, nell'ordine di importanza. La prima dice quante sono aperte e, tra
+ * parentesi, quante sono tue («31 aperte (26 tue)»); le altre dicono cosa aspetta te («1 assegnata a te»).
+ */
 export function attentionLines(
   repo: Pick<DashboardItem, 'openPrs' | 'openIssues'>,
   attention: Attention | undefined,
@@ -85,10 +88,15 @@ export function attentionLines(
 ): string[] {
   const lines: string[] = [];
   const { count } = indicator(repo, attention, kind);
-  if (count > 0) lines.push(t('attention.open', { count }));
-
   const counts = attention?.[kind].counts ?? {};
-  for (const section of [...NEEDS_ATTENTION, ...MINE_OPEN]) {
+  // Le tue, dagli elementi scaricati; non possono essere più di quelle aperte.
+  const mine = Math.min(counts[kind === 'pr' ? 'mine-prs' : 'mine-issues'] ?? 0, count);
+  if (count > 0) {
+    const open = t('attention.open', { count });
+    lines.push(mine > 0 ? `${open} (${t('attention.mine', { count: mine })})` : open);
+  }
+
+  for (const section of NEEDS_ATTENTION) {
     const n = counts[section] ?? 0;
     if (n > 0) lines.push(t(`attention.${section}` as 'attention.review', { count: n }));
   }

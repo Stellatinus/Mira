@@ -120,10 +120,8 @@ export const it = {
   'attention.mentions.other': '{count} menzioni',
   'attention.notifications.one': '{count} notifica non letta',
   'attention.notifications.other': '{count} notifiche non lette',
-  'attention.mine-prs.one': '{count} tua PR aperta',
-  'attention.mine-prs.other': '{count} tue PR aperte',
-  'attention.mine-issues.one': '{count} tua issue aperta',
-  'attention.mine-issues.other': '{count} tue issue aperte',
+  'attention.mine.one': '{count} tua',
+  'attention.mine.other': '{count} tue',
 
   'attention.kind.pr': 'PR',
   'attention.kind.issue': 'Issue',

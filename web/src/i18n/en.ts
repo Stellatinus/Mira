@@ -113,10 +113,8 @@ export const en: Messages = {
   'attention.mentions.other': '{count} mentions',
   'attention.notifications.one': '{count} unread notification',
   'attention.notifications.other': '{count} unread notifications',
-  'attention.mine-prs.one': '{count} open PR of yours',
-  'attention.mine-prs.other': '{count} open PRs of yours',
-  'attention.mine-issues.one': '{count} open issue of yours',
-  'attention.mine-issues.other': '{count} open issues of yours',
+  'attention.mine.one': '{count} yours',
+  'attention.mine.other': '{count} yours',
 
   'attention.kind.pr': 'PRs',
   'attention.kind.issue': 'Issues',
