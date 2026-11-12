@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import { useDismiss } from './dismiss';
 import { CheckIcon, ChevronDownIcon } from './icons';
 
 export interface DropdownOption<T extends string> {
@@ -27,25 +28,14 @@ export function Dropdown<T extends string>({ label, icon, text, value, options, 
   const menu = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
 
+  useDismiss(open, root, (viaEscape) => {
+    setOpen(false);
+    if (viaEscape) button.current?.focus();
+  });
+
+  // Aprendo il menu il focus va sulla scelta attuale, così si naviga con le frecce.
   useEffect(() => {
-    if (!open) return;
-    const onPointer = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        button.current?.focus();
-      }
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    // Aprendo il menu il focus va sulla scelta attuale, così si naviga con le frecce.
-    menu.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
+    if (open) menu.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
   }, [open]);
 
   function onMenuKey(event: KeyboardEvent<HTMLDivElement>) {

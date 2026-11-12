@@ -12,7 +12,7 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
 - **Notifiche non lette**: la casella di GitHub, ordinata e senza rumore
 - **Menzioni**: dove qualcuno ti ha taggato
 - **Le tue PR e issue aperte**
-- **Repository** e **repository preferiti** (con le stelle e il logo del repository, o l'avatar di chi lo possiede), dalla barra laterale, con ordinamento (aggiornamento, nome, stelle, PR, issue, cosa aspetta te) e filtri (con PR aperte, con issue aperte, aspettano te); ogni repository ha un
+- **Repository** e **repository preferiti** (con le stelle e il logo del repository, o l'avatar di chi lo possiede), dalla barra laterale, con ordinamento (aggiornamento, nome, stelle, PR, issue, cosa aspetta te) e filtri combinabili (attività: con PR o issue aperte, con issue non assegnate, aspettano te, senza nulla di aperto; visibilità; fork; preferiti; linguaggio; proprietario); ogni repository ha un
   doppio indicatore, uno per le PR (blu) e uno per le issue (arancio): il numero è quante ce ne sono di aperte
   nel repository (da GitHub, anche di altri); è pieno se tra queste qualcosa aspetta te (review richieste,
   assegnate, menzioni, notifiche non lette, su tutti gli account collegati), solo contorno altrimenti.

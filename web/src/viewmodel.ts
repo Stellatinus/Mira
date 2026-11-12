@@ -2,14 +2,21 @@ import { useMemo } from 'react';
 import { repoKey } from './attention';
 import type { Attention } from './attention';
 import type { I18n } from './i18n';
-import { compareRepos, isRepoSection, matchesRepoFilter } from './repoview';
-import type { RepoFilter, RepoSort } from './repoview';
+import { activeFilterCount, compareRepos, isRepoSection, matchesRepoFilters, NO_LANGUAGE, ownerOf } from './repoview';
+import type { RepoFilters, RepoSort } from './repoview';
 import type { ViewConfig } from './sections';
 import type { Dashboard, DashboardItem, Section } from './types';
 
 interface Total {
   count: number;
   unknown: boolean;
+}
+
+/** Una scelta dei filtri a elenco (linguaggio o proprietario), con quanti repository la hanno. */
+export interface Facet {
+  value: string;
+  label: string;
+  count: number;
 }
 
 /** Gli elementi di ogni sezione della vista già filtrati e ordinati, e i loro conteggi. */
@@ -25,6 +32,8 @@ export interface ViewModel {
   totalLabel: (key: Section) => string;
   /** Il numero di una sezione come lo si scrive: «65», «14 di 65» o «100 di 191». */
   countText: (key: Section) => string;
+  /** Le scelte dei filtri a elenco, ricavate dai repository della vista (prima dei filtri dei repository). */
+  facets: { languages: Facet[]; owners: Facet[] };
 }
 
 export const matchesQuery = (item: DashboardItem, needle: string): boolean =>
@@ -40,17 +49,28 @@ interface Args {
   query: string;
   attention: Map<string, Attention>;
   repoSort: RepoSort;
-  repoFilter: RepoFilter;
+  repoFilters: RepoFilters;
   t: I18n['t'];
 }
 
-export function useViewModel({ data, view, filter, query, attention, repoSort, repoFilter, t }: Args): ViewModel {
+export function useViewModel({ data, view, filter, query, attention, repoSort, repoFilters, t }: Args): ViewModel {
   return useMemo(() => {
     const needle = query.trim().toLowerCase();
     const items = data?.items ?? [];
     // Il filtro dei repository restringe l'elenco: i totali di GitHub non valgono più.
-    const narrowed = (key: Section) => isRepoSection(key) && repoFilter !== 'all';
+    const filtering = activeFilterCount(repoFilters) > 0;
+    const narrowed = (key: Section) => isRepoSection(key) && filtering;
     const attentionOf = (item: DashboardItem) => attention.get(repoKey(item.repo));
+
+    // Quali repository sono tra i preferiti di quale account (per il filtro «preferiti»).
+    const starredKeys = new Set(items.filter((i) => i.section === 'starred').map((i) => `${i.account}|${i.repo}`));
+    const languages = new Map<string, Facet>();
+    const owners = new Map<string, Facet>();
+    const count = (map: Map<string, Facet>, value: string, label: string) => {
+      const found = map.get(value);
+      if (found) found.count += 1;
+      else map.set(value, { value, label, count: 1 });
+    };
 
     const bySection = new Map<Section, DashboardItem[]>(view.sections.map((key) => [key, []]));
     // Quanti repository ci sono prima del filtro dei repository, per scrivere «14 di 65».
@@ -61,7 +81,11 @@ export function useViewModel({ data, view, filter, query, attention, repoSort, r
       if (needle && !matchesQuery(item, needle)) continue;
       if (isRepoSection(item.section)) {
         repoBase.set(item.section, (repoBase.get(item.section) ?? 0) + 1);
-        if (!matchesRepoFilter(item, repoFilter, attentionOf(item))) continue;
+        if (view.sections.includes(item.section)) {
+          count(languages, item.language ?? NO_LANGUAGE, item.language ?? '');
+          count(owners, ownerOf(item).toLowerCase(), ownerOf(item));
+        }
+        if (!matchesRepoFilters(item, repoFilters, attentionOf(item), starredKeys.has(`${item.account}|${item.repo}`))) continue;
       }
       bySection.get(item.section)?.push(item);
     }
@@ -104,6 +128,13 @@ export function useViewModel({ data, view, filter, query, attention, repoSort, r
       return String(shown);
     };
 
-    return { needle, bySection, narrowed, truncated, totalLabel, countText };
-  }, [data, view, filter, query, attention, repoSort, repoFilter, t]);
+    const byCount = (a: Facet, b: Facet) => b.count - a.count || a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    const facets = {
+      // «Nessun linguaggio» va in fondo all'elenco.
+      languages: [...languages.values()].sort((a, b) => Number(a.value === NO_LANGUAGE) - Number(b.value === NO_LANGUAGE) || byCount(a, b)),
+      owners: [...owners.values()].sort(byCount),
+    };
+
+    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets };
+  }, [data, view, filter, query, attention, repoSort, repoFilters, t]);
 }
