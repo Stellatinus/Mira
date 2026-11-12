@@ -13,8 +13,8 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
 - **Menzioni**: dove qualcuno ti ha taggato
 - **Le tue PR e issue aperte**
 - **Repository** e **repository preferiti** (con le stelle), dalla barra laterale; ogni repository ha un
-  doppio indicatore, uno per le PR e uno per le issue: arancione se qualcosa aspetta te (review richieste,
-  assegnate, menzioni, notifiche non lette), grigio se ci sono solo tue PR o issue aperte; il tooltip dice cosa
+  doppio indicatore, uno per le PR (blu) e uno per le issue (arancio): pieno se qualcosa aspetta te (review
+  richieste, assegnate, menzioni, notifiche non lette), solo contorno se ci sono solo cose tue aperte; il tooltip dice cosa
 - **Avvisi sui token**: quando un token sta per scadere o non è più valido
 
 Il nome viene da *Mira*, la stella variabile nella costellazione della Balena (in latino «la meravigliosa»):

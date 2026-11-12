@@ -221,7 +221,8 @@ interface CardProps {
 
 /**
  * Indicatori sulle card dei repository, uno per le PR e uno per le issue, così un numero non può
- * passare per l'altro. Arancione se qualcosa aspetta te, neutro se ci sono solo cose tue ancora aperte.
+ * passare per l'altro. Il colore dice il tipo (PR blu, issue arancio); il riempimento dice se qualcosa
+ * aspetta te (pieno) o se ci sono solo cose tue ancora aperte (solo contorno).
  */
 function AttentionBadges({ attention }: { attention: Attention }) {
   const { t } = useI18n();
@@ -232,7 +233,7 @@ function AttentionBadges({ attention }: { attention: Attention }) {
 
     const text = `${t(`attention.kind.${kind}` as 'attention.kind.pr')}: ${attentionLines(attention[kind], t).join(' · ')}`;
     return (
-      <span key={kind} className={urgent ? 'ci-attn urgent' : 'ci-attn'} title={text} aria-label={text} role="img">
+      <span key={kind} className={urgent ? `ci-attn ${kind} urgent` : `ci-attn ${kind}`} title={text} aria-label={text} role="img">
         {kind === 'pr' ? <PullRequestIcon size={13} /> : <ItemIcon type="issue" size={13} />}
         {count}
       </span>

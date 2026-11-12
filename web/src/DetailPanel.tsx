@@ -110,7 +110,10 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
               {attention &&
                 KINDS.filter((kind) => attentionLines(attention[kind], t).length > 0).map((kind) => (
                   <Fragment key={kind}>
-                    <dt>{t(`attention.kind.${kind}` as 'attention.kind.pr')}</dt>
+                    <dt className="kind-label">
+                      <span className={`kind-dot ${kind}`} aria-hidden />
+                      {t(`attention.kind.${kind}` as 'attention.kind.pr')}
+                    </dt>
                     <dd>
                       {attentionLines(attention[kind], t).map((line) => (
                         <div key={line}>{line}</div>

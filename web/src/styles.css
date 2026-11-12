@@ -15,6 +15,8 @@
   --star: #f2b84b;
   --tile: #8f909a;
   --tile-ink: #24252b;
+  --c-pr: #5aa9ff;
+  --c-issue: #f2a33a;
   --danger: #ff8a80;
   --danger-bg: #3a1c1f;
   --warn: #f2b84b;
@@ -38,6 +40,8 @@
   --star: #c98a05;
   --tile: #b8b9c7;
   --tile-ink: #ffffff;
+  --c-pr: #1f6fd6;
+  --c-issue: #b45f06;
   --danger: #b42318;
   --danger-bg: #fdecea;
   --warn: #8a5a00;
@@ -190,8 +194,13 @@ h1, h2, h3, p { margin: 0; }
 .ci-tag.starred { color: var(--star); }
 .tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-attns { grid-area: attn; display: inline-flex; gap: 4px; }
-.ci-attn { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 11.5px; font-weight: 600; cursor: help; }
-.ci-attn.urgent { background: var(--warn-bg); color: var(--warn); }
+/* Il colore dice il tipo (PR o issue); il riempimento dice se aspetta te (pieno) o è solo tuo e aperto (contorno). */
+.pr { --kind: var(--c-pr); }
+.issue { --kind: var(--c-issue); }
+.ci-attn { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: transparent; color: var(--kind); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind) 50%, transparent); font-size: 11.5px; font-weight: 600; cursor: help; }
+.ci-attn.urgent { background: color-mix(in srgb, var(--kind) 22%, transparent); box-shadow: inset 0 0 0 1px var(--kind); font-weight: 700; }
+.kind-label { display: flex; align-items: center; gap: 6px; }
+.kind-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--kind); flex: none; }
 .ci-open { grid-area: open; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
 .ci-open:hover { color: var(--text); background: var(--line); }
 .item-card .tile { grid-area: tile; justify-self: center; }
