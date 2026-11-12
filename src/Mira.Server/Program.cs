@@ -27,6 +27,7 @@ builder.Services.AddHttpClient("github", client =>
 builder.Services.AddSingleton<GitHubApi>();
 builder.Services.AddSingleton<AccountService>();
 builder.Services.AddSingleton<DashboardService>();
+builder.Services.AddSingleton<IssueService>();
 
 var app = builder.Build();
 

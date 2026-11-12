@@ -22,7 +22,10 @@ public sealed record GhIssue(
     string? RepositoryUrl,
     GhUserRef? User,
     JsonElement? PullRequest,
-    string? Body);
+    string? Body,
+    List<GhUserRef>? Assignees);
+
+public sealed record GhOrg(string Login);
 
 // --- GraphQL (nomi camelCase) ---
 

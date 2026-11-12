@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, ErrorInfo } from './types';
+import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -30,6 +30,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getDashboard = (refresh = false) =>
   request<Dashboard>(`/api/dashboard${refresh ? '?refresh=true' : ''}`);
+
+/** Tutte le issue di una vista («issues» o «unassigned»), scaricate alla richiesta. */
+export const getIssues = (view: ExtraKey, refresh = false) =>
+  request<ExtraSnapshot>(`/api/issues/${view}${refresh ? '?refresh=true' : ''}`);
 
 export const addAccount = (token: string) =>
   request<AccountStatus>('/api/accounts', {

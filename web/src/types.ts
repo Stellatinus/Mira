@@ -6,7 +6,9 @@ export type Section =
   | 'mine-prs'
   | 'mine-issues'
   | 'repos'
-  | 'starred';
+  | 'starred'
+  | 'issues'
+  | 'unassigned';
 
 export type ItemType = 'issue' | 'pr' | 'repo' | 'release' | 'commit' | 'discussion' | 'other';
 
@@ -48,6 +50,8 @@ export interface DashboardItem {
   forkOf: string | null;
   /** Issue aperte senza assegnatario, su tutto il repository. */
   unassignedIssues: number;
+  /** I login degli assegnatari di una issue o PR. */
+  assignees: string[] | null;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */
@@ -70,6 +74,15 @@ export interface DashboardError {
   section: string;
   error: ErrorInfo;
 }
+
+/** Una lista di elementi caricata a parte (viste «Issue» e «Non assegnate»). */
+export interface ExtraSnapshot {
+  generatedAt: string;
+  items: DashboardItem[];
+  errors: DashboardError[];
+}
+
+export type ExtraKey = 'issues' | 'unassigned';
 
 export interface Dashboard {
   generatedAt: string;

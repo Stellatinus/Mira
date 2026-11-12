@@ -233,7 +233,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         return new Part(items, new SectionTotal(login, "notifications", total), null);
     }
 
-    private static DashboardItem ToItem(string login, string section, GhIssue issue) => new(
+    internal static DashboardItem ToItem(string login, string section, GhIssue issue) => new(
         $"{login}:{section}:{issue.Id}",
         login,
         section,
@@ -246,7 +246,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         null,
         issue.Draft == true,
         issue.Comments,
-        Shorten(issue.Body));
+        Shorten(issue.Body),
+        Assignees: issue.Assignees?.Select(a => a.Login).ToArray());
 
     private static string? Shorten(string? text)
     {
