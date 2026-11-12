@@ -34,6 +34,8 @@ export const en: Messages = {
   'view.starred.title': 'Starred repositories',
   'view.prs.label': 'PRs',
   'view.prs.title': 'Pull requests',
+  'view.notifications.label': 'Alerts',
+  'view.notifications.title': 'Notifications',
   'view.settings.label': 'Settings',
   'view.settings.title': 'Settings',
 

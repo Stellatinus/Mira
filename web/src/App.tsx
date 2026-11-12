@@ -131,6 +131,10 @@ export default function App() {
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
+  const unreadNotifications = useMemo(
+    () => (data?.items ?? []).filter((i) => i.section === 'notifications' && (filter === 'all' || i.account === filter)).length,
+    [data, filter],
+  );
   const isRepoView = config.tools === 'repos';
   const isItemView = config.tools === 'items';
   const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, t });
@@ -182,6 +186,7 @@ export default function App() {
         filter={filter}
         onFilter={chooseFilter}
         needsAttention={alerts.length > 0}
+        unreadNotifications={unreadNotifications}
       />
 
       <main className="main">

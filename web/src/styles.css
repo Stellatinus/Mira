@@ -162,6 +162,7 @@ h1, h2, h3, p { margin: 0; }
 .nav-item.active::after { content: ''; position: absolute; right: 0; top: 18%; bottom: 18%; width: 2px; border-radius: 2px; background: var(--accent); }
 .nav-icon { position: relative; display: grid; place-items: center; }
 .nav-label { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-badge { position: absolute; top: -7px; right: -13px; display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--c-notifications); color: #06222a; font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; box-shadow: 0 0 0 2px var(--side); }
 .attention { position: absolute; top: -3px; right: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--side); }
 
 .stack-box { flex: none; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--main) 55%, transparent); }

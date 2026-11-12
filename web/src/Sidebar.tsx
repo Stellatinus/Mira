@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import logoUrl from './assets/logo.png';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { AssignedIcon, DotsIcon, HomeIcon, PullRequestIcon, RepoIcon, StarIcon, UsersIcon } from './icons';
+import { AssignedIcon, BellIcon, DotsIcon, HomeIcon, PullRequestIcon, RepoIcon, StarIcon, UsersIcon } from './icons';
 import { NAV_VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import type { AccountStatus } from './types';
@@ -13,6 +13,7 @@ const ICONS: Partial<Record<ViewKey, ReactNode>> = {
   assigned: <AssignedIcon size={20} />,
   starred: <StarIcon size={20} />,
   prs: <PullRequestIcon size={20} />,
+  notifications: <BellIcon size={20} />,
 };
 
 interface Props {
@@ -23,9 +24,11 @@ interface Props {
   filter: string;
   onFilter: (login: string) => void;
   needsAttention: boolean;
+  /** Quante notifiche non lette ci sono (col filtro per account), per il numerino sulla voce Notifiche. */
+  unreadNotifications: number;
 }
 
-export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttention }: Props) {
+export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttention, unreadNotifications }: Props) {
   const { t } = useI18n();
 
   return (
@@ -40,7 +43,12 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
             onClick={() => onView(v.key)}
             aria-current={view === v.key ? 'page' : undefined}
           >
-            <span className="nav-icon">{ICONS[v.key]}</span>
+            <span className="nav-icon">
+              {ICONS[v.key]}
+              {v.key === 'notifications' && unreadNotifications > 0 && (
+                <span className="nav-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>
+              )}
+            </span>
             <span className="nav-label">{t(`view.${v.key}.label` as 'view.home.label')}</span>
           </button>
         ))}
