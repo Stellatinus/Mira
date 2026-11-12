@@ -4,7 +4,7 @@ import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
-import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
+import { ExternalIcon, ItemIcon, PullRequestIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
 import { Tile } from './Tile';
@@ -41,10 +41,6 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const accountsByLogin = useMemo(() => new Map(data.accounts.map((a) => [a.login, a])), [data.accounts]);
-  const starredKeys = useMemo(
-    () => new Set(data.items.filter((i) => i.section === 'starred').map((i) => `${i.account}|${i.repo}`)),
-    [data.items],
-  );
   const { bySection, needle, totalLabel } = model;
 
   if (data.accounts.length === 0) {
@@ -124,7 +120,6 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
                   key={item.id}
                   item={item}
                   account={accountsByLogin.get(item.account)}
-                  starred={item.type === 'repo' && starredKeys.has(`${item.account}|${item.repo}`)}
                   attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
                   selected={item.id === selectedId}
                   showAccount={showAccount}
@@ -168,7 +163,6 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
 interface CardProps {
   item: DashboardItem;
   account?: AccountStatus;
-  starred: boolean;
   attention?: Attention;
   selected: boolean;
   showAccount: boolean;
@@ -200,7 +194,7 @@ function AttentionBadges({ item, attention }: { item: DashboardItem; attention?:
   return <span className="ci-attns">{badges}</span>;
 }
 
-function ItemCard({ item, account, starred, attention, selected, showAccount, onSelect }: CardProps) {
+function ItemCard({ item, account, attention, selected, showAccount, onSelect }: CardProps) {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
@@ -223,17 +217,14 @@ function ItemCard({ item, account, starred, attention, selected, showAccount, on
       onClick={() => onSelect(item.id)}
       onKeyDown={onKey}
     >
-      <span className={starred ? 'ci-tag starred' : 'ci-tag'}>
-        {item.type === 'repo' ? (
-          <>
-            <StarIcon size={15} filled={starred} />
-            {item.stars}
-          </>
-        ) : (
+      {item.type === 'repo' ? (
+        // Le stelle non sono sulla card: stanno nel pannello dei dettagli.
+        <AttentionBadges item={item} attention={attention} />
+      ) : (
+        <span className="ci-tag">
           <span className="tag-text">{tagLabel(item, i18n)}</span>
-        )}
-      </span>
-      {item.type === 'repo' && <AttentionBadges item={item} attention={attention} />}
+        </span>
+      )}
       <a
         className="ci-open"
         href={item.url}
