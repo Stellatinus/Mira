@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { attentionLines, repoKey } from './attention';
+import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
-import { AttentionIcon, ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
+import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
 import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
@@ -219,20 +219,28 @@ interface CardProps {
   onSelect: (id: string) => void;
 }
 
-/** Indicatore sulle card dei repository: arancione se qualcosa aspetta te, neutro se ci sono solo cose tue aperte. */
-function AttentionBadge({ attention }: { attention: Attention }) {
+/**
+ * Indicatori sulle card dei repository, uno per le PR e uno per le issue, così un numero non può
+ * passare per l'altro. Arancione se qualcosa aspetta te, neutro se ci sono solo cose tue ancora aperte.
+ */
+function AttentionBadges({ attention }: { attention: Attention }) {
   const { t } = useI18n();
-  const urgent = attention.needs > 0;
-  const count = urgent ? attention.needs : attention.mine;
-  if (count === 0) return null;
 
-  const text = attentionLines(attention, t).join(' · ');
-  return (
-    <span className={urgent ? 'ci-attn urgent' : 'ci-attn'} title={text} aria-label={text} role="img">
-      {urgent ? <AttentionIcon size={13} /> : <PullRequestIcon size={13} />}
-      {count}
-    </span>
-  );
+  const badges = KINDS.map((kind) => {
+    const { count, urgent } = indicator(attention[kind]);
+    if (count === 0) return null;
+
+    const text = `${t(`attention.kind.${kind}` as 'attention.kind.pr')}: ${attentionLines(attention[kind], t).join(' · ')}`;
+    return (
+      <span key={kind} className={urgent ? 'ci-attn urgent' : 'ci-attn'} title={text} aria-label={text} role="img">
+        {kind === 'pr' ? <PullRequestIcon size={13} /> : <ItemIcon type="issue" size={13} />}
+        {count}
+      </span>
+    );
+  });
+
+  if (badges.every((badge) => badge === null)) return null;
+  return <span className="ci-attns">{badges}</span>;
 }
 
 function ItemCard({ item, account, starred, attention, selected, showAccount, onSelect }: CardProps) {
@@ -268,7 +276,7 @@ function ItemCard({ item, account, starred, attention, selected, showAccount, on
           <span className="tag-text">{tagLabel(item, i18n)}</span>
         )}
       </span>
-      {attention && <AttentionBadge attention={attention} />}
+      {attention && <AttentionBadges attention={attention} />}
       <a
         className="ci-open"
         href={item.url}

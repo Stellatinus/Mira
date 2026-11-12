@@ -123,7 +123,8 @@ export const it = {
   'attention.mine-issues.one': '{count} tua issue aperta',
   'attention.mine-issues.other': '{count} tue issue aperte',
 
-  'detail.attention': 'Da guardare',
+  'attention.kind.pr': 'PR',
+  'attention.kind.issue': 'Issue',
   'detail.openIssues': 'Issue e PR aperte',
   'detail.title': 'Dettagli',
   'detail.close': 'Chiudi',

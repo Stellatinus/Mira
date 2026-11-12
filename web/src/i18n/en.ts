@@ -116,7 +116,8 @@ export const en: Messages = {
   'attention.mine-issues.one': '{count} open issue of yours',
   'attention.mine-issues.other': '{count} open issues of yours',
 
-  'detail.attention': 'Needs a look',
+  'attention.kind.pr': 'PRs',
+  'attention.kind.issue': 'Issues',
   'detail.openIssues': 'Open issues and PRs',
   'detail.title': 'Details',
   'detail.close': 'Close',

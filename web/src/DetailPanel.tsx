@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { attentionLines } from './attention';
+import { Fragment, useEffect, useState } from 'react';
+import { attentionLines, KINDS } from './attention';
 import type { Attention } from './attention';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
@@ -107,16 +107,17 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
                   <dd>{item.openIssues}</dd>
                 </>
               )}
-              {attention && attentionLines(attention, t).length > 0 && (
-                <>
-                  <dt>{t('detail.attention')}</dt>
-                  <dd>
-                    {attentionLines(attention, t).map((line) => (
-                      <div key={line}>{line}</div>
-                    ))}
-                  </dd>
-                </>
-              )}
+              {attention &&
+                KINDS.filter((kind) => attentionLines(attention[kind], t).length > 0).map((kind) => (
+                  <Fragment key={kind}>
+                    <dt>{t(`attention.kind.${kind}` as 'attention.kind.pr')}</dt>
+                    <dd>
+                      {attentionLines(attention[kind], t).map((line) => (
+                        <div key={line}>{line}</div>
+                      ))}
+                    </dd>
+                  </Fragment>
+                ))}
               {item.comments > 0 && (
                 <>
                   <dt>{t('detail.comments')}</dt>

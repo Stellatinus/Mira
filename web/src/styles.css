@@ -189,7 +189,8 @@ h1, h2, h3, p { margin: 0; }
 .ci-tag { grid-area: tag; display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: var(--muted); font-size: 11.5px; }
 .ci-tag.starred { color: var(--star); }
 .tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ci-attn { grid-area: attn; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 11.5px; font-weight: 600; cursor: help; }
+.ci-attns { grid-area: attn; display: inline-flex; gap: 4px; }
+.ci-attn { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 11.5px; font-weight: 600; cursor: help; }
 .ci-attn.urgent { background: var(--warn-bg); color: var(--warn); }
 .ci-open { grid-area: open; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
 .ci-open:hover { color: var(--text); background: var(--line); }
