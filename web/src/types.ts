@@ -41,6 +41,8 @@ export interface DashboardItem {
   /** Issue e PR aperte nel repository, contate a parte (solo per gli elementi di tipo "repo"). */
   openIssues: number;
   openPrs: number;
+  /** Logo del repository (anteprima sociale personalizzata, altrimenti avatar del proprietario). */
+  logoUrl: string | null;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */

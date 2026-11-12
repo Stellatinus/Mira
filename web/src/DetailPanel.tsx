@@ -5,6 +5,7 @@ import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { CloseIcon, CopyIcon, DetailIcon, ExternalIcon, ItemIcon } from './icons';
 import { reasonLabel, typeLabel } from './labels';
+import { Tile } from './Tile';
 import type { AccountStatus, DashboardItem } from './types';
 
 interface Props {
@@ -55,9 +56,7 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
       ) : (
         <>
           <div className="panel-body">
-            <div className="tile big">
-              <ItemIcon type={item.type} size={52} />
-            </div>
+            <Tile item={item} iconSize={52} big />
             <div className="rule" />
 
             <h2 className="panel-title">{item.title}</h2>

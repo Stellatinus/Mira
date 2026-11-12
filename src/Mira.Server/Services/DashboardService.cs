@@ -128,6 +128,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
           primaryLanguage { name }
           issues(states: OPEN) { totalCount }
           pullRequests(states: OPEN) { totalCount }
+          openGraphImageUrl usesCustomOpenGraphImage
+          owner { avatarUrl(size: 128) }
         }
         """;
 
@@ -157,6 +159,16 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             : new ErrorInfo("github-graphql", first?.Message);
     }
 
+    /// <summary>
+    /// Il logo di un repository: la sua immagine di anteprima sociale se ne ha una personalizzata e
+    /// è pubblica; altrimenti l'avatar di chi lo possiede (per i repository privati l'anteprima
+    /// non è raggiungibile dal browser senza accesso).
+    /// </summary>
+    private static string? LogoOf(GqlRepo repo) =>
+        repo.UsesCustomOpenGraphImage && !repo.IsPrivate && !string.IsNullOrEmpty(repo.OpenGraphImageUrl)
+            ? repo.OpenGraphImageUrl
+            : repo.Owner?.AvatarUrl;
+
     private static Part RepoPart(string login, string section, GqlRepoList? list)
     {
         var nodes = list?.Nodes ?? new List<GqlRepo?>();
@@ -180,7 +192,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
                 r.StargazerCount,
                 r.IsPrivate,
                 r.Issues.TotalCount,
-                r.PullRequests.TotalCount))
+                r.PullRequests.TotalCount,
+                LogoOf(r)))
             .ToList();
         // Una pagina piena significa che potrebbero essercene altri: il totale non è noto.
         int? total = nodes.Count < ReposPageSize ? items.Count : null;
