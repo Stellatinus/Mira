@@ -70,6 +70,22 @@ body {
   color: var(--text);
   font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Il testo dell'interfaccia non si seleziona trascinando o con il doppio clic: rendeva tutto confusionario. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Si selezionano e si copiano solo i campi di testo (ricerca, token). */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Le immagini (avatar, logo) non si trascinano via con il mouse. */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 a { color: inherit; }
