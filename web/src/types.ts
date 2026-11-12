@@ -7,8 +7,7 @@ export type Section =
   | 'mine-issues'
   | 'repos'
   | 'starred'
-  | 'issues'
-  | 'unassigned';
+  | 'issues';
 
 export type ItemType = 'issue' | 'pr' | 'repo' | 'release' | 'commit' | 'discussion' | 'other';
 
@@ -82,7 +81,7 @@ export interface ExtraSnapshot {
   errors: DashboardError[];
 }
 
-export type ExtraKey = 'issues' | 'unassigned';
+export type ExtraKey = 'issues';
 
 export interface Dashboard {
   generatedAt: string;

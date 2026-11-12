@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import logoUrl from './assets/logo.png';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { AssignedIcon, BellIcon, DotsIcon, HomeIcon, ItemIcon, PullRequestIcon, RepoIcon, UnassignedIcon, UsersIcon } from './icons';
+import { BellIcon, DotsIcon, HomeIcon, ItemIcon, PullRequestIcon, RepoIcon, UsersIcon } from './icons';
 import { NAV_VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import type { AccountStatus } from './types';
@@ -11,8 +11,6 @@ const ICONS: Partial<Record<ViewKey, ReactNode>> = {
   home: <HomeIcon size={20} />,
   repos: <RepoIcon size={20} />,
   issues: <ItemIcon type="issue" size={20} />,
-  unassigned: <UnassignedIcon size={20} />,
-  assigned: <AssignedIcon size={20} />,
   prs: <PullRequestIcon size={20} />,
   notifications: <BellIcon size={20} />,
 };

@@ -43,7 +43,7 @@ export interface ViewModel {
   /** Le scelte dei filtri a elenco, ricavate dai repository della vista (prima dei filtri dei repository). */
   facets: { languages: Facet[]; owners: Facet[] };
   /** Come `facets`, per i filtri degli elementi (repository, proprietario e motivo delle notifiche). */
-  itemFacets: { repos: Facet[]; owners: Facet[]; reasons: Facet[] };
+  itemFacets: { repos: Facet[]; owners: Facet[]; reasons: Facet[]; assignees: Facet[] };
   /** Per ogni repository della vista Repo (per id dell'elemento), gli account e le stelle: una card per repository. */
   repoInfo: Map<string, RepoInfo>;
 }
@@ -66,8 +66,6 @@ interface Args {
   itemFilters: ItemFilters;
   /** Include nell'elenco dei repository anche i preferiti che non sono nei propri. */
   showStarred: boolean;
-  /** Nella vista «Issue»: solo quelle assegnate a te (a un account collegato). */
-  assignedOnly: boolean;
   t: I18n['t'];
 }
 
@@ -82,7 +80,6 @@ export function useViewModel({
   itemSort,
   itemFilters,
   showStarred,
-  assignedOnly,
   t,
 }: Args): ViewModel {
   return useMemo(() => {
@@ -92,7 +89,7 @@ export function useViewModel({
     const repoFiltering = activeFilterCount(repoFilters) > 0;
     const itemFiltering = activeItemFilterCount(itemFilters) > 0;
     const narrowed = (key: Section) =>
-      isRepoSection(key) ? repoFiltering : itemFiltering || (key === 'issues' && assignedOnly);
+      isRepoSection(key) ? repoFiltering : itemFiltering;
     // I login degli account in vista: «assegnate a te» vuol dire assegnate a uno di loro.
     const mine = new Set(
       (data?.accounts ?? []).filter((a) => filter === 'all' || a.login === filter).map((a) => a.login.toLowerCase()),
@@ -104,6 +101,7 @@ export function useViewModel({
     const itemRepos = new Map<string, Facet>();
     const itemOwners = new Map<string, Facet>();
     const itemReasons = new Map<string, Facet>();
+    const itemAssignees = new Map<string, Facet>();
     const count = (map: Map<string, Facet>, value: string, label: string) => {
       const found = map.get(value);
       if (found) found.count += 1;
@@ -135,14 +133,14 @@ export function useViewModel({
         continue;
       }
       base.set(item.section, (base.get(item.section) ?? 0) + 1);
-      if (item.section === 'issues' && assignedOnly && !(item.assignees ?? []).some((a) => mine.has(a.toLowerCase()))) continue;
       {
         if (view.sections.includes(item.section)) {
           count(itemRepos, item.repo.toLowerCase(), item.repo);
           count(itemOwners, ownerOf(item).toLowerCase(), ownerOf(item));
           if (item.reason) count(itemReasons, item.reason, item.reason);
+          for (const login of item.assignees ?? []) count(itemAssignees, login.toLowerCase(), login);
         }
-        if (!matchesItemFilters(item, itemFilters)) continue;
+        if (!matchesItemFilters(item, itemFilters, mine)) continue;
       }
       bySection.get(item.section)?.push(item);
     }
@@ -212,8 +210,9 @@ export function useViewModel({
       repos: [...itemRepos.values()].sort(byCount),
       owners: [...itemOwners.values()].sort(byCount),
       reasons: [...itemReasons.values()].sort(byCount),
+      assignees: [...itemAssignees.values()].sort(byCount),
     };
 
     return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo };
-  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, assignedOnly, t]);
+  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t]);
 }

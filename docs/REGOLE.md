@@ -27,16 +27,16 @@ Esempio: `Stellatinus/Regulus` è visto da `SugoGangotti` e da `saturn-codexcirc
 - **«non assegnate»**: issue aperte senza assegnatario, su tutto il repository (numero esatto di GitHub).
 - **Filtri e ordinamenti** usano gli stessi numeri degli indicatori.
 
-## Le viste «Issue» e «Non assegnate»
+## La vista «Issue»
 
 A differenza della dashboard, che si ferma alle 100 voci più recenti per sezione, queste due viste **scaricano tutte le pagine dei risultati** quando si aprono (la ricerca di GitHub arriva a 1000 risultati) e le tengono in cache per qualche minuto.
 
-- **Issue**: tutte le issue aperte che ti riguardano: **aperte da te o assegnate a te**, su tutti gli account in vista, senza doppioni. Il pulsante **«Assegnate a te»** è attivo di default e le restringe a quelle assegnate a te (a un account in vista); spegnendolo si vedono tutte («36 di 232»).
-- **Non assegnate**: issue aperte **senza assegnatario** nei repository dei tuoi account (`user:`) e delle organizzazioni a cui appartengono (`org:`), senza doppioni.
-- La voce «Assegnate» resta com'era (le issue assegnate a te nella dashboard); si valuterà in seguito se tenerla.
+- **Issue**: **tutte** le issue aperte nei repository dei tuoi account e delle organizzazioni a cui appartengono (di chiunque siano e comunque assegnate), più quelle aperte da te o assegnate a te in repository di altri; senza doppioni, su tutti gli account in vista.
+- Il filtro **«Assegnazione»** divide l'insieme senza resto: **assegnate a te** (a un account in vista) + **ad altri** (con assegnatari, nessuno dei quali sei tu) + **non assegnate** = **tutte**. Di default si apre su «Assegnate a te»; «Azzera i filtri» mostra tutte. Il filtro **«Assegnatario»** sceglie una persona precisa.
+- Non esistono più le voci «Assegnate» e «Non assegnate» nella barra laterale: sono filtri di «Issue». Nella Home resta la sezione «Assegnate a te» (issue e PR).
 
 ## Limiti da conoscere
 
-- Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); le viste «Issue» e «Non assegnate» le scaricano tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.
+- Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.
 - La ricerca di GitHub concede 30 richieste al minuto: se si aggiorna troppo spesso compare «limite raggiunto» e passa da solo.
 - I filtri dei repository valgono per la vista Repo; quelli di issue, PR e notifiche per la vista in cui sono scelti e si azzerano cambiando vista.

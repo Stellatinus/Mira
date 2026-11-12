@@ -1,4 +1,5 @@
 import { ANY, ownerOf } from './repoview';
+import type { ViewKey } from './sections';
 import type { DashboardItem } from './types';
 
 /**
@@ -14,7 +15,15 @@ export const DRAFT_FILTERS: DraftFilter[] = ['all', 'only', 'none'];
 export type CommentsFilter = 'all' | 'with' | 'without';
 export const COMMENTS_FILTERS: CommentsFilter[] = ['all', 'with', 'without'];
 
+/** Come una issue è assegnata, rispetto ai tuoi account: a te, ad altri, o a nessuno. */
+export type AssignmentFilter = 'all' | 'mine' | 'others' | 'none';
+export const ASSIGNMENT_FILTERS: AssignmentFilter[] = ['all', 'mine', 'others', 'none'];
+
 export interface ItemFilters {
+  /** «Assegnate a te», «ad altri» e «non assegnate» dividono le issue senza resto. */
+  assignment: AssignmentFilter;
+  /** Un assegnatario preciso (login in minuscolo), o ANY. */
+  assignee: string;
   type: TypeFilter;
   /** Vale per le PR: «solo bozze» esclude le issue, «senza bozze» le tiene. */
   draft: DraftFilter;
@@ -28,6 +37,8 @@ export interface ItemFilters {
 }
 
 export const DEFAULT_ITEM_FILTERS: ItemFilters = {
+  assignment: 'all',
+  assignee: ANY,
   type: 'all',
   draft: 'all',
   comments: 'all',
@@ -43,7 +54,21 @@ export function activeItemFilterCount(filters: ItemFilters): number {
   ).length;
 }
 
-export function matchesItemFilters(item: DashboardItem, filters: ItemFilters): boolean {
+/**
+ * I filtri con cui si apre una vista: in «Issue» si parte da «Assegnate a te» (le issue su cui devi lavorare);
+ * in tutte le altre da nessun filtro.
+ */
+export function defaultItemFilters(view: ViewKey): ItemFilters {
+  return view === 'issues' ? { ...DEFAULT_ITEM_FILTERS, assignment: 'mine' } : DEFAULT_ITEM_FILTERS;
+}
+
+/** `mine`: i login (in minuscolo) degli account in vista, per capire cosa è assegnato «a te». */
+export function matchesItemFilters(item: DashboardItem, filters: ItemFilters, mine: ReadonlySet<string>): boolean {
+  const assignees = (item.assignees ?? []).map((a) => a.toLowerCase());
+  if (filters.assignment === 'none' && assignees.length > 0) return false;
+  if (filters.assignment === 'mine' && !assignees.some((a) => mine.has(a))) return false;
+  if (filters.assignment === 'others' && !(assignees.length > 0 && !assignees.some((a) => mine.has(a)))) return false;
+  if (filters.assignee !== ANY && !assignees.includes(filters.assignee)) return false;
   if (filters.type === 'pr' && item.type !== 'pr') return false;
   if (filters.type === 'issue' && item.type !== 'issue') return false;
   if (filters.draft === 'only' && !item.draft) return false;

@@ -6,10 +6,10 @@ import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
-import { AssignedIcon, CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
+import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemFilterMenu } from './ItemFilterMenu';
-import { DEFAULT_ITEM_FILTERS, DEFAULT_ITEM_SORT, ITEM_SORTS } from './itemview';
+import { DEFAULT_ITEM_SORT, defaultItemFilters, ITEM_SORTS } from './itemview';
 import type { ItemFilters, ItemSort } from './itemview';
 import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
@@ -81,13 +81,12 @@ export default function App() {
   // Le viste «Issue» e «Non assegnate» scaricano tutte le pagine alla richiesta, quando si aprono.
   const [extras, setExtras] = useState<Partial<Record<ExtraKey, { data: ExtraSnapshot | null; loading: boolean; error: unknown }>>>({});
   // «Assegnate a te»: attivo di default nella vista Issue; spegnendolo si vedono tutte.
-  const [assignedOnly, setAssignedOnly] = useState(true);
   const [itemSort, setItemSort] = useState<ItemSort>(() => {
     const saved = readStored(ITEM_SORT_KEY, DEFAULT_ITEM_SORT);
     return ITEM_SORTS.find((s) => s === saved) ?? DEFAULT_ITEM_SORT;
   });
   // I filtri degli elementi valgono per la vista in cui sono stati scelti: cambiando vista si azzerano.
-  const [itemFilters, setItemFilters] = useState<ItemFilters>(DEFAULT_ITEM_FILTERS);
+  const [itemFilters, setItemFilters] = useState<ItemFilters>(() => defaultItemFilters(view));
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -172,7 +171,7 @@ export default function App() {
     () => (data && extra?.data ? { ...data, items: [...data.items, ...extra.data.items], errors: [...data.errors, ...extra.data.errors] } : data),
     [data, extra?.data],
   );
-  const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, assignedOnly, t });
+  const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t });
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = viewData?.items.find((i) => i.id === selectedId) ?? null;
@@ -210,7 +209,7 @@ export default function App() {
 
   function chooseView(next: ViewKey) {
     setView(next);
-    setItemFilters(DEFAULT_ITEM_FILTERS);
+    setItemFilters(defaultItemFilters(next));
     setSelectedId(null);
   }
 
@@ -299,7 +298,7 @@ export default function App() {
                 )}
                 {isItemView && (
                   <>
-                    <ItemFilterMenu filters={itemFilters} onChange={setItemFilters} facets={model.itemFacets} />
+                    <ItemFilterMenu filters={itemFilters} onChange={setItemFilters} facets={model.itemFacets} assignable={view === 'issues'} />
                     <Dropdown
                       label={t('repo.sort.label')}
                       icon={<SortIcon size={15} />}
@@ -309,16 +308,6 @@ export default function App() {
                       onChange={chooseItemSort}
                     />
                   </>
-                )}
-                {view === 'issues' && (
-                  <button
-                    className={assignedOnly ? 'dd-btn highlighted' : 'dd-btn'}
-                    aria-pressed={assignedOnly}
-                    onClick={() => setAssignedOnly((current) => !current)}
-                  >
-                    <AssignedIcon size={15} />
-                    <span className="dd-text">{t('issues.assignedToMe')}</span>
-                  </button>
                 )}
                 {countKey && (
                   <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>

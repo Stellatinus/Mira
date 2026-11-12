@@ -74,24 +74,10 @@ export const BellIcon = ({ size = 16 }: IconProps) => (
   </Svg>
 );
 
-export const UnassignedIcon = ({ size = 16 }: IconProps) => (
-  <Svg size={size}>
-    <circle cx="8" cy="5.5" r="2.5" strokeDasharray="1.7 1.7" />
-    <path d="M3 13.5c.6-2.4 2.5-3.5 5-3.5s4.4 1.1 5 3.5" strokeDasharray="2.2 1.8" />
-  </Svg>
-);
-
 export const HomeIcon = ({ size = 16 }: IconProps) => (
   <Svg size={size}>
     <path d="M2.5 7.5 8 2.5l5.5 5V13a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5z" />
     <path d="M6.5 13.5V9.5h3v4" />
-  </Svg>
-);
-
-export const AssignedIcon = ({ size = 16 }: IconProps) => (
-  <Svg size={size}>
-    <circle cx="8" cy="5.5" r="2.5" />
-    <path d="M3 13.5c.6-2.4 2.5-3.5 5-3.5s4.4 1.1 5 3.5" />
   </Svg>
 );
 

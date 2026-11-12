@@ -31,7 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const getDashboard = (refresh = false) =>
   request<Dashboard>(`/api/dashboard${refresh ? '?refresh=true' : ''}`);
 
-/** Tutte le issue di una vista («issues» o «unassigned»), scaricate alla richiesta. */
+/** Tutte le issue di una vista («issues»), scaricate alla richiesta. */
 export const getIssues = (view: ExtraKey, refresh = false) =>
   request<ExtraSnapshot>(`/api/issues/${view}${refresh ? '?refresh=true' : ''}`);
 
