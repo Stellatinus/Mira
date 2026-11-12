@@ -1,0 +1,14 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Frontend
+node_modules/
+src/Mira.Server/wwwroot/
+
+# Segreti e dati locali: non devono MAI finire nel repository
+*.enc
+master.key
+.env
+.env.*

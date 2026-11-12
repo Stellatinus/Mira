@@ -1,0 +1,38 @@
+using Mira.Server.Services;
+
+namespace Mira.Server.Api;
+
+public sealed record AddAccountRequest(string? Token);
+
+public static class Endpoints
+{
+    public static void MapMiraApi(this WebApplication app)
+    {
+        var api = app.MapGroup("/api");
+
+        api.MapGet("/accounts", async (AccountService accounts, CancellationToken ct) =>
+            Results.Ok(await accounts.GetStatusesAsync(ct)));
+
+        api.MapPost("/accounts", async (
+            AddAccountRequest request, AccountService accounts, DashboardService dashboard, CancellationToken ct) =>
+        {
+            var result = await accounts.AddAsync(request.Token, ct);
+            if (result.Error is not null)
+                return Results.BadRequest(new { error = result.Error });
+
+            dashboard.Invalidate();
+            return Results.Ok(result.Account);
+        });
+
+        api.MapDelete("/accounts/{login}", async (
+            string login, AccountService accounts, DashboardService dashboard, CancellationToken ct) =>
+        {
+            await accounts.RemoveAsync(login, ct);
+            dashboard.Invalidate();
+            return Results.NoContent();
+        });
+
+        api.MapGet("/dashboard", async (bool? refresh, DashboardService dashboard, CancellationToken ct) =>
+            Results.Ok(await dashboard.GetAsync(refresh == true, ct)));
+    }
+}
