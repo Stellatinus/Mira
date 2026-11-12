@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Mira.Server;
 using Mira.Server.Api;
 using Mira.Server.GitHub;
+using Mira.Server.Models;
 using Mira.Server.Services;
 using Mira.Server.Storage;
 
@@ -33,9 +34,9 @@ app.UseExceptionHandler(errors => errors.Run(async context =>
 {
     var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-    // I messaggi di InvalidOperationException sono scritti da noi e sono pensati per l'utente.
-    var message = exception is InvalidOperationException ? exception.Message : "Errore interno del server.";
-    await context.Response.WriteAsJsonAsync(new { error = message });
+    // Solo le MiraException hanno un codice pensato per l'utente; il resto è un errore generico.
+    var code = exception is MiraException known ? known.Code : "internal";
+    await context.Response.WriteAsJsonAsync(new { error = new ErrorInfo(code) });
 }));
 
 app.UseLocalOnly();

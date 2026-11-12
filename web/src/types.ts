@@ -17,6 +17,7 @@ export interface AccountStatus {
   state: 'ok' | 'invalid' | 'error';
   tokenExpiresAt: string | null;
   scopes: string[];
+  /** Codici: "fine-grained" oppure "missing-scope:<scope>"; l'interfaccia li traduce. */
   warnings: string[];
 }
 
@@ -46,10 +47,24 @@ export interface SectionTotal {
   total: number | null;
 }
 
+/** Errore con codice stabile in arrivo dal backend; il testo lo sceglie il frontend (vedi i18n). */
+export interface ErrorInfo {
+  code: string;
+  detail?: string | null;
+  cause?: ErrorInfo | null;
+}
+
+/** Errore avvenuto leggendo una sezione di un account (section può essere "account"). */
+export interface DashboardError {
+  account: string;
+  section: string;
+  error: ErrorInfo;
+}
+
 export interface Dashboard {
   generatedAt: string;
   accounts: AccountStatus[];
   items: DashboardItem[];
   totals: SectionTotal[];
-  errors: string[];
+  errors: DashboardError[];
 }

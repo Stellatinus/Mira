@@ -61,6 +61,20 @@ Mira usa un **personal access token classic** per ogni account.
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account
 ripeti i passi accedendo ogni volta con l'account giusto.
 
+## Tema e lingua
+
+Dalle **Impostazioni** (il pulsante `•••` sopra gli avatar, in basso a sinistra) si sceglie il tema
+(Sistema, Scuro, Chiaro) e la lingua dell'interfaccia (Italiano, English). Le scelte restano nel browser.
+
+Il backend non scrive frasi per l'utente: manda codici (`token-invalid`, `missing-scope:repo`…) che il frontend
+traduce. Per **aggiungere una lingua**:
+
+1. copia `web/src/i18n/it.ts` in `web/src/i18n/xx.ts` e traduci i valori, lasciando uguali le chiavi
+   (il tipo `Messages` fa fallire la compilazione se ne manca una);
+2. aggiungi una riga a `LANGUAGES` in `web/src/i18n/languages.ts`.
+
+La nuova lingua compare da sola nell'elenco delle Impostazioni; date e tempi relativi seguono il suo `locale`.
+
 ## Dove stanno i token
 
 - In un file cifrato (AES-GCM) nella cartella di configurazione dell'utente, fuori dal repository:

@@ -1,6 +1,9 @@
 namespace Mira.Server.Models;
 
-/// <summary>Stato di un account collegato. State: ok | invalid | error.</summary>
+/// <summary>
+/// Stato di un account collegato. State: ok | invalid | error.
+/// Warnings sono codici tradotti dal frontend: "fine-grained" oppure "missing-scope:&lt;scope&gt;".
+/// </summary>
 public sealed record AccountStatus(
     string Login,
     string? Name,
@@ -45,4 +48,4 @@ public sealed record DashboardSnapshot(
     IReadOnlyList<AccountStatus> Accounts,
     IReadOnlyList<DashboardItem> Items,
     IReadOnlyList<SectionTotal> Totals,
-    IReadOnlyList<string> Errors);
+    IReadOnlyList<DashboardError> Errors);

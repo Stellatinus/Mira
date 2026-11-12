@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Avatar } from './Avatar';
+import { useI18n } from './i18n';
 import { CloseIcon, CopyIcon, DetailIcon, ExternalIcon, ItemIcon } from './icons';
-import { formatDate, reasonLabel, timeAgo, typeLabel } from './format';
+import { reasonLabel, typeLabel } from './labels';
 import type { AccountStatus, DashboardItem } from './types';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export function DetailPanel({ item, account, starred, onClose }: Props) {
+  const i18n = useI18n();
+  const { t, timeAgo, formatDate } = i18n;
   const [copied, setCopied] = useState(false);
 
   useEffect(() => setCopied(false), [item?.id]);
@@ -28,11 +31,11 @@ export function DetailPanel({ item, account, starred, onClose }: Props) {
   }
 
   return (
-    <aside className="panel" aria-label="Dettagli">
+    <aside className="panel" aria-label={t('detail.title')}>
       <header className="panel-head">
         <DetailIcon />
-        <span>Dettagli</span>
-        <button className="icon-btn panel-close" onClick={onClose} aria-label="Chiudi">
+        <span>{t('detail.title')}</span>
+        <button className="icon-btn panel-close" onClick={onClose} aria-label={t('detail.close')}>
           <CloseIcon />
         </button>
       </header>
@@ -43,7 +46,7 @@ export function DetailPanel({ item, account, starred, onClose }: Props) {
           <div className="tile big">
             <ItemIcon type="other" size={44} />
           </div>
-          <p className="muted">Seleziona un elemento per vedere i dettagli.</p>
+          <p className="muted">{t('detail.empty')}</p>
         </div>
       ) : (
         <>
@@ -58,54 +61,54 @@ export function DetailPanel({ item, account, starred, onClose }: Props) {
               <span className="mono">{item.repo}</span>
             </p>
 
-            <h3 className="panel-label">Descrizione</h3>
+            <h3 className="panel-label">{t('detail.description')}</h3>
             <p className={item.description ? 'panel-text' : 'panel-text muted'}>
-              {item.description ?? 'Nessuna descrizione.'}
+              {item.description ?? t('detail.noDescription')}
             </p>
             <div className="rule" />
 
             <dl className="facts">
-              <dt>Tipo</dt>
-              <dd>{typeLabel(item)}</dd>
+              <dt>{t('detail.type')}</dt>
+              <dd>{typeLabel(item, i18n)}</dd>
               {item.reason && (
                 <>
-                  <dt>Motivo</dt>
-                  <dd>{reasonLabel(item.reason)}</dd>
+                  <dt>{t('detail.reason')}</dt>
+                  <dd>{reasonLabel(item.reason, i18n)}</dd>
                 </>
               )}
               {item.author && (
                 <>
-                  <dt>Autore</dt>
+                  <dt>{t('detail.author')}</dt>
                   <dd>{item.author}</dd>
                 </>
               )}
               {item.language && (
                 <>
-                  <dt>Linguaggio</dt>
+                  <dt>{t('detail.language')}</dt>
                   <dd>{item.language}</dd>
                 </>
               )}
               {item.type === 'repo' && (
                 <>
-                  <dt>Stelle</dt>
+                  <dt>{t('detail.stars')}</dt>
                   <dd>
                     {item.stars}
-                    {starred ? ' · l’hai messa tu' : ''}
+                    {starred ? t('detail.starredByYou') : ''}
                   </dd>
                 </>
               )}
               {item.comments > 0 && (
                 <>
-                  <dt>Commenti</dt>
+                  <dt>{t('detail.comments')}</dt>
                   <dd>{item.comments}</dd>
                 </>
               )}
-              <dt>Aggiornato</dt>
+              <dt>{t('detail.updated')}</dt>
               <dd title={formatDate(item.updatedAt)}>{timeAgo(item.updatedAt)}</dd>
             </dl>
             <div className="rule" />
 
-            <h3 className="panel-label">Visto da</h3>
+            <h3 className="panel-label">{t('detail.seenBy')}</h3>
             <div className="shared">
               <Avatar account={account ?? { login: item.account, avatarUrl: null }} size={28} />
               <span>{item.account}</span>
@@ -118,13 +121,13 @@ export function DetailPanel({ item, account, starred, onClose }: Props) {
               <span className="action-icon">
                 <ExternalIcon />
               </span>
-              Apri
+              {t('detail.open')}
             </a>
             <button className="action" onClick={() => void copyLink()}>
               <span className="action-icon">
                 <CopyIcon />
               </span>
-              {copied ? 'Copiato' : 'Copia link'}
+              {copied ? t('detail.copied') : t('detail.copyLink')}
             </button>
           </div>
         </>

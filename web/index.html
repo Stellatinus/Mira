@@ -1,11 +1,22 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
     <title>Mira</title>
     <link rel="icon" type="image/png" href="/logo.png" />
+    <script>
+      // Applica il tema prima del primo disegno, per evitare il lampo del colore sbagliato.
+      // La stessa logica sta in src/theme.ts.
+      (function () {
+        try {
+          var saved = localStorage.getItem('mira.theme');
+          var light = saved === 'light' || (saved !== 'dark' && window.matchMedia('(prefers-color-scheme: light)').matches);
+          document.documentElement.dataset.theme = light ? 'light' : 'dark';
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

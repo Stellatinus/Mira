@@ -2,15 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getDashboard } from './api';
 import { accountAlerts } from './alerts';
-import { timeAgo } from './format';
+import { failureText } from './errors';
+import { useI18n } from './i18n';
 import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon } from './icons';
-import { AccountsView } from './AccountsView';
 import { DetailPanel } from './DetailPanel';
 import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
+import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
+import { useTheme } from './theme';
 import type { Dashboard } from './types';
 
 const REFRESH_MS = 5 * 60 * 1000;
@@ -33,15 +35,18 @@ function writeStored(key: string, value: string) {
   }
 }
 
-const MODES: { key: Mode; label: string; icon: ReactNode }[] = [
-  { key: 'list', label: 'Elenco', icon: <ListIcon /> },
-  { key: 'grid', label: 'Griglia', icon: <GridIcon /> },
-  { key: 'compact', label: 'Compatta', icon: <CompactIcon /> },
+const MODES: { key: Mode; icon: ReactNode }[] = [
+  { key: 'list', icon: <ListIcon /> },
+  { key: 'grid', icon: <GridIcon /> },
+  { key: 'compact', icon: <CompactIcon /> },
 ];
 
 export default function App() {
+  const i18n = useI18n();
+  const { t, timeAgo } = i18n;
+  const [theme, setTheme] = useTheme();
   const [data, setData] = useState<Dashboard | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewKey>('home');
   const [storedFilter, setStoredFilter] = useState(() => readStored(FILTER_KEY, 'all'));
@@ -66,7 +71,7 @@ export default function App() {
         if (next.accounts.length === 0) setView('settings');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore sconosciuto');
+      setError(e ?? new Error('unknown'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +93,7 @@ export default function App() {
   }, [load]);
 
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
-  const alerts = useMemo(() => (data ? accountAlerts(data.accounts) : []), [data]);
+  const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
@@ -132,16 +137,16 @@ export default function App() {
         <header className="main-head">
           <h1>Mira</h1>
           <div className="head-actions">
-            {data && <span className="updated">Aggiornato {timeAgo(data.generatedAt)}</span>}
+            {data && <span className="updated">{t('app.updated', { when: timeAgo(data.generatedAt) })}</span>}
             {showItems && (
               <label className="search">
                 <SearchIcon />
                 <input
                   type="search"
-                  placeholder="Cerca…"
+                  placeholder={t('app.search')}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Cerca"
+                  aria-label={t('app.searchLabel')}
                 />
               </label>
             )}
@@ -149,8 +154,8 @@ export default function App() {
               className={loading ? 'icon-btn spinning' : 'icon-btn'}
               onClick={() => void load(true)}
               disabled={loading}
-              title="Aggiorna"
-              aria-label="Aggiorna"
+              title={t('app.refresh')}
+              aria-label={t('app.refresh')}
             >
               <RefreshIcon />
             </button>
@@ -160,28 +165,31 @@ export default function App() {
 
         <div className="scroll">
           <div className="toolbar">
-            <h2>{config.title}</h2>
+            <h2>{t(`view.${config.key}.title` as 'view.home.title')}</h2>
             {showItems && (
-              <div className="modes" role="group" aria-label="Modalità di visualizzazione">
-                {MODES.map((m) => (
-                  <button
-                    key={m.key}
-                    className={mode === m.key ? 'mode active' : 'mode'}
-                    onClick={() => chooseMode(m.key)}
-                    title={m.label}
-                    aria-label={m.label}
-                    aria-pressed={mode === m.key}
-                  >
-                    {m.icon}
-                  </button>
-                ))}
+              <div className="modes" role="group" aria-label={t('mode.group')}>
+                {MODES.map((m) => {
+                  const label = t(`mode.${m.key}` as 'mode.grid');
+                  return (
+                    <button
+                      key={m.key}
+                      className={mode === m.key ? 'mode active' : 'mode'}
+                      onClick={() => chooseMode(m.key)}
+                      title={label}
+                      aria-label={label}
+                      aria-pressed={mode === m.key}
+                    >
+                      {m.icon}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {error && (
+          {error !== null && (
             <div className="alert danger" role="alert">
-              {error}. Controlla che il server di Mira sia avviato.
+              {t('app.serverDown', { error: failureText(error, i18n) })}
             </div>
           )}
           {alerts.map((alert) => (
@@ -189,13 +197,13 @@ export default function App() {
               <span>{alert.text}</span>
               {view !== 'settings' && (
                 <button className="link" onClick={() => chooseView('settings')}>
-                  Gestisci account
+                  {t('app.manageAccounts')}
                 </button>
               )}
             </div>
           ))}
 
-          {!data && !error && <p className="muted">Carico…</p>}
+          {!data && error === null && <p className="muted">{t('app.loading')}</p>}
           {data && showItems && (
             <ItemsView
               data={data}
@@ -208,7 +216,14 @@ export default function App() {
               onManageAccounts={() => chooseView('settings')}
             />
           )}
-          {data && view === 'settings' && <AccountsView accounts={data.accounts} onChanged={() => load(true)} />}
+          {data && view === 'settings' && (
+            <SettingsView
+              accounts={data.accounts}
+              onAccountsChanged={() => load(true)}
+              theme={theme}
+              onTheme={setTheme}
+            />
+          )}
         </div>
       </main>
 

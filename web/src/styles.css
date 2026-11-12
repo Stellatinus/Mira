@@ -1,4 +1,5 @@
-/* Tema scuro di default (come il design di riferimento); chiaro se il sistema lo chiede. */
+/* Tema scuro di default (come il design di riferimento). Il tema effettivo è scritto su
+   <html data-theme="dark|light"> da index.html e da src/theme.ts, che gestiscono anche «Sistema». */
 :root {
   --side: #1b1c21;
   --main: #202127;
@@ -23,29 +24,27 @@
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --side: #e9e9f0;
-    --main: #f4f4f9;
-    --panel: #eeeef5;
-    --card: #ffffff;
-    --card-hover: #f7f5fe;
-    --card-selected: #ebe4fb;
-    --line: #dcdce6;
-    --text: #1d1d27;
-    --muted: #6c6d7c;
-    --accent: #7a35d8;
-    --star: #c98a05;
-    --tile: #b8b9c7;
-    --tile-ink: #ffffff;
-    --danger: #b42318;
-    --danger-bg: #fdecea;
-    --warn: #8a5a00;
-    --warn-bg: #fff4d6;
-    --ok: #1a7f37;
-    --ok-bg: #e3f5e8;
-    color-scheme: light;
-  }
+:root[data-theme='light'] {
+  --side: #e9e9f0;
+  --main: #f4f4f9;
+  --panel: #eeeef5;
+  --card: #ffffff;
+  --card-hover: #f7f5fe;
+  --card-selected: #ebe4fb;
+  --line: #dcdce6;
+  --text: #1d1d27;
+  --muted: #6c6d7c;
+  --accent: #7a35d8;
+  --star: #c98a05;
+  --tile: #b8b9c7;
+  --tile-ink: #ffffff;
+  --danger: #b42318;
+  --danger-bg: #fdecea;
+  --warn: #8a5a00;
+  --warn-bg: #fff4d6;
+  --ok: #1a7f37;
+  --ok-bg: #e3f5e8;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -125,8 +124,10 @@ h1, h2, h3, p { margin: 0; }
 .attention { position: absolute; top: -3px; right: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--side); }
 
 .stack-box { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--main) 55%, transparent); }
-.stack-more { display: grid; place-items: center; width: 32px; height: 22px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 6px; }
-.stack-more:hover { color: var(--text); }
+.stack-more { position: relative; display: grid; place-items: center; width: 32px; height: 22px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 6px; }
+.stack-more:hover, .stack-more.active { color: var(--text); }
+.stack-more.active { background: var(--card); }
+.stack-more .attention { top: 1px; right: 1px; box-shadow: 0 0 0 2px var(--side); }
 .stack { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
 .stack-avatar { position: relative; display: block; padding: 0; margin-top: -12px; border: 0; border-radius: 11px; background: var(--side); box-shadow: 0 0 0 2px var(--side); cursor: pointer; transition: transform 0.12s; }
 .stack-avatar:first-child { margin-top: 0; }
@@ -311,6 +312,19 @@ h1, h2, h3, p { margin: 0; }
 .add-form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .guide { margin: 0; padding: 0 16px 8px 36px; display: grid; gap: 8px; }
 
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 16px 16px; }
+.setting-text { min-width: 0; }
+.setting-text strong, .setting-text .strong { display: block; font-weight: 600; font-size: 13.5px; }
+.setting-text p { margin-top: 2px; }
+
+.seg { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 9px; background: var(--main); }
+.seg-btn { padding: 6px 14px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 13px; cursor: pointer; }
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active { background: var(--accent); color: var(--accent-text); }
+
+.select { flex: none; min-width: 160px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--main); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 /* ---------- Schermi stretti ---------- */
 
 @media (max-width: 1100px) {
@@ -340,6 +354,7 @@ h1, h2, h3, p { margin: 0; }
   .scroll { padding: 16px 16px 40px; }
   .updated, .hint { display: none; }
   .search input { width: 90px; }
+  .setting { flex-direction: column; align-items: flex-start; }
   .cards.list .item-card { grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: 'tile title open'; }
   .cards.list .ci-meta, .cards.list .ci-tag, .cards.list .ci-acct { display: none; }
 }

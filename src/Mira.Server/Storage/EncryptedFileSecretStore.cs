@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Mira.Server.Models;
 
 namespace Mira.Server.Storage;
 
@@ -101,7 +102,7 @@ public sealed class EncryptedFileSecretStore : ISecretStore
     private byte[] Decrypt(byte[] blob)
     {
         if (blob.Length < NonceSize + TagSize)
-            throw new InvalidOperationException("Il file dei token è danneggiato. Eliminalo (tokens.enc) e ricollega gli account.");
+            throw new MiraException("secrets-corrupt", "The token file is damaged. Delete tokens.enc and reconnect the accounts.");
 
         var nonce = blob.AsSpan(0, NonceSize);
         var tag = blob.AsSpan(NonceSize, TagSize);
@@ -115,9 +116,10 @@ public sealed class EncryptedFileSecretStore : ISecretStore
         }
         catch (CryptographicException)
         {
-            throw new InvalidOperationException(
-                "Impossibile decifrare i token: la chiave non corrisponde. " +
-                "Ripristina master.key / MIRA_MASTER_KEY, oppure elimina tokens.enc e ricollega gli account.");
+            throw new MiraException(
+                "secrets-key-mismatch",
+                "Cannot decrypt the tokens: the key does not match. " +
+                "Restore master.key / MIRA_MASTER_KEY, or delete tokens.enc and reconnect the accounts.");
         }
 
         return plain;

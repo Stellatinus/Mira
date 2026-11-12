@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Mira.Server.Models;
 
 namespace Mira.Server.GitHub;
 
@@ -11,7 +12,7 @@ public sealed record ApiResponse<T>(
     T? Data,
     DateTimeOffset? TokenExpiresAt,
     string[]? Scopes,
-    string? Error)
+    ErrorInfo? Error)
 {
     public bool Ok => (int)Status is >= 200 and < 300;
 }
@@ -50,19 +51,19 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
         }
         catch (HttpRequestException ex)
         {
-            return new ApiResponse<T>(0, default, null, null, $"rete non raggiungibile ({ex.Message})");
+            return new ApiResponse<T>(0, default, null, null, new ErrorInfo("network", ex.Message));
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            return new ApiResponse<T>(0, default, null, null, "timeout");
+            return new ApiResponse<T>(0, default, null, null, new ErrorInfo("timeout"));
         }
     }
 
-    private static string Describe(HttpStatusCode status) => status switch
+    private static ErrorInfo Describe(HttpStatusCode status) => status switch
     {
-        HttpStatusCode.Unauthorized => "token non valido o scaduto",
-        HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests => "accesso negato o limite di richieste raggiunto",
-        _ => $"GitHub ha risposto {(int)status}",
+        HttpStatusCode.Unauthorized => new ErrorInfo("unauthorized"),
+        HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests => new ErrorInfo("rate-limited"),
+        _ => new ErrorInfo("github-http", ((int)status).ToString()),
     };
 
     // Esempi di valore: "2026-12-01 10:00:00 UTC" oppure "2026-12-01 10:00:00 +0100".
