@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { ExternalIcon, ItemIcon, StarIcon } from './icons';
+import { attentionLines, repoKey } from './attention';
+import type { Attention } from './attention';
+import { AttentionIcon, ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
 import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
@@ -21,6 +23,8 @@ interface Props {
   query: string;
   mode: Mode;
   selectedId: string | null;
+  /** Cosa c'è di aperto per ogni repository, ricavato dagli elementi già scaricati. */
+  attention: Map<string, Attention>;
   onSelect: (id: string) => void;
   onManageAccounts: () => void;
 }
@@ -33,7 +37,17 @@ interface Total {
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
-export function ItemsView({ data, view, filter, query, mode, selectedId, onSelect, onManageAccounts }: Props) {
+export function ItemsView({
+  data,
+  view,
+  filter,
+  query,
+  mode,
+  selectedId,
+  attention,
+  onSelect,
+  onManageAccounts,
+}: Props) {
   const i18n = useI18n();
   const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -149,6 +163,7 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
                   item={item}
                   account={accountsByLogin.get(item.account)}
                   starred={item.type === 'repo' && starredKeys.has(`${item.account}|${item.repo}`)}
+                  attention={item.type === 'repo' ? attention.get(repoKey(item.account, item.repo)) : undefined}
                   selected={item.id === selectedId}
                   showAccount={showAccount}
                   onSelect={onSelect}
@@ -198,12 +213,29 @@ interface CardProps {
   item: DashboardItem;
   account?: AccountStatus;
   starred: boolean;
+  attention?: Attention;
   selected: boolean;
   showAccount: boolean;
   onSelect: (id: string) => void;
 }
 
-function ItemCard({ item, account, starred, selected, showAccount, onSelect }: CardProps) {
+/** Indicatore sulle card dei repository: arancione se qualcosa aspetta te, neutro se ci sono solo cose tue aperte. */
+function AttentionBadge({ attention }: { attention: Attention }) {
+  const { t } = useI18n();
+  const urgent = attention.needs > 0;
+  const count = urgent ? attention.needs : attention.mine;
+  if (count === 0) return null;
+
+  const text = attentionLines(attention, t).join(' · ');
+  return (
+    <span className={urgent ? 'ci-attn urgent' : 'ci-attn'} title={text} aria-label={text} role="img">
+      {urgent ? <AttentionIcon size={13} /> : <PullRequestIcon size={13} />}
+      {count}
+    </span>
+  );
+}
+
+function ItemCard({ item, account, starred, attention, selected, showAccount, onSelect }: CardProps) {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
@@ -236,6 +268,7 @@ function ItemCard({ item, account, starred, selected, showAccount, onSelect }: C
           <span className="tag-text">{tagLabel(item, i18n)}</span>
         )}
       </span>
+      {attention && <AttentionBadge attention={attention} />}
       <a
         className="ci-open"
         href={item.url}

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { attentionLines } from './attention';
+import type { Attention } from './attention';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { CloseIcon, CopyIcon, DetailIcon, ExternalIcon, ItemIcon } from './icons';
@@ -9,10 +11,12 @@ interface Props {
   item: DashboardItem | null;
   account?: AccountStatus;
   starred: boolean;
+  /** Cosa c'è di aperto nel repository selezionato (solo per gli elementi di tipo "repo"). */
+  attention?: Attention;
   onClose: () => void;
 }
 
-export function DetailPanel({ item, account, starred, onClose }: Props) {
+export function DetailPanel({ item, account, starred, attention, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const [copied, setCopied] = useState(false);
@@ -94,6 +98,22 @@ export function DetailPanel({ item, account, starred, onClose }: Props) {
                   <dd>
                     {item.stars}
                     {starred ? t('detail.starredByYou') : ''}
+                  </dd>
+                </>
+              )}
+              {item.type === 'repo' && (
+                <>
+                  <dt>{t('detail.openIssues')}</dt>
+                  <dd>{item.openIssues}</dd>
+                </>
+              )}
+              {attention && attentionLines(attention, t).length > 0 && (
+                <>
+                  <dt>{t('detail.attention')}</dt>
+                  <dd>
+                    {attentionLines(attention, t).map((line) => (
+                      <div key={line}>{line}</div>
+                    ))}
                   </dd>
                 </>
               )}

@@ -81,6 +81,14 @@ export const AssignedIcon = ({ size = 16 }: IconProps) => (
   </Svg>
 );
 
+export const AttentionIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 4.8v3.9" />
+    <circle cx="8" cy="11.1" r="0.5" fill="currentColor" />
+  </Svg>
+);
+
 export const UsersIcon = ({ size = 16 }: IconProps) => (
   <Svg size={size}>
     <circle cx="6" cy="5.5" r="2.2" />

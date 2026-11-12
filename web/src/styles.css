@@ -172,9 +172,10 @@ h1, h2, h3, p { margin: 0; }
   --cardbg: var(--card);
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'tag open' 'tile tile' 'title title' 'rule rule' 'meta acct';
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'tag attn open' 'tile tile tile' 'title title title' 'rule rule rule' 'meta meta acct';
   row-gap: 12px;
+  column-gap: 8px;
   align-items: center;
   padding: 14px 16px 16px;
   border-radius: 12px;
@@ -188,6 +189,8 @@ h1, h2, h3, p { margin: 0; }
 .ci-tag { grid-area: tag; display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: var(--muted); font-size: 11.5px; }
 .ci-tag.starred { color: var(--star); }
 .tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-attn { grid-area: attn; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 11.5px; font-weight: 600; cursor: help; }
+.ci-attn.urgent { background: var(--warn-bg); color: var(--warn); }
 .ci-open { grid-area: open; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
 .ci-open:hover { color: var(--text); background: var(--line); }
 .item-card .tile { grid-area: tile; justify-self: center; }
@@ -244,8 +247,8 @@ h1, h2, h3, p { margin: 0; }
 
 .cards.list { grid-template-columns: 1fr; gap: 8px; }
 .cards.list .item-card {
-  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 240px) auto auto auto;
-  grid-template-areas: 'tile title meta acct tag open';
+  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 240px) auto auto auto auto;
+  grid-template-areas: 'tile title meta acct attn tag open';
   column-gap: 14px;
   row-gap: 0;
   padding: 9px 14px;
@@ -358,6 +361,6 @@ h1, h2, h3, p { margin: 0; }
   .updated, .hint { display: none; }
   .search input { width: 90px; }
   .setting { flex-direction: column; align-items: flex-start; }
-  .cards.list .item-card { grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: 'tile title open'; }
+  .cards.list .item-card { grid-template-columns: 34px minmax(0, 1fr) auto auto; grid-template-areas: 'tile title attn open'; }
   .cards.list .ci-meta, .cards.list .ci-tag, .cards.list .ci-acct { display: none; }
 }
