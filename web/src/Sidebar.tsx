@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { AssignedIcon, DotsIcon, HomeIcon, PullRequestIcon, RepoIcon, StarIcon } from './icons';
+import { AssignedIcon, DotsIcon, HomeIcon, PullRequestIcon, RepoIcon, StarIcon, UsersIcon } from './icons';
 import { NAV_VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import type { AccountStatus } from './types';
@@ -56,6 +56,17 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
           <DotsIcon />
           {needsAttention && <span className="attention" title={t('nav.attention')} />}
         </button>
+        {accounts.length > 1 && (
+          <button
+            className={filter === 'all' ? 'stack-all active' : 'stack-all'}
+            title={t('nav.allAccounts')}
+            aria-label={t('nav.allAccounts')}
+            aria-pressed={filter === 'all'}
+            onClick={() => onFilter('all')}
+          >
+            <UsersIcon size={18} />
+          </button>
+        )}
         <div className="stack" role="group" aria-label={t('nav.filterGroup')}>
           {accounts.map((account) => {
             const active = filter === account.login;

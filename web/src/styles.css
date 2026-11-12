@@ -128,6 +128,9 @@ h1, h2, h3, p { margin: 0; }
 .stack-more:hover, .stack-more.active { color: var(--text); }
 .stack-more.active { background: var(--card); }
 .stack-more .attention { top: 1px; right: 1px; box-shadow: 0 0 0 2px var(--side); }
+.stack-all { display: grid; place-items: center; width: 36px; height: 36px; margin-top: 4px; border: 0; border-radius: 11px; background: var(--card); color: var(--muted); cursor: pointer; }
+.stack-all:hover { color: var(--text); }
+.stack-all.active { color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
 .stack { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
 .stack-avatar { position: relative; display: block; padding: 0; margin-top: -12px; border: 0; border-radius: 11px; background: var(--side); box-shadow: 0 0 0 2px var(--side); cursor: pointer; transition: transform 0.12s; }
 .stack-avatar:first-child { margin-top: 0; }
