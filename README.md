@@ -11,6 +11,7 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
 
 - **Review richieste a te**: le PR che aspettano il tuo parere
 - **Assegnate a te**: issue e PR di cui sei assegnatario
+- **Issue** e **Non assegnate**: tutte le issue che ti riguardano (aperte da te o assegnate a te, con il pulsante «Assegnate a te») e quelle senza assegnatario nei tuoi repository e organizzazioni, non solo le prime 100
 - **Notifiche non lette**: la casella di GitHub, ordinata e senza rumore
 - **Menzioni**: dove qualcuno ti ha taggato
 - **Le tue PR e issue aperte**

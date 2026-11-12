@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { getDashboard } from './api';
+import { getDashboard, getIssues } from './api';
 import { accountAlerts } from './alerts';
 import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
-import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
+import { AssignedIcon, CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemFilterMenu } from './ItemFilterMenu';
 import { DEFAULT_ITEM_FILTERS, DEFAULT_ITEM_SORT, ITEM_SORTS } from './itemview';
@@ -16,14 +16,14 @@ import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
-import { VIEWS } from './sections';
+import { isExtraView, VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
 import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview';
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
-import type { Dashboard } from './types';
+import type { Dashboard, ExtraKey, ExtraSnapshot } from './types';
 import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
@@ -78,6 +78,10 @@ export default function App() {
   const [repoFilters, setRepoFilters] = useState<RepoFilters>(DEFAULT_REPO_FILTERS);
   // «Mostra preferiti»: spento di default, aggiunge ai repository anche i preferiti che non sono tra i propri.
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
+  // Le viste «Issue» e «Non assegnate» scaricano tutte le pagine alla richiesta, quando si aprono.
+  const [extras, setExtras] = useState<Partial<Record<ExtraKey, { data: ExtraSnapshot | null; loading: boolean; error: unknown }>>>({});
+  // «Assegnate a te»: attivo di default nella vista Issue; spegnendolo si vedono tutte.
+  const [assignedOnly, setAssignedOnly] = useState(true);
   const [itemSort, setItemSort] = useState<ItemSort>(() => {
     const saved = readStored(ITEM_SORT_KEY, DEFAULT_ITEM_SORT);
     return ITEM_SORTS.find((s) => s === saved) ?? DEFAULT_ITEM_SORT;
@@ -109,6 +113,16 @@ export default function App() {
       setError(e ?? new Error('unknown'));
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadExtra = useCallback(async (key: ExtraKey, force = false) => {
+    setExtras((prev) => ({ ...prev, [key]: { data: prev[key]?.data ?? null, loading: true, error: null } }));
+    try {
+      const next = await getIssues(key, force);
+      setExtras((prev) => ({ ...prev, [key]: { data: next, loading: false, error: null } }));
+    } catch (e) {
+      setExtras((prev) => ({ ...prev, [key]: { data: prev[key]?.data ?? null, loading: false, error: e ?? new Error('unknown') } }));
     }
   }, []);
 
@@ -146,10 +160,22 @@ export default function App() {
   );
   const isRepoView = config.tools === 'repos';
   const isItemView = config.tools === 'items';
-  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t });
+  const extraKey = isExtraView(view) ? view : null;
+  const extra = extraKey ? extras[extraKey] : undefined;
+  const hasAccounts = (data?.accounts.length ?? 0) > 0;
+  // Aprendo una vista «completa» si scaricano le sue issue (il server le tiene in cache per qualche minuto).
+  useEffect(() => {
+    if (extraKey && hasAccounts) void loadExtra(extraKey);
+  }, [extraKey, hasAccounts, loadExtra]);
+  // Nelle viste complete gli elementi scaricati a parte si uniscono a quelli della dashboard.
+  const viewData = useMemo(
+    () => (data && extra?.data ? { ...data, items: [...data.items, ...extra.data.items], errors: [...data.errors, ...extra.data.errors] } : data),
+    [data, extra?.data],
+  );
+  const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, assignedOnly, t });
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
-  const selected = data?.items.find((i) => i.id === selectedId) ?? null;
+  const selected = viewData?.items.find((i) => i.id === selectedId) ?? null;
   // Un repository è visto da più account e può avere la stella di alcuni: il pannello li mostra tutti.
   const selectedInfo = selected?.type === 'repo' ? model.repoInfo.get(selected.id) : undefined;
   const selectedAccounts = (selectedInfo?.accounts ?? (selected ? [selected.account] : [])).map(
@@ -226,9 +252,12 @@ export default function App() {
               </label>
             )}
             <button
-              className={loading ? 'icon-btn spinning' : 'icon-btn'}
-              onClick={() => void load(true)}
-              disabled={loading}
+              className={loading || extra?.loading ? 'icon-btn spinning' : 'icon-btn'}
+              onClick={() => {
+                void load(true);
+                if (extraKey) void loadExtra(extraKey, true);
+              }}
+              disabled={loading || extra?.loading === true}
               title={t('app.refresh')}
               aria-label={t('app.refresh')}
             >
@@ -281,6 +310,16 @@ export default function App() {
                     />
                   </>
                 )}
+                {view === 'issues' && (
+                  <button
+                    className={assignedOnly ? 'dd-btn highlighted' : 'dd-btn'}
+                    aria-pressed={assignedOnly}
+                    onClick={() => setAssignedOnly((current) => !current)}
+                  >
+                    <AssignedIcon size={15} />
+                    <span className="dd-text">{t('issues.assignedToMe')}</span>
+                  </button>
+                )}
                 {countKey && (
                   <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
                     {model.countText(countKey)}
@@ -324,9 +363,15 @@ export default function App() {
           ))}
 
           {!data && error === null && <p className="muted">{t('app.loading')}</p>}
-          {data && showItems && (
+          {extraKey && extra?.loading && !extra.data && <p className="muted">{t('items.loadingAll')}</p>}
+          {extraKey && extra?.error != null && !extra.data && (
+            <div className="alert danger" role="alert">
+              {failureText(extra.error, i18n)}
+            </div>
+          )}
+          {viewData && showItems && (!extraKey || extra?.data) && (
             <ItemsView
-              data={data}
+              data={viewData}
               view={config}
               filter={filter}
               mode={mode}
