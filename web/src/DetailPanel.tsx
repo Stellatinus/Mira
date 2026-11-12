@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { attentionLines, KINDS } from './attention';
+import { attentionLines, indicator, KINDS } from './attention';
 import type { Attention } from './attention';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
@@ -101,21 +101,15 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
                   </dd>
                 </>
               )}
-              {item.type === 'repo' && (
-                <>
-                  <dt>{t('detail.openIssues')}</dt>
-                  <dd>{item.openIssues}</dd>
-                </>
-              )}
-              {attention &&
-                KINDS.filter((kind) => attentionLines(attention[kind], t).length > 0).map((kind) => (
+              {item.type === 'repo' &&
+                KINDS.filter((kind) => indicator(item, attention, kind).count > 0).map((kind) => (
                   <Fragment key={kind}>
                     <dt className="kind-label">
                       <span className={`kind-dot ${kind}`} aria-hidden />
                       {t(`attention.kind.${kind}` as 'attention.kind.pr')}
                     </dt>
                     <dd>
-                      {attentionLines(attention[kind], t).map((line) => (
+                      {attentionLines(item, attention, kind, t).map((line) => (
                         <div key={line}>{line}</div>
                       ))}
                     </dd>

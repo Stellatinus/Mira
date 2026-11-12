@@ -103,6 +103,8 @@ export const en: Messages = {
   'reason.approval_requested': 'Approval requested',
   'reason.invitation': 'Invitation',
 
+  'attention.open.one': '{count} open',
+  'attention.open.other': '{count} open',
   'attention.review.one': '{count} review requested from you',
   'attention.review.other': '{count} reviews requested from you',
   'attention.assigned.one': '{count} assigned to you',
@@ -118,7 +120,6 @@ export const en: Messages = {
 
   'attention.kind.pr': 'PRs',
   'attention.kind.issue': 'Issues',
-  'detail.openIssues': 'Open issues and PRs',
   'detail.title': 'Details',
   'detail.close': 'Close',
   'detail.empty': 'Select an item to see its details.',
@@ -204,4 +205,5 @@ export const en: Messages = {
   'error.network': 'network unreachable ({detail})',
   'error.timeout': 'timeout',
   'error.github-http': 'GitHub answered {detail}',
+  'error.github-graphql': 'GitHub answered with an error ({detail})',
 };

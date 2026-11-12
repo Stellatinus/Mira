@@ -235,7 +235,7 @@ export default function App() {
           item={selected}
           account={selectedAccount}
           starred={selectedStarred}
-          attention={selected?.type === 'repo' ? attention.get(repoKey(selected.account, selected.repo)) : undefined}
+          attention={selected?.type === 'repo' ? attention.get(repoKey(selected.repo)) : undefined}
           onClose={() => setSelectedId(null)}
         />
       )}

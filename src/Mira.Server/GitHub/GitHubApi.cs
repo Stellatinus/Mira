@@ -32,11 +32,30 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
         PropertyNameCaseInsensitive = true,
     };
 
-    public async Task<ApiResponse<T>> GetAsync<T>(string token, string path, CancellationToken ct)
+    // GraphQL usa nomi camelCase.
+    private static readonly JsonSerializerOptions GraphQlOptions = new(JsonSerializerDefaults.Web);
+
+    public Task<ApiResponse<T>> GetAsync<T>(string token, string path, CancellationToken ct) =>
+        SendAsync<T>(token, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct);
+
+    /// <summary>
+    /// Esegue una query GraphQL. GraphQL risponde 200 anche con errori parziali (es. un'organizzazione
+    /// con SAML SSO non autorizzata): i dati disponibili restano in `Data`, gli errori in `Errors`.
+    /// </summary>
+    public Task<ApiResponse<GqlResponse<T>>> QueryAsync<T>(
+        string token, string query, object? variables, CancellationToken ct) =>
+        SendAsync<GqlResponse<T>>(
+            token,
+            () => new HttpRequestMessage(HttpMethod.Post, "graphql") { Content = JsonContent.Create(new { query, variables }) },
+            GraphQlOptions,
+            ct);
+
+    private async Task<ApiResponse<T>> SendAsync<T>(
+        string token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            using var request = build();
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             using var response = await httpClientFactory.CreateClient("github").SendAsync(request, ct);
@@ -46,7 +65,7 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
             if (!response.IsSuccessStatusCode)
                 return new ApiResponse<T>(response.StatusCode, default, expires, scopes, Describe(response.StatusCode));
 
-            var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions, ct);
+            var data = await response.Content.ReadFromJsonAsync<T>(options, ct);
             return new ApiResponse<T>(response.StatusCode, data, expires, scopes, null);
         }
         catch (HttpRequestException ex)

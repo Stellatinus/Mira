@@ -110,6 +110,8 @@ export const it = {
   'reason.approval_requested': 'Approvazione richiesta',
   'reason.invitation': 'Invito',
 
+  'attention.open.one': '{count} aperta',
+  'attention.open.other': '{count} aperte',
   'attention.review.one': '{count} review richiesta a te',
   'attention.review.other': '{count} review richieste a te',
   'attention.assigned.one': '{count} assegnata a te',
@@ -125,7 +127,6 @@ export const it = {
 
   'attention.kind.pr': 'PR',
   'attention.kind.issue': 'Issue',
-  'detail.openIssues': 'Issue e PR aperte',
   'detail.title': 'Dettagli',
   'detail.close': 'Chiudi',
   'detail.empty': 'Seleziona un elemento per vedere i dettagli.',
@@ -211,6 +212,7 @@ export const it = {
   'error.network': 'rete non raggiungibile ({detail})',
   'error.timeout': 'timeout',
   'error.github-http': 'GitHub ha risposto {detail}',
+  'error.github-graphql': 'GitHub ha risposto con un errore ({detail})',
 } as const;
 
 /** Elenco delle chiavi: serve a tipizzare le altre lingue. */
