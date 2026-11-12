@@ -13,10 +13,10 @@ import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
+import { useRefreshInterval } from './refresh';
 import { useTheme } from './theme';
 import type { Dashboard } from './types';
 
-const REFRESH_MS = 5 * 60 * 1000;
 const FILTER_KEY = 'mira.accountFilter';
 const MODE_KEY = 'mira.mode';
 
@@ -59,11 +59,14 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const firstLoad = useRef(true);
+  const lastLoad = useRef(0);
+  const [refreshMinutes, setRefreshMinutes] = useRefreshInterval();
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
     try {
       const next = await getDashboard(force);
+      lastLoad.current = Date.now();
       setData(next);
       setError(null);
       if (firstLoad.current) {
@@ -80,18 +83,26 @@ export default function App() {
 
   useEffect(() => {
     void load();
-    const refresh = window.setInterval(() => void load(), REFRESH_MS);
+    // Ogni 30 secondi si ridisegna, così «2 minuti fa» resta giusto.
     const tick = window.setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => window.clearInterval(tick);
+  }, [load]);
+
+  // Aggiornamento automatico, se attivo nelle Impostazioni. Tornando sulla scheda si aggiorna solo
+  // se è passato l'intervallo scelto (un timer di una scheda in secondo piano può restare indietro).
+  useEffect(() => {
+    if (refreshMinutes === 0) return;
+    const interval = refreshMinutes * 60_000;
+    const timer = window.setInterval(() => void load(), interval);
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void load();
+      if (document.visibilityState === 'visible' && Date.now() - lastLoad.current >= interval) void load();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      window.clearInterval(refresh);
-      window.clearInterval(tick);
+      window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [load]);
+  }, [load, refreshMinutes]);
 
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
   const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
@@ -225,6 +236,8 @@ export default function App() {
               onAccountsChanged={() => load(true)}
               theme={theme}
               onTheme={setTheme}
+              refreshMinutes={refreshMinutes}
+              onRefreshMinutes={setRefreshMinutes}
             />
           )}
         </div>
