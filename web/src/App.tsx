@@ -169,7 +169,7 @@ export default function App() {
 
       <main className="main">
         <header className="main-head">
-          <h1>Mira</h1>
+          <h1>{t(`view.${config.key}.title` as 'view.home.title')}</h1>
           <div className="head-actions">
             {data && <span className="updated">{t('app.updated', { when: timeAgo(data.generatedAt) })}</span>}
             {showItems && (
@@ -198,34 +198,34 @@ export default function App() {
         <div className="rule" />
 
         <div className="scroll">
-          <div className="toolbar">
-            <h2 className="view-title">
-              {t(`view.${config.key}.title` as 'view.home.title')}
-              {countKey && (
-                <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
-                  {model.countText(countKey)}
-                </span>
-              )}
-            </h2>
-            {isRepoView && (
+          {showItems && (
+            <div className="toolbar">
+              {/* A sinistra filtri, ordinamento e quanti sono; a destra i modi di visualizzazione. */}
               <div className="tools">
-                <RepoFilterMenu
-                  filters={repoFilters}
-                  onChange={setRepoFilters}
-                  facets={model.facets}
-                  showStarred={config.sections.includes('repos')}
-                />
-                <Dropdown
-                  label={t('repo.sort.label')}
-                  icon={<SortIcon size={15} />}
-                  text={t(`repo.sort.${repoSort}` as 'repo.sort.updated')}
-                  value={repoSort}
-                  options={REPO_SORTS.map((value) => ({ value, label: t(`repo.sort.${value}` as 'repo.sort.updated') }))}
-                  onChange={chooseRepoSort}
-                />
+                {isRepoView && (
+                  <>
+                    <RepoFilterMenu
+                      filters={repoFilters}
+                      onChange={setRepoFilters}
+                      facets={model.facets}
+                      showStarred={config.sections.includes('repos')}
+                    />
+                    <Dropdown
+                      label={t('repo.sort.label')}
+                      icon={<SortIcon size={15} />}
+                      text={t(`repo.sort.${repoSort}` as 'repo.sort.updated')}
+                      value={repoSort}
+                      options={REPO_SORTS.map((value) => ({ value, label: t(`repo.sort.${value}` as 'repo.sort.updated') }))}
+                      onChange={chooseRepoSort}
+                    />
+                  </>
+                )}
+                {countKey && (
+                  <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
+                    {model.countText(countKey)}
+                  </span>
+                )}
               </div>
-            )}
-            {showItems && (
               <div className="modes" role="group" aria-label={t('mode.group')}>
                 {MODES.map((m) => {
                   const label = t(`mode.${m.key}` as 'mode.grid');
@@ -243,8 +243,8 @@ export default function App() {
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {error !== null && (
             <div className="alert danger" role="alert">
