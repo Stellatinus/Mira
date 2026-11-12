@@ -15,7 +15,9 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
 - **Repository** e **repository preferiti** (con le stelle e il logo del repository, o l'avatar di chi lo possiede), dalla barra laterale, con ordinamento (aggiornamento, nome, stelle, PR, issue, cosa aspetta te) e filtri (con PR aperte, con issue aperte, aspettano te); ogni repository ha un
   doppio indicatore, uno per le PR (blu) e uno per le issue (arancio): il numero è quante ce ne sono di aperte
   nel repository (da GitHub, anche di altri); è pieno se tra queste qualcosa aspetta te (review richieste,
-  assegnate, menzioni, notifiche non lette, su tutti gli account collegati), solo contorno altrimenti
+  assegnate, menzioni, notifiche non lette, su tutti gli account collegati), solo contorno altrimenti.
+  Il pannello dettaglio ha una sezione per le PR e una per le issue: «31 aperte (3 tue)» (le tue sono quelle
+  assegnate a te), le issue senza assegnatario, e cosa aspetta te; in più dice se il repository è un fork
 - **Avvisi sui token**: quando un token sta per scadere o non è più valido
 
 Il nome viene da *Mira*, la stella variabile nella costellazione della Balena (in latino «la meravigliosa»):

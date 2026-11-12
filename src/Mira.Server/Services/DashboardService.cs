@@ -130,6 +130,9 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
           pullRequests(states: OPEN) { totalCount }
           openGraphImageUrl usesCustomOpenGraphImage
           owner { avatarUrl(size: 128) }
+          isFork
+          parent { nameWithOwner }
+          unassigned: issues(states: OPEN, filterBy: {assignee: null}) { totalCount }
         }
         """;
 
@@ -193,7 +196,10 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
                 r.IsPrivate,
                 r.Issues.TotalCount,
                 r.PullRequests.TotalCount,
-                LogoOf(r)))
+                LogoOf(r),
+                r.IsFork,
+                r.Parent?.NameWithOwner,
+                r.Unassigned.TotalCount))
             .ToList();
         // Una pagina piena significa che potrebbero essercene altri: il totale non è noto.
         int? total = nodes.Count < ReposPageSize ? items.Count : null;
