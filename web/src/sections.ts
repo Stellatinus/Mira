@@ -1,6 +1,6 @@
 import type { Section } from './types';
 
-export type ViewKey = 'home' | 'repos' | 'issues' | 'unassigned' | 'assigned' | 'prs' | 'notifications' | 'settings';
+export type ViewKey = 'home' | 'repos' | 'issues' | 'prs' | 'notifications' | 'settings';
 
 export interface ViewConfig {
   key: ViewKey;
@@ -13,10 +13,9 @@ export interface ViewConfig {
 export const VIEWS: ViewConfig[] = [
   { key: 'home', sections: ['review', 'assigned', 'notifications', 'mentions', 'mine-prs', 'mine-issues'] },
   { key: 'repos', tools: 'repos', sections: ['repos'] },
-  // «Issue» e «Non assegnate» scaricano tutte le pagine dei risultati alla richiesta (non fanno parte della dashboard).
+  // «Issue» scarica tutte le issue alla richiesta (non fa parte della dashboard); assegnate a te, ad altri e non
+  // assegnate sono filtri di questa vista.
   { key: 'issues', tools: 'items', sections: ['issues'] },
-  { key: 'unassigned', tools: 'items', sections: ['unassigned'] },
-  { key: 'assigned', tools: 'items', sections: ['assigned'] },
   { key: 'prs', tools: 'items', sections: ['review', 'mine-prs'] },
   { key: 'notifications', tools: 'items', sections: ['notifications', 'mentions'] },
   // Le impostazioni si aprono dal pulsante sopra gli avatar, non dall'elenco delle sezioni.
@@ -27,4 +26,4 @@ export const VIEWS: ViewConfig[] = [
 export const NAV_VIEWS = VIEWS.filter((v) => v.key !== 'settings');
 
 /** Le viste i cui elementi si scaricano a parte, alla richiesta. */
-export const isExtraView = (key: ViewKey): key is 'issues' | 'unassigned' => key === 'issues' || key === 'unassigned';
+export const isExtraView = (key: ViewKey): key is 'issues' => key === 'issues';

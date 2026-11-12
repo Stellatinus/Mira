@@ -7,6 +7,7 @@ import { ChevronDownIcon, FilterIcon } from './icons';
 import { reasonLabel } from './labels';
 import {
   activeItemFilterCount,
+  ASSIGNMENT_FILTERS,
   COMMENTS_FILTERS,
   DEFAULT_ITEM_FILTERS,
   DRAFT_FILTERS,
@@ -20,11 +21,13 @@ interface Props {
   /** Come un setState: accetta anche una funzione, così due scelte vicine non si cancellano a vicenda. */
   onChange: (next: SetStateAction<ItemFilters>) => void;
   /** Le scelte di repository, proprietario e motivo presenti negli elementi della vista. */
-  facets: { repos: Facet[]; owners: Facet[]; reasons: Facet[] };
+  facets: { repos: Facet[]; owners: Facet[]; reasons: Facet[]; assignees: Facet[] };
+  /** Solo per le issue: «Assegnazione» e «Assegnatario». */
+  assignable?: boolean;
 }
 
 /** Il pulsante «Filtra» per issue, PR e notifiche, con i gruppi di filtri combinabili tra loro. */
-export function ItemFilterMenu({ filters, onChange, facets }: Props) {
+export function ItemFilterMenu({ filters, onChange, facets, assignable = false }: Props) {
   const i18n = useI18n();
   const { t } = i18n;
   const [open, setOpen] = useState(false);
@@ -59,6 +62,29 @@ export function ItemFilterMenu({ filters, onChange, facets }: Props) {
 
       {open && (
         <div className="popover" role="dialog" aria-label={t('item.filter.label')}>
+          {assignable && (
+            <>
+              <Group label={t('item.filter.group.assignment')}>
+                <Chips
+                  label={t('item.filter.group.assignment')}
+                  value={filters.assignment}
+                  options={optionsOf('item.filter.assignment', ASSIGNMENT_FILTERS)}
+                  onChange={(value) => set('assignment', value)}
+                />
+              </Group>
+              {facets.assignees.length > 0 && (
+                <Group label={t('item.filter.group.assignee')} htmlFor="filter-assignee">
+                  <FacetSelect
+                    id="filter-assignee"
+                    value={filters.assignee}
+                    facets={facets.assignees}
+                    labelOf={(facet) => facet.label}
+                    onChange={(value) => set('assignee', value)}
+                  />
+                </Group>
+              )}
+            </>
+          )}
           <Group label={t('item.filter.group.type')}>
             <Chips
               label={t('item.filter.group.type')}

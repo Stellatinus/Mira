@@ -5,9 +5,16 @@ using Mira.Server.Storage;
 namespace Mira.Server.Services;
 
 /// <summary>
-/// Le liste complete di issue per le viste «Issue» e «Non assegnate»: a differenza della dashboard, che si
-/// ferma alle 100 più recenti, qui si scaricano tutte le pagine dei risultati (la ricerca di GitHub arriva
-/// a 1000). Si fa alla richiesta, quando si apre la vista, e il risultato resta in cache per qualche minuto.
+/// La lista completa delle issue per la vista «Issue»: a differenza della dashboard, che si ferma alle 100 più
+/// recenti, qui si scaricano tutte le pagine dei risultati (la ricerca di GitHub arriva a 1000 per ricerca).
+/// Si fa alla richiesta, quando si apre la vista, e il risultato resta in cache per qualche minuto.
+///
+/// L'insieme è questo, senza doppioni:
+///  - **tutte le issue aperte** nei repository dei tuoi account e delle organizzazioni a cui appartengono, di
+///    chiunque siano e comunque siano assegnate;
+///  - più quelle **aperte da te** e quelle **assegnate a te** anche altrove (repository di altri).
+/// In questo modo «assegnate a te», «assegnate ad altri» e «non assegnate» (che sono filtri della vista) si
+/// dividono l'insieme senza resto.
 /// </summary>
 public sealed class IssueService(ISecretStore store, GitHubApi api)
 {
@@ -16,15 +23,13 @@ public sealed class IssueService(ISecretStore store, GitHubApi api)
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ForcedRefreshMinAge = TimeSpan.FromSeconds(30);
 
-    /// <summary>
-    /// «issues»: le issue aperte che ti riguardano (aperte da te o assegnate a te).
-    /// «unassigned»: issue aperte senza assegnatario nei repository tuoi e delle tue organizzazioni.
-    /// </summary>
-    public static readonly string[] Views = ["issues", "unassigned"];
+    public const string IssuesView = "issues";
+    public static readonly string[] Views = [IssuesView];
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Dictionary<string, ExtraSnapshot> _cache = new();
 
+    private sealed record AccountPlan(string Login, string Token, List<string> Queries);
     private sealed record AccountResult(List<DashboardItem> Items, List<DashboardError> Errors);
 
     public void Invalidate()
@@ -44,7 +49,7 @@ public sealed class IssueService(ISecretStore store, GitHubApi api)
                     return cached;
             }
 
-            var built = await BuildAsync(view, ct);
+            var built = await BuildAsync(ct);
             lock (_cache) _cache[view] = built;
             return built;
         }
@@ -54,59 +59,74 @@ public sealed class IssueService(ISecretStore store, GitHubApi api)
         }
     }
 
-    private async Task<ExtraSnapshot> BuildAsync(string view, CancellationToken ct)
+    private async Task<ExtraSnapshot> BuildAsync(CancellationToken ct)
     {
         var tokens = await store.LoadAllAsync(ct);
-        var perAccount = await Task.WhenAll(tokens.Select(pair => LoadAccountAsync(view, pair.Key, pair.Value, ct)));
+        var errors = new List<DashboardError>();
 
-        // Lo stesso elemento può arrivare da più account o da più ricerche: se ne tiene uno solo.
+        // Le organizzazioni di ogni account, in parallelo.
+        var orgsPerAccount = await Task.WhenAll(tokens.Select(async pair =>
+            (Login: pair.Key, Token: pair.Value, Orgs: await api.GetAsync<List<GhOrg>>(pair.Value, "user/orgs?per_page=100", ct))));
+
+        // Ogni proprietario (un utente o un'organizzazione) si cerca una volta sola, con il primo account che lo vede:
+        // gli account che condividono un'organizzazione non la scaricano due volte.
+        var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var plans = new List<AccountPlan>();
+        foreach (var (login, token, orgs) in orgsPerAccount)
+        {
+            var queries = new List<string>();
+
+            void AddOwner(string qualifier, string name)
+            {
+                if (claimed.Add(name))
+                    queries.Add($"is:issue is:open archived:false {qualifier}:{name}");
+            }
+
+            AddOwner("user", login);
+            if (orgs.Ok)
+            {
+                foreach (var org in orgs.Data ?? new List<GhOrg>())
+                    AddOwner("org", org.Login);
+            }
+            else
+            {
+                errors.Add(new DashboardError(login, "issues", orgs.Error ?? new ErrorInfo("unknown")));
+            }
+
+            // Quelle che ti riguardano anche fuori dai tuoi repository.
+            queries.Add($"is:issue is:open archived:false author:{login}");
+            queries.Add($"is:issue is:open archived:false assignee:{login}");
+            plans.Add(new AccountPlan(login, token, queries));
+        }
+
+        // Gli account vanno in parallelo, le ricerche di uno stesso account una dopo l'altra, per non superare il limite di GitHub.
+        var results = await Task.WhenAll(plans.Select(plan => RunAsync(plan, ct)));
+
+        // Lo stesso elemento può arrivare da più ricerche o da più account: se ne tiene uno solo.
         var unique = new Dictionary<string, DashboardItem>();
-        foreach (var item in perAccount.SelectMany(a => a.Items))
+        foreach (var item in results.SelectMany(r => r.Items))
             unique.TryAdd(item.Url, item);
+        errors.AddRange(results.SelectMany(r => r.Errors));
 
         return new ExtraSnapshot(
             DateTimeOffset.UtcNow,
             unique.Values.OrderByDescending(i => i.UpdatedAt).ToList(),
-            perAccount.SelectMany(a => a.Errors).ToList());
+            errors);
     }
 
-    private async Task<AccountResult> LoadAccountAsync(string view, string login, string token, CancellationToken ct)
+    private async Task<AccountResult> RunAsync(AccountPlan plan, CancellationToken ct)
     {
         var items = new List<DashboardItem>();
         var errors = new List<DashboardError>();
 
-        var queries = view == "issues"
-            ? new List<string>
-            {
-                $"is:issue is:open author:{login} archived:false",
-                $"is:issue is:open assignee:{login} archived:false",
-            }
-            : await UnassignedQueriesAsync(login, token, errors, ct);
-
-        // Le ricerche di un account vanno una dopo l'altra, per non superare il limite di GitHub.
-        foreach (var query in queries)
+        foreach (var query in plan.Queries)
         {
-            var (found, error) = await SearchAllAsync(login, token, view, query, ct);
+            var (found, error) = await SearchAllAsync(plan.Login, plan.Token, IssuesView, query, ct);
             items.AddRange(found);
-            if (error is not null) errors.Add(new DashboardError(login, view, error));
+            if (error is not null) errors.Add(new DashboardError(plan.Login, IssuesView, error));
         }
 
         return new AccountResult(items, errors);
-    }
-
-    /// <summary>Una ricerca per il proprio utente e una per ogni organizzazione a cui l'account appartiene.</summary>
-    private async Task<List<string>> UnassignedQueriesAsync(
-        string login, string token, List<DashboardError> errors, CancellationToken ct)
-    {
-        var queries = new List<string> { $"is:issue is:open no:assignee archived:false user:{login}" };
-
-        var orgs = await api.GetAsync<List<GhOrg>>(token, "user/orgs?per_page=100", ct);
-        if (orgs.Ok)
-            queries.AddRange((orgs.Data ?? new List<GhOrg>()).Select(o => $"is:issue is:open no:assignee archived:false org:{o.Login}"));
-        else
-            errors.Add(new DashboardError(login, "unassigned", orgs.Error ?? new ErrorInfo("unknown")));
-
-        return queries;
     }
 
     /// <summary>Tutte le pagine di una ricerca. Se una pagina fallisce si tiene quanto già scaricato e si riporta l'errore.</summary>
