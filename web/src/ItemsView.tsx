@@ -163,7 +163,7 @@ export function ItemsView({
                   item={item}
                   account={accountsByLogin.get(item.account)}
                   starred={item.type === 'repo' && starredKeys.has(`${item.account}|${item.repo}`)}
-                  attention={item.type === 'repo' ? attention.get(repoKey(item.account, item.repo)) : undefined}
+                  attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
                   selected={item.id === selectedId}
                   showAccount={showAccount}
                   onSelect={onSelect}
@@ -221,17 +221,17 @@ interface CardProps {
 
 /**
  * Indicatori sulle card dei repository, uno per le PR e uno per le issue, così un numero non può
- * passare per l'altro. Il colore dice il tipo (PR blu, issue arancio); il riempimento dice se qualcosa
- * aspetta te (pieno) o se ci sono solo cose tue ancora aperte (solo contorno).
+ * passare per l'altro. Il numero è quante ce ne sono di aperte nel repository; il colore dice il tipo
+ * (PR blu, issue arancio); il riempimento dice se tra queste qualcosa aspetta te (pieno) o no (solo contorno).
  */
-function AttentionBadges({ attention }: { attention: Attention }) {
+function AttentionBadges({ item, attention }: { item: DashboardItem; attention?: Attention }) {
   const { t } = useI18n();
 
   const badges = KINDS.map((kind) => {
-    const { count, urgent } = indicator(attention[kind]);
+    const { count, urgent } = indicator(item, attention, kind);
     if (count === 0) return null;
 
-    const text = `${t(`attention.kind.${kind}` as 'attention.kind.pr')}: ${attentionLines(attention[kind], t).join(' · ')}`;
+    const text = `${t(`attention.kind.${kind}` as 'attention.kind.pr')}: ${attentionLines(item, attention, kind, t).join(' · ')}`;
     return (
       <span key={kind} className={urgent ? `ci-attn ${kind} urgent` : `ci-attn ${kind}`} title={text} aria-label={text} role="img">
         {kind === 'pr' ? <PullRequestIcon size={13} /> : <ItemIcon type="issue" size={13} />}
@@ -277,7 +277,7 @@ function ItemCard({ item, account, starred, attention, selected, showAccount, on
           <span className="tag-text">{tagLabel(item, i18n)}</span>
         )}
       </span>
-      {attention && <AttentionBadges attention={attention} />}
+      {item.type === 'repo' && <AttentionBadges item={item} attention={attention} />}
       <a
         className="ci-open"
         href={item.url}

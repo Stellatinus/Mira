@@ -79,10 +79,9 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             .Select(d => SearchAsync(login, token, d.Section, d.Query, ct))
             .ToList();
         tasks.Add(NotificationsAsync(login, token, ct));
-        tasks.Add(ReposAsync(login, token, "repos", $"user/repos?sort=pushed&per_page={ReposPageSize}", ct));
-        tasks.Add(ReposAsync(login, token, "starred", $"user/starred?per_page={ReposPageSize}", ct));
+        var repositories = RepositoriesAsync(login, token, ct);
 
-        var parts = await Task.WhenAll(tasks);
+        var parts = (await Task.WhenAll(tasks)).Concat(await repositories).ToArray();
 
         return new AccountData(
             status,
@@ -115,35 +114,76 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         return new Part(items, new SectionTotal(login, section, total), null);
     }
 
-    private async Task<Part> ReposAsync(string login, string token, string section, string path, CancellationToken ct)
+    // Una sola richiesta GraphQL per account dà repository e preferiti, con quante PR e issue
+    // aperte hanno ("pullRequests" e "issues" separati; la REST darebbe solo la somma).
+    private const string RepositoriesQuery = """
+        query($first: Int!) {
+          viewer {
+            repos: repositories(first: $first, orderBy: {field: PUSHED_AT, direction: DESC}, affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER], ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) { nodes { ...R } }
+            starred: starredRepositories(first: $first, orderBy: {field: STARRED_AT, direction: DESC}) { nodes { ...R } }
+          }
+        }
+        fragment R on Repository {
+          databaseId name nameWithOwner description url isPrivate stargazerCount pushedAt updatedAt
+          primaryLanguage { name }
+          issues(states: OPEN) { totalCount }
+          pullRequests(states: OPEN) { totalCount }
+        }
+        """;
+
+    private async Task<Part[]> RepositoriesAsync(string login, string token, CancellationToken ct)
     {
-        var response = await api.GetAsync<List<GhRepo>>(token, path, ct);
+        var response = await api.QueryAsync<GqlData>(token, RepositoriesQuery, new { first = ReposPageSize }, ct);
+        var viewer = response.Data?.Data?.Viewer;
 
-        if (!response.Ok)
-            return new Part(new List<DashboardItem>(), null, new DashboardError(login, section, response.Error ?? new ErrorInfo("unknown")));
+        if (viewer is null)
+        {
+            var error = !response.Ok ? response.Error : GraphQlError(response.Data?.Errors);
+            return
+            [
+                new Part(new List<DashboardItem>(), null, new DashboardError(login, "repos", error ?? new ErrorInfo("unknown"))),
+                new Part(new List<DashboardItem>(), null, new DashboardError(login, "starred", error ?? new ErrorInfo("unknown"))),
+            ];
+        }
 
-        var items = (response.Data ?? new List<GhRepo>())
+        return [RepoPart(login, "repos", viewer.Repos), RepoPart(login, "starred", viewer.Starred)];
+    }
+
+    private static ErrorInfo GraphQlError(List<GqlError>? errors)
+    {
+        var first = errors?.FirstOrDefault();
+        return first?.Type == "RATE_LIMITED"
+            ? new ErrorInfo("rate-limited")
+            : new ErrorInfo("github-graphql", first?.Message);
+    }
+
+    private static Part RepoPart(string login, string section, GqlRepoList? list)
+    {
+        var nodes = list?.Nodes ?? new List<GqlRepo?>();
+        var items = nodes
+            .OfType<GqlRepo>()
             .Select(r => new DashboardItem(
-                $"{login}:{section}:{r.Id}",
+                $"{login}:{section}:{r.DatabaseId}",
                 login,
                 section,
                 "repo",
                 r.Name,
-                r.FullName,
-                r.HtmlUrl,
+                r.NameWithOwner,
+                r.Url,
                 r.PushedAt ?? r.UpdatedAt ?? DateTimeOffset.MinValue,
                 null,
                 null,
                 false,
                 0,
                 Shorten(r.Description),
-                r.Language,
-                r.StargazersCount,
-                r.Private,
-                r.OpenIssuesCount))
+                r.PrimaryLanguage?.Name,
+                r.StargazerCount,
+                r.IsPrivate,
+                r.Issues.TotalCount,
+                r.PullRequests.TotalCount))
             .ToList();
         // Una pagina piena significa che potrebbero essercene altri: il totale non è noto.
-        int? total = items.Count < ReposPageSize ? items.Count : null;
+        int? total = nodes.Count < ReposPageSize ? items.Count : null;
         return new Part(items, new SectionTotal(login, section, total), null);
     }
 
