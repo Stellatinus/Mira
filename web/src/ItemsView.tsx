@@ -6,10 +6,9 @@ import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
 import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
-import { compareRepos, isRepoSection, matchesRepoFilter } from './repoview';
-import type { RepoFilter, RepoSort } from './repoview';
 import type { ViewConfig } from './sections';
 import { Tile } from './Tile';
+import type { ViewModel } from './viewmodel';
 import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
 
 export type Mode = 'grid' | 'list' | 'compact';
@@ -23,39 +22,20 @@ interface Props {
   view: ViewConfig;
   /** Login dell'account scelto, oppure "all". */
   filter: string;
-  query: string;
   mode: Mode;
   selectedId: string | null;
   /** Cosa c'è di aperto per ogni repository, ricavato dagli elementi già scaricati. */
   attention: Map<string, Attention>;
-  /** Ordinamento e filtro dei repository (valgono solo per le sezioni di repository). */
-  repoSort: RepoSort;
-  repoFilter: RepoFilter;
+  /** Gli elementi di ogni sezione, già filtrati e ordinati, con i loro conteggi. */
+  model: ViewModel;
   onSelect: (id: string) => void;
   onManageAccounts: () => void;
-}
-
-interface Total {
-  count: number;
-  unknown: boolean;
 }
 
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
-export function ItemsView({
-  data,
-  view,
-  filter,
-  query,
-  mode,
-  selectedId,
-  attention,
-  repoSort,
-  repoFilter,
-  onSelect,
-  onManageAccounts,
-}: Props) {
+export function ItemsView({ data, view, filter, mode, selectedId, attention, model, onSelect, onManageAccounts }: Props) {
   const i18n = useI18n();
   const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -65,63 +45,7 @@ export function ItemsView({
     () => new Set(data.items.filter((i) => i.section === 'starred').map((i) => `${i.account}|${i.repo}`)),
     [data.items],
   );
-  const needle = query.trim().toLowerCase();
-
-  // Il filtro dei repository restringe l'elenco: i totali di GitHub non valgono più.
-  const narrowedByRepoFilter = (key: Section) => isRepoSection(key) && repoFilter !== 'all';
-
-  const bySection = useMemo(() => {
-    const groups = new Map<Section, DashboardItem[]>(view.sections.map((key) => [key, []]));
-    for (const item of data.items) {
-      if (filter !== 'all' && item.account !== filter) continue;
-      if (needle && !matches(item, needle)) continue;
-      if (isRepoSection(item.section) && !matchesRepoFilter(item, repoFilter, attention.get(repoKey(item.repo)))) continue;
-      groups.get(item.section)?.push(item);
-    }
-    for (const [key, items] of groups) {
-      if (isRepoSection(key)) items.sort(compareRepos(repoSort, (i) => attention.get(repoKey(i.repo))));
-    }
-    return groups;
-  }, [data.items, view.sections, filter, needle, repoFilter, repoSort, attention]);
-
-  // Quanti repository ci sono prima del filtro dei repository, per scrivere «12 di 55».
-  const repoBase = useMemo(() => {
-    const base = new Map<Section, number>();
-    for (const item of data.items) {
-      if (!isRepoSection(item.section)) continue;
-      if (filter !== 'all' && item.account !== filter) continue;
-      if (needle && !matches(item, needle)) continue;
-      base.set(item.section, (base.get(item.section) ?? 0) + 1);
-    }
-    return base;
-  }, [data.items, filter, needle]);
-
-  // Totale reale per sezione (anche oltre gli elementi scaricati). Se per almeno un account
-  // GitHub non lo indica, si mostra "N+". Con una ricerca attiva contano solo gli elementi trovati.
-  const totals = useMemo(() => {
-    const result = new Map<Section, Total>();
-    for (const key of view.sections) {
-      const shown = bySection.get(key)?.length ?? 0;
-      let count = 0;
-      let unknown = false;
-      let found = false;
-      for (const total of data.totals ?? []) {
-        if (total.section !== key || (filter !== 'all' && total.account !== filter)) continue;
-        found = true;
-        if (total.total === null) unknown = true;
-        else count += total.total;
-      }
-      const exact = !found || needle !== '' || narrowedByRepoFilter(key);
-      result.set(key, exact ? { count: shown, unknown: false } : { count: Math.max(count, shown), unknown });
-    }
-    return result;
-  }, [data.totals, bySection, view.sections, filter, needle, repoFilter]);
-
-  function totalLabel(key: Section): string {
-    const total = totals.get(key);
-    if (!total) return '0';
-    return total.unknown ? `${total.count}+` : String(total.count);
-  }
+  const { bySection, needle, totalLabel } = model;
 
   if (data.accounts.length === 0) {
     return (
@@ -136,7 +60,9 @@ export function ItemsView({
   }
 
   const shownTotal = view.sections.reduce((sum, key) => sum + (bySection.get(key)?.length ?? 0), 0);
-  const repoFiltering = view.sections.some(narrowedByRepoFilter);
+  const repoFiltering = view.sections.some(model.narrowed);
+  // Una vista con una sola sezione ha già il titolo e il conteggio nella riga in alto: niente intestazione ripetuta.
+  const showGroupHeader = view.sections.length > 1;
   const collapsedCount = view.key === 'home' ? COLLAPSED_HOME : COLLAPSED_OTHER;
   const showAccount = data.accounts.length > 1 && filter === 'all';
 
@@ -178,22 +104,19 @@ export function ItemsView({
 
         const isExpanded = expanded[key] === true;
         const visible = isExpanded ? items : items.slice(0, collapsedCount);
-        const total = totals.get(key);
-        const truncated = total !== undefined && (total.unknown || total.count > items.length);
+        const truncated = model.truncated(key);
 
         return (
           <section key={key} id={`sec-${key}`} className="group">
-            <header className="group-head">
-              <h2>{t(sectionTitle(key))}</h2>
-              <span className="count" title={truncated ? t('items.mostRecent') : undefined}>
-                {narrowedByRepoFilter(key)
-                  ? t('items.countOf', { shown: items.length, total: repoBase.get(key) ?? items.length })
-                  : truncated
-                    ? t('items.countOf', { shown: items.length, total: totalLabel(key) })
-                    : items.length}
-              </span>
-              <span className="hint muted">{t(sectionHint(key))}</span>
-            </header>
+            {showGroupHeader && (
+              <header className="group-head">
+                <h2>{t(sectionTitle(key))}</h2>
+                <span className="count" title={truncated ? t('items.mostRecent') : undefined}>
+                  {model.countText(key)}
+                </span>
+                <span className="hint muted">{t(sectionHint(key))}</span>
+              </header>
+            )}
 
             <div className={`cards ${mode}`}>
               {visible.map((item) => (
@@ -239,12 +162,6 @@ export function ItemsView({
         </details>
       )}
     </>
-  );
-}
-
-function matches(item: DashboardItem, needle: string): boolean {
-  return [item.title, item.repo, item.author, item.description, item.language].some(
-    (field) => field?.toLowerCase().includes(needle),
   );
 }
 

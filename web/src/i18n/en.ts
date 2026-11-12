@@ -80,6 +80,7 @@ export const en: Messages = {
   'repo.sort.issues': 'Open issues',
   'repo.sort.attention': 'Waiting for you',
   'repo.filter.label': 'Filter repositories',
+  'repo.filter.button': 'Filter',
   'repo.filter.all': 'All',
   'repo.filter.prs': 'With open PRs',
   'repo.filter.issues': 'With open issues',

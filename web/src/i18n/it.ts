@@ -87,6 +87,7 @@ export const it = {
   'repo.sort.issues': 'Issue aperte',
   'repo.sort.attention': 'Aspettano te',
   'repo.filter.label': 'Filtra i repository',
+  'repo.filter.button': 'Filtra',
   'repo.filter.all': 'Tutti',
   'repo.filter.prs': 'Con PR aperte',
   'repo.filter.issues': 'Con issue aperte',
