@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import logoUrl from './assets/logo.png';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { AssignedIcon, DotsIcon, HomeIcon, PullRequestIcon, RepoIcon, StarIcon, UsersIcon } from './icons';
@@ -29,7 +30,7 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
 
   return (
     <aside className="sidebar">
-      <img className="logo" src="/logo.png" alt="Mira" width={44} height={44} />
+      <img className="brand-logo" src={logoUrl} alt="Mira" width={56} height={56} />
 
       <nav className="nav" aria-label={t('nav.label')}>
         {NAV_VIEWS.map((v) => (
