@@ -1,5 +1,7 @@
 <p align="center"><img src="web/src/assets/logo.png" alt="Mira" width="160"></p>
 
+<p align="center"><a href="https://github.com/Stellatinus/Mira/actions/workflows/ci.yml"><img src="https://github.com/Stellatinus/Mira/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
+
 # Mira
 
 Una dashboard per tenere sotto controllo GitHub da un unico posto, anche con più account.
