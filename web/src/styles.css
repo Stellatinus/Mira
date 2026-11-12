@@ -146,7 +146,8 @@ h1, h2, h3, p { margin: 0; }
 .sidebar { display: flex; flex-direction: column; align-items: center; padding: 22px 0 18px; background: var(--side); min-height: 0; }
 .logo { border-radius: 12px; display: block; }
 
-.nav { display: flex; flex-direction: column; width: 100%; margin-top: 26px; gap: 4px; }
+/* Con una finestra bassa è l'elenco delle sezioni a scorrere, non il riquadro degli account a uscire dalla barra. */
+.nav { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; width: 100%; margin-top: 26px; gap: 4px; }
 .nav-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .nav-item:hover { color: var(--text); }
 .nav-item.active { color: var(--accent); }
@@ -155,7 +156,7 @@ h1, h2, h3, p { margin: 0; }
 .nav-label { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; }
 .attention { position: absolute; top: -3px; right: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--side); }
 
-.stack-box { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--main) 55%, transparent); }
+.stack-box { flex: none; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--main) 55%, transparent); }
 .stack-more { position: relative; display: grid; place-items: center; width: 32px; height: 22px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 6px; }
 .stack-more:hover { color: var(--text); }
 .stack-more.active { color: var(--accent); }
@@ -165,11 +166,13 @@ h1, h2, h3, p { margin: 0; }
 .stack-all:hover { color: var(--text); }
 .stack-all.active { color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
 .stack { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
-.stack-avatar { position: relative; display: block; padding: 0; margin-top: -12px; border: 0; border-radius: 11px; background: var(--side); box-shadow: 0 0 0 2px var(--side); cursor: pointer; transition: transform 0.12s; }
+.stack-avatar { position: relative; display: block; line-height: 0; padding: 0; margin-top: -12px; border: 0; border-radius: 11px; background: var(--side); box-shadow: 0 0 0 2px var(--side); cursor: pointer; transition: transform 0.12s; }
 .stack-avatar:first-child { margin-top: 0; }
 .stack-avatar:hover { transform: translateX(3px); z-index: 3; }
 .stack-avatar.active { z-index: 2; box-shadow: 0 0 0 2px var(--accent); }
-.stack-avatar .avatar { border-radius: 9px; }
+/* L'immagine è a blocco: da «inline» lasciava sotto di sé lo spazio di una riga, e il pulsante (con l'anello dell'account attivo) risultava più alto dell'avatar. */
+.stack-avatar .avatar { display: block; border-radius: 9px; }
+.stack-avatar .avatar.placeholder { display: grid; }
 
 .avatar { display: inline-block; flex: none; border-radius: 6px; object-fit: cover; }
 .avatar.placeholder { display: inline-grid; place-items: center; background: var(--line); color: var(--muted); font-weight: 600; }
