@@ -1,17 +1,27 @@
-import type { AccountStatus, Dashboard } from './types';
+import type { AccountStatus, Dashboard, ErrorInfo } from './types';
+
+/** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
+export class ApiError extends Error {
+  readonly info: ErrorInfo;
+
+  constructor(info: ErrorInfo) {
+    super(info.code);
+    this.info = info;
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
 
   if (!response.ok) {
-    let message = `Errore ${response.status}`;
+    let info: ErrorInfo = { code: 'http', detail: String(response.status) };
     try {
-      const body = (await response.json()) as { error?: string };
-      if (body.error) message = body.error;
+      const body = (await response.json()) as { error?: ErrorInfo };
+      if (body.error?.code) info = body.error;
     } catch {
-      // risposta senza JSON: resta il messaggio generico
+      // risposta senza JSON: resta l'errore generico con il codice HTTP
     }
-    throw new Error(message);
+    throw new ApiError(info);
   }
 
   if (response.status === 204) return undefined as T;

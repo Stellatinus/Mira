@@ -24,9 +24,9 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
     private const int ReposPageSize = 100;
     private const int DescriptionMaxLength = 500;
 
-    private sealed record Part(List<DashboardItem> Items, SectionTotal? Total, string? Error);
+    private sealed record Part(List<DashboardItem> Items, SectionTotal? Total, DashboardError? Error);
     private sealed record AccountData(
-        AccountStatus Status, List<DashboardItem> Items, List<SectionTotal> Totals, List<string> Errors);
+        AccountStatus Status, List<DashboardItem> Items, List<SectionTotal> Totals, List<DashboardError> Errors);
 
     public void Invalidate() => _cache = null;
 
@@ -68,10 +68,10 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
 
         if (!user.Ok)
         {
-            var errors = new List<string>();
+            var errors = new List<DashboardError>();
             // Un token scaduto è già segnalato dallo stato dell'account: non è un errore a parte.
             if (user.Status != HttpStatusCode.Unauthorized)
-                errors.Add($"{login}: {user.Error}");
+                errors.Add(new DashboardError(login, "account", user.Error ?? new ErrorInfo("unknown")));
             return new AccountData(status, new List<DashboardItem>(), new List<SectionTotal>(), errors);
         }
 
@@ -106,7 +106,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         var response = await api.GetAsync<GhSearchResult>(token, path, ct);
 
         if (!response.Ok)
-            return new Part(new List<DashboardItem>(), null, $"{login} / {section}: {response.Error}");
+            return new Part(new List<DashboardItem>(), null, new DashboardError(login, section, response.Error ?? new ErrorInfo("unknown")));
 
         var items = (response.Data?.Items ?? new List<GhIssue>())
             .Select(issue => ToItem(login, section, issue))
@@ -120,7 +120,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         var response = await api.GetAsync<List<GhRepo>>(token, path, ct);
 
         if (!response.Ok)
-            return new Part(new List<DashboardItem>(), null, $"{login} / {section}: {response.Error}");
+            return new Part(new List<DashboardItem>(), null, new DashboardError(login, section, response.Error ?? new ErrorInfo("unknown")));
 
         var items = (response.Data ?? new List<GhRepo>())
             .Select(r => new DashboardItem(
@@ -151,7 +151,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         var response = await api.GetAsync<List<GhNotification>>(token, $"notifications?per_page={NotificationsPageSize}", ct);
 
         if (!response.Ok)
-            return new Part(new List<DashboardItem>(), null, $"{login} / notifiche: {response.Error}");
+            return new Part(new List<DashboardItem>(), null, new DashboardError(login, "notifications", response.Error ?? new ErrorInfo("unknown")));
 
         var items = (response.Data ?? new List<GhNotification>())
             .Select(n => new DashboardItem(

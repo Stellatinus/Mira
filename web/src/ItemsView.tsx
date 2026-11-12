@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { Avatar } from './Avatar';
+import { useI18n } from './i18n';
 import { ExternalIcon, ItemIcon, StarIcon } from './icons';
-import { reasonLabel, timeAgo } from './format';
-import { SECTIONS } from './sections';
+import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
-import type { AccountStatus, Dashboard, DashboardItem, Section } from './types';
+import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
 
 export type Mode = 'grid' | 'list' | 'compact';
 
-/** Nella Home ogni sezione mostra poche card; nelle altre viste ce n'è molto più spazio. */
+/** Nella Home ogni sezione mostra poche card; nelle altre viste c'è molto più spazio. */
 const COLLAPSED_HOME = 6;
 const COLLAPSED_OTHER = 24;
 
@@ -30,7 +30,12 @@ interface Total {
   unknown: boolean;
 }
 
+const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
+const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
+
 export function ItemsView({ data, view, filter, query, mode, selectedId, onSelect, onManageAccounts }: Props) {
+  const i18n = useI18n();
+  const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const accountsByLogin = useMemo(() => new Map(data.accounts.map((a) => [a.login, a])), [data.accounts]);
@@ -59,11 +64,11 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
       let count = 0;
       let unknown = false;
       let found = false;
-      for (const t of data.totals ?? []) {
-        if (t.section !== key || (filter !== 'all' && t.account !== filter)) continue;
+      for (const total of data.totals ?? []) {
+        if (total.section !== key || (filter !== 'all' && total.account !== filter)) continue;
         found = true;
-        if (t.total === null) unknown = true;
-        else count += t.total;
+        if (total.total === null) unknown = true;
+        else count += total.total;
       }
       result.set(key, !found || needle ? { count: shown, unknown: false } : { count: Math.max(count, shown), unknown });
     }
@@ -71,18 +76,18 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
   }, [data.totals, bySection, view.sections, filter, needle]);
 
   function totalLabel(key: Section): string {
-    const t = totals.get(key);
-    if (!t) return '0';
-    return t.unknown ? `${t.count}+` : String(t.count);
+    const total = totals.get(key);
+    if (!total) return '0';
+    return total.unknown ? `${total.count}+` : String(total.count);
   }
 
   if (data.accounts.length === 0) {
     return (
       <div className="empty">
-        <h2>Nessun account collegato</h2>
-        <p className="muted">Collega un account GitHub con un token per vedere qui tutto ciò che ti riguarda.</p>
+        <h2>{t('items.noAccount.title')}</h2>
+        <p className="muted">{t('items.noAccount.text')}</p>
         <button className="btn primary" onClick={onManageAccounts}>
-          Collega un account
+          {t('items.noAccount.action')}
         </button>
       </div>
     );
@@ -92,6 +97,12 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
   const collapsedCount = view.key === 'home' ? COLLAPSED_HOME : COLLAPSED_OTHER;
   const showAccount = data.accounts.length > 1 && filter === 'all';
 
+  // "account / sezione: errore" (senza sezione quando l'errore riguarda l'account intero).
+  const problemLine = (problem: DashboardError) => {
+    const where = problem.section === 'account' ? '' : ` / ${t(sectionTitle(problem.section as Section))}`;
+    return `${problem.account}${where}: ${errorText(problem.error)}`;
+  };
+
   return (
     <>
       {view.key === 'home' && (
@@ -99,7 +110,7 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
           {view.sections.map((key) => (
             <a key={key} className="stat" href={`#sec-${key}`}>
               <strong>{totalLabel(key)}</strong>
-              <span>{SECTIONS.find((s) => s.key === key)?.title}</span>
+              <span>{t(sectionTitle(key))}</span>
             </a>
           ))}
         </div>
@@ -107,17 +118,14 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
 
       {shownTotal === 0 && (
         <div className="empty">
-          <h2>{needle ? 'Nessun risultato' : 'Tutto in ordine'}</h2>
-          <p className="muted">
-            {needle ? 'Nessun elemento corrisponde alla ricerca.' : 'Niente da mostrare in questa sezione.'}
-          </p>
+          <h2>{needle ? t('items.noResults.title') : t('items.empty.title')}</h2>
+          <p className="muted">{needle ? t('items.noResults.text') : t('items.empty.text')}</p>
         </div>
       )}
 
       {view.sections.map((key) => {
-        const config = SECTIONS.find((s) => s.key === key);
         const items = bySection.get(key) ?? [];
-        if (!config || items.length === 0) return null;
+        if (items.length === 0) return null;
 
         const isExpanded = expanded[key] === true;
         const visible = isExpanded ? items : items.slice(0, collapsedCount);
@@ -127,11 +135,11 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
         return (
           <section key={key} id={`sec-${key}`} className="group">
             <header className="group-head">
-              <h2>{config.title}</h2>
-              <span className="count" title={truncated ? 'Mostrati i più recenti' : undefined}>
-                {truncated ? `${items.length} di ${totalLabel(key)}` : items.length}
+              <h2>{t(sectionTitle(key))}</h2>
+              <span className="count" title={truncated ? t('items.mostRecent') : undefined}>
+                {truncated ? t('items.countOf', { shown: items.length, total: totalLabel(key) }) : items.length}
               </span>
-              <span className="hint muted">{config.hint}</span>
+              <span className="hint muted">{t(sectionHint(key))}</span>
             </header>
 
             <div className={`cards ${mode}`}>
@@ -151,15 +159,15 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
             {items.length > collapsedCount && (
               <button className="more" onClick={() => setExpanded({ ...expanded, [key]: !isExpanded })}>
                 {isExpanded
-                  ? 'Mostra meno'
+                  ? t('items.showLess')
                   : truncated
-                    ? `Mostra i ${items.length} più recenti`
-                    : `Mostra tutti (${items.length})`}
+                    ? t('items.showRecent', { count: items.length })
+                    : t('items.showAll', { count: items.length })}
               </button>
             )}
             {truncated && isExpanded && (
               <p className="truncated muted">
-                Qui ci sono i {items.length} aggiornati più di recente su {totalLabel(key)}.
+                {t('items.truncatedNote', { shown: items.length, total: totalLabel(key) })}
               </p>
             )}
           </section>
@@ -168,10 +176,10 @@ export function ItemsView({ data, view, filter, query, mode, selectedId, onSelec
 
       {data.errors.length > 0 && (
         <details className="problems">
-          <summary>{data.errors.length} richieste non sono andate a buon fine</summary>
+          <summary>{t('items.problems', { count: data.errors.length })}</summary>
           <ul>
-            {data.errors.map((message) => (
-              <li key={message}>{message}</li>
+            {data.errors.map((problem) => (
+              <li key={`${problem.account}:${problem.section}`}>{problemLine(problem)}</li>
             ))}
           </ul>
         </details>
@@ -196,7 +204,9 @@ interface CardProps {
 }
 
 function ItemCard({ item, account, starred, selected, showAccount, onSelect }: CardProps) {
-  const when = item.reason ? `${reasonLabel(item.reason)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
+  const i18n = useI18n();
+  const { t, timeAgo } = i18n;
+  const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
 
   function onKey(event: KeyboardEvent<HTMLElement>) {
     if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
@@ -223,10 +233,17 @@ function ItemCard({ item, account, starred, selected, showAccount, onSelect }: C
             {item.stars}
           </>
         ) : (
-          <span className="tag-text">{tag(item)}</span>
+          <span className="tag-text">{tagLabel(item, i18n)}</span>
         )}
       </span>
-      <a className="ci-open" href={item.url} target="_blank" rel="noreferrer" onClick={stop} aria-label="Apri su GitHub">
+      <a
+        className="ci-open"
+        href={item.url}
+        target="_blank"
+        rel="noreferrer"
+        onClick={stop}
+        aria-label={t('items.openOnGitHub')}
+      >
         <ExternalIcon size={15} />
       </a>
       <div className="tile">
@@ -247,21 +264,4 @@ function ItemCard({ item, account, starred, selected, showAccount, onSelect }: C
       )}
     </article>
   );
-}
-
-function tag(item: DashboardItem): string {
-  switch (item.type) {
-    case 'pr':
-      return item.draft ? 'PR · bozza' : 'PR';
-    case 'issue':
-      return 'Issue';
-    case 'release':
-      return 'Release';
-    case 'commit':
-      return 'Commit';
-    case 'discussion':
-      return 'Discussione';
-    default:
-      return 'Notifica';
-  }
 }

@@ -5,7 +5,7 @@ using Mira.Server.Storage;
 
 namespace Mira.Server.Services;
 
-public sealed record AddAccountResult(AccountStatus? Account, string? Error);
+public sealed record AddAccountResult(AccountStatus? Account, ErrorInfo? Error);
 
 public sealed class AccountService(ISecretStore store, GitHubApi api)
 {
@@ -26,13 +26,13 @@ public sealed class AccountService(ISecretStore store, GitHubApi api)
     {
         token = token?.Trim();
         if (string.IsNullOrEmpty(token))
-            return new AddAccountResult(null, "Incolla un token.");
+            return new AddAccountResult(null, new ErrorInfo("token-empty"));
 
         var user = await api.GetAsync<GhUser>(token, "user", ct);
         if (user.Status == HttpStatusCode.Unauthorized)
-            return new AddAccountResult(null, "Token non valido o scaduto.");
+            return new AddAccountResult(null, new ErrorInfo("token-invalid"));
         if (!user.Ok || user.Data is null)
-            return new AddAccountResult(null, $"Impossibile contattare GitHub: {user.Error}.");
+            return new AddAccountResult(null, new ErrorInfo("github-unreachable", null, user.Error));
 
         await store.SaveAsync(user.Data.Login, token, ct);
         return new AddAccountResult(BuildStatus(user.Data.Login, user), null);
@@ -49,14 +49,14 @@ public sealed class AccountService(ISecretStore store, GitHubApi api)
         {
             if (user.Scopes is null)
             {
-                warnings.Add("Sembra un token fine-grained: le notifiche non sono supportate. Usa un token classic.");
+                warnings.Add("fine-grained");
             }
             else
             {
                 foreach (var scope in RequiredScopes)
                 {
                     if (!user.Scopes.Contains(scope))
-                        warnings.Add($"Manca lo scope '{scope}'.");
+                        warnings.Add($"missing-scope:{scope}");
                 }
             }
         }
