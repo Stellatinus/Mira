@@ -9,6 +9,8 @@ Grazie! Il progetto è in italiano (codice commentato, issue, PR e documentazion
 3. **La CI deve essere verde** prima del merge (vedi sotto).
 4. **Si fonde con lo squash**: un solo commit per PR su `main`, con il titolo della PR.
 
+`main` è **protetta**: non si può fare push diretto né force-push, e una PR si fonde solo con lo squash e solo se i tre controlli della CI (Frontend, Backend su Linux, Backend su Windows) sono verdi. Se serve aggirare la protezione (per esempio se la CI di GitHub è fuori uso) bisogna disattivare temporaneamente la regola «Proteggi main» nelle impostazioni del repository.
+
 La descrizione della PR ha un modello (`Cosa cambia`, `Dove guardare`, `Verificato`, `Da decidere`): compilarlo aiuta chi approva a sapere dove guardare.
 
 ## Prima del push: gli stessi controlli della CI
@@ -49,4 +51,4 @@ La CI non usa token di GitHub e non esegue il programma: controlla che il codice
 
 ## Release
 
-Le release non sono ancora automatiche: sono un passo successivo (vedi la issue sugli eseguibili per Windows, Linux e macOS).
+Le release si fanno creando un tag nel formato `vMAJOR.MINOR.PATCH` (la prima è la `v1.0.0`): un workflow compila e pubblica i pacchetti per Windows e Linux. Il numero di versione e i passaggi sono in [`docs/RELEASING.md`](docs/RELEASING.md).

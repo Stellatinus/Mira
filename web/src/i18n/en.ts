@@ -238,6 +238,9 @@ export const en: Messages = {
   'settings.refreshLabel': 'Refresh data every',
   'settings.refreshHint':
     'GitHub limits searches to 30 per minute, so intervals under 5 minutes are not offered. You can always refresh by hand with the button at the top.',
+  'settings.about': 'About',
+  'settings.version': 'Version',
+  'settings.releases': 'What’s new and downloads',
   'settings.cache': 'Saved data',
   'settings.cacheLabel': 'Last snapshot of the data',
   'settings.cacheHint':

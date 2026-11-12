@@ -34,6 +34,12 @@ cambia luminosità nel tempo, come l'attività dei tuoi repository.
 
 ## Avvio
 
+### Da una release
+
+Dalla pagina delle [release](https://github.com/Stellatinus/Mira/releases) scarica il pacchetto per il tuo sistema (Windows o Linux), estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare nulla. I programmi non sono firmati: Windows può mostrare un avviso la prima volta. Come si fanno le release: [`docs/RELEASING.md`](docs/RELEASING.md).
+
+### Dal sorgente
+
 Servono .NET 10 SDK e Node.js.
 
 ```bash

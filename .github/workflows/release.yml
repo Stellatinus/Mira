@@ -1,0 +1,185 @@
+# Pacchetti e release di Mira.
+#
+# Come si fa una release: si crea un tag nel formato vMAJOR.MINOR.PATCH (es. v1.0.0). Vedi docs/RELEASING.md.
+#
+# Cosa succede:
+#  - push di un tag v*.*.*: si compila il frontend e il server per Windows e Linux (programma autonomo,
+#    non serve installare .NET), si prova che parta e risponda, si crea la release su GitHub con i pacchetti,
+#    le somme di controllo e le note generate dalle PR fuse;
+#  - pull request che tocca questo file o il progetto: stessa compilazione e stessa prova, ma senza creare
+#    nessuna release (serve a controllare che il workflow funzioni prima di fonderlo).
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'src/Mira.Server/Mira.Server.csproj'
+
+# Di base il token può solo leggere; il job che pubblica la release chiede il permesso di scrivere.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Pacchetto (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        # macOS NON è incluso, come nella CI (scelta del progetto, novembre 2026). Per aggiungerlo basta una riga
+        # con `os: macos-latest`, `rid: osx-arm64`, `archive: tar.gz`.
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Il tag «$GITHUB_REF_NAME» non è nel formato vMAJOR.MINOR.PATCH (es. v1.0.0)"
+              exit 1
+            fi
+          else
+            # Prova su una pull request: non è una release.
+            VERSION="0.0.0-prova"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=Mira-$VERSION-${{ matrix.rid }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Compila il frontend (finisce in src/Mira.Server/wwwroot)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pubblica il programma autonomo
+        shell: bash
+        run: >
+          dotnet publish src/Mira.Server
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --self-contained true
+          -p:Version=${{ steps.version.outputs.version }}
+          --output "publish/${{ steps.version.outputs.name }}"
+
+      - name: Istruzioni di avvio nel pacchetto
+        shell: bash
+        run: |
+          cat > "publish/${{ steps.version.outputs.name }}/AVVIO.txt" <<'EOF'
+          Mira - dashboard GitHub multi-account
+
+          1. Avvia Mira.Server (su Linux: ./Mira.Server).
+          2. Apri http://127.0.0.1:5080 nel browser.
+          3. Dalle Impostazioni collega i tuoi account con un token (la pagina spiega come crearlo).
+
+          Mira ascolta solo sul tuo computer. I token restano cifrati nella tua cartella di configurazione
+          (Windows: %APPDATA%\Mira, Linux: ~/.config/Mira). Documentazione: https://github.com/Stellatinus/Mira
+          EOF
+
+      # Prova vera: il programma parte da una cartella diversa dalla sua, serve il frontend e dichiara la versione.
+      - name: Prova che il pacchetto parta e risponda
+        shell: bash
+        run: |
+          export MIRA_URLS=http://127.0.0.1:5099
+          export MIRA_DATA_DIR="$RUNNER_TEMP/mira-dati"
+          EXE="./publish/${{ steps.version.outputs.name }}/Mira.Server"
+          [ "$RUNNER_OS" = "Windows" ] && EXE="$EXE.exe"
+          "$EXE" &
+          PID=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:5099/api/version >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5099/api/version | tee versione.json
+          echo
+          grep -q '"version":"${{ steps.version.outputs.version }}"' versione.json
+          curl -fsS http://127.0.0.1:5099/ | grep -q 'id="root"'
+          kill "$PID" || true
+
+      - name: Archivio (Linux)
+        if: matrix.archive == 'tar.gz'
+        run: tar -czf "${{ steps.version.outputs.name }}.tar.gz" -C publish "${{ steps.version.outputs.name }}"
+
+      - name: Archivio (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: Compress-Archive -Path "publish/${{ steps.version.outputs.name }}" -DestinationPath "${{ steps.version.outputs.name }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacchetto-${{ matrix.rid }}
+          path: ${{ steps.version.outputs.name }}.${{ matrix.archive }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Pubblica la release
+    needs: build
+    # Solo per i tag: sulle pull request si prova la compilazione e basta.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: pacchetti
+          merge-multiple: true
+
+      - name: Somme di controllo
+        working-directory: pacchetti
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Crea la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          FLAGS=()
+          # Un tag con il trattino (es. v1.1.0-rc.1) è una versione di prova.
+          [[ "$TAG" == *-* ]] && FLAGS+=(--prerelease)
+
+          cat > note.md <<'EOF'
+          ## Come si usa
+          Scarica il pacchetto per il tuo sistema, estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare .NET. Dettagli in `AVVIO.txt` dentro il pacchetto.
+
+          I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta. Per controllare il file scaricato, confronta la somma con `SHA256SUMS.txt`.
+
+          macOS non è compreso in questa versione.
+          EOF
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # La release esiste già (creata a mano dal sito insieme al tag): si allegano i pacchetti.
+            gh release upload "$TAG" pacchetti/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" pacchetti/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Mira ${TAG#v}" \
+              --notes-file note.md \
+              --generate-notes \
+              "${FLAGS[@]}"
+          fi
