@@ -20,6 +20,7 @@ export const en: Messages = {
   'nav.settings': 'Settings and accounts',
   'nav.attention': 'Something needs your attention',
   'nav.filterGroup': 'Filter by account',
+  'nav.allAccounts': 'All accounts',
   'nav.accountActive': '{login} (click to show all)',
   'nav.accountOnly': 'Show only {login}',
 

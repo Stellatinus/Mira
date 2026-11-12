@@ -27,6 +27,7 @@ export const it = {
   'nav.settings': 'Impostazioni e account',
   'nav.attention': 'C’è qualcosa da sistemare',
   'nav.filterGroup': 'Filtra per account',
+  'nav.allAccounts': 'Tutti gli account',
   'nav.accountActive': '{login} (clicca per mostrare tutti)',
   'nav.accountOnly': 'Mostra solo {login}',
 

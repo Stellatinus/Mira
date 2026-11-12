@@ -81,6 +81,14 @@ export const AssignedIcon = ({ size = 16 }: IconProps) => (
   </Svg>
 );
 
+export const UsersIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <circle cx="6" cy="5.5" r="2.2" />
+    <path d="M1.8 13c.5-2.2 2.2-3.2 4.2-3.2s3.7 1 4.2 3.2" />
+    <path d="M10.5 3.6a2.2 2.2 0 0 1 0 4.2M11.6 9.9c1.5.4 2.3 1.4 2.6 3.1" />
+  </Svg>
+);
+
 export const StarIcon = ({ size = 16, filled = false }: IconProps & { filled?: boolean }) => (
   <Svg size={size} fill={filled ? 'currentColor' : 'none'}>
     <path d="m8 1.8 1.9 4 4.3.6-3.1 3 .8 4.3L8 11.6l-3.9 2.1.8-4.3-3.1-3 4.3-.6z" />
