@@ -35,6 +35,8 @@ export const getDashboard = (refresh = false) =>
 export const getIssues = (view: ExtraKey, refresh = false) =>
   request<ExtraSnapshot>(`/api/issues/${view}${refresh ? '?refresh=true' : ''}`);
 
+export const getVersion = () => request<{ version: string }>('/api/version');
+
 export const addAccount = (token: string) =>
   request<AccountStatus>('/api/accounts', {
     method: 'POST',

@@ -245,6 +245,9 @@ export const it = {
   'settings.refreshLabel': 'Aggiorna i dati ogni',
   'settings.refreshHint':
     'GitHub limita le ricerche a 30 al minuto, per questo non si scende sotto i 5 minuti. Puoi sempre aggiornare a mano con il pulsante in alto.',
+  'settings.about': 'Informazioni',
+  'settings.version': 'Versione',
+  'settings.releases': 'Novità e download',
   'settings.cache': 'Dati salvati',
   'settings.cacheLabel': 'Ultima fotografia dei dati',
   'settings.cacheHint':

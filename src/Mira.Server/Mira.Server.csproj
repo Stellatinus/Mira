@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Mira.Server</RootNamespace>
     <AssemblyName>Mira.Server</AssemblyName>
+    <!-- Compilando dal sorgente non è una release; il workflow delle release la sostituisce con quella del tag. -->
+    <Version>0.0.0-dev</Version>
   </PropertyGroup>
 
 </Project>

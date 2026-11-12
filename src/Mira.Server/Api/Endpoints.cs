@@ -41,6 +41,8 @@ public static class Endpoints
                 ? Results.Ok(await issues.GetAsync(view, refresh == true, ct))
                 : Results.NotFound());
 
+        api.MapGet("/version", () => Results.Ok(new { version = AppVersion.Current }));
+
         api.MapGet("/dashboard", async (bool? refresh, DashboardService dashboard, CancellationToken ct) =>
             Results.Ok(await dashboard.GetAsync(refresh == true, ct)));
     }

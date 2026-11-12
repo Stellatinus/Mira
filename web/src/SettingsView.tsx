@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getVersion } from './api';
 import { AccountsView } from './AccountsView';
 import { useI18n } from './i18n';
 import { REFRESH_OPTIONS } from './refresh';
@@ -20,6 +21,13 @@ interface Props {
 export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refreshMinutes, onRefreshMinutes }: Props) {
   const { t, language, languages, setLanguage } = useI18n();
   const [cleared, setCleared] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVersion()
+      .then((v) => setVersion(v.version))
+      .catch(() => setVersion(null));
+  }, []);
 
   const refreshLabel = (minutes: number) =>
     minutes === 0
@@ -125,6 +133,21 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refr
       </section>
 
       <AccountsView accounts={accounts} onChanged={onAccountsChanged} />
+
+      <section className="card">
+        <header className="card-head">
+          <h2>{t('settings.about')}</h2>
+        </header>
+        <div className="setting">
+          <div className="setting-text">
+            <strong>{t('settings.version')}</strong>
+            <p className="muted small">Mira {version ?? '—'}</p>
+          </div>
+          <a className="btn" href="https://github.com/Stellatinus/Mira/releases" target="_blank" rel="noreferrer">
+            {t('settings.releases')}
+          </a>
+        </div>
+      </section>
     </>
   );
 }
