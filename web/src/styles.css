@@ -253,7 +253,9 @@ h1, h2, h3, p { margin: 0; }
 .kind-lines { list-style: none; margin: 0 0 14px; padding: 0 0 0 16px; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
 .kind-lines li:first-child { color: var(--text); font-weight: 600; }
 .kind-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--kind); flex: none; }
-.ci-open { grid-area: open; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
+.ci-actions { grid-area: open; display: inline-flex; align-items: center; gap: 2px; }
+.ci-star { display: grid; place-items: center; width: 22px; height: 24px; color: var(--star); }
+.ci-open { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
 .ci-open:hover { color: var(--text); background: var(--line); }
 .item-card .tile { grid-area: tile; justify-self: center; }
 .ci-title {
@@ -274,6 +276,8 @@ h1, h2, h3, p { margin: 0; }
 .ci-meta .k { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-meta .v { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-acct { grid-area: acct; display: inline-flex; }
+.ci-acct .avatar + .avatar { margin-left: -8px; }
+.ci-acct .avatar { box-shadow: 0 0 0 2px var(--cardbg); }
 
 /* Icona a forma di foglio con l'angolo piegato, come nel design di riferimento. */
 .tile {

@@ -21,6 +21,12 @@ export interface Facet {
   count: number;
 }
 
+/** Per un repository: gli account che lo vedono e quelli che gli hanno messo la stella. */
+export interface RepoInfo {
+  accounts: string[];
+  starredBy: string[];
+}
+
 /** Gli elementi di ogni sezione della vista già filtrati e ordinati, e i loro conteggi. */
 export interface ViewModel {
   /** La ricerca, già in minuscolo e senza spazi ai lati. */
@@ -38,6 +44,8 @@ export interface ViewModel {
   facets: { languages: Facet[]; owners: Facet[] };
   /** Come `facets`, per i filtri degli elementi (repository, proprietario e motivo delle notifiche). */
   itemFacets: { repos: Facet[]; owners: Facet[]; reasons: Facet[] };
+  /** Per ogni repository della vista Repo (per id dell'elemento), gli account e le stelle: una card per repository. */
+  repoInfo: Map<string, RepoInfo>;
 }
 
 export const matchesQuery = (item: DashboardItem, needle: string): boolean =>
@@ -56,6 +64,8 @@ interface Args {
   repoFilters: RepoFilters;
   itemSort: ItemSort;
   itemFilters: ItemFilters;
+  /** Include nell'elenco dei repository anche i preferiti che non sono nei propri. */
+  showStarred: boolean;
   t: I18n['t'];
 }
 
@@ -69,6 +79,7 @@ export function useViewModel({
   repoFilters,
   itemSort,
   itemFilters,
+  showStarred,
   t,
 }: Args): ViewModel {
   return useMemo(() => {
@@ -80,8 +91,6 @@ export function useViewModel({
     const narrowed = (key: Section) => (isRepoSection(key) ? repoFiltering : itemFiltering);
     const attentionOf = (item: DashboardItem) => attention.get(repoKey(item.repo));
 
-    // Quali repository sono tra i preferiti di quale account (per il filtro «preferiti»).
-    const starredKeys = new Set(items.filter((i) => i.section === 'starred').map((i) => `${i.account}|${i.repo}`));
     const languages = new Map<string, Facet>();
     const owners = new Map<string, Facet>();
     const itemRepos = new Map<string, Facet>();
@@ -96,18 +105,29 @@ export function useViewModel({
     const bySection = new Map<Section, DashboardItem[]>(view.sections.map((key) => [key, []]));
     // Quanti elementi ci sono prima dei filtri, per scrivere «14 di 65».
     const base = new Map<Section, number>();
+    // Un repository può arrivare più volte (da più account, e dai preferiti): se ne fa una voce sola.
+    const entries = new Map<string, { item: DashboardItem; info: RepoInfo; own: boolean }>();
 
     for (const item of items) {
       if (filter !== 'all' && item.account !== filter) continue;
       if (needle && !matchesQuery(item, needle)) continue;
-      base.set(item.section, (base.get(item.section) ?? 0) + 1);
       if (isRepoSection(item.section)) {
-        if (view.sections.includes(item.section)) {
-          count(languages, item.language ?? NO_LANGUAGE, item.language ?? '');
-          count(owners, ownerOf(item).toLowerCase(), ownerOf(item));
+        if (!view.sections.includes('repos')) continue;
+        const key = repoKey(item.repo);
+        let entry = entries.get(key);
+        if (!entry) entries.set(key, (entry = { item, info: { accounts: [], starredBy: [] }, own: false }));
+        if (!entry.info.accounts.includes(item.account)) entry.info.accounts.push(item.account);
+        if (item.section === 'starred') {
+          if (!entry.info.starredBy.includes(item.account)) entry.info.starredBy.push(item.account);
+        } else {
+          entry.own = true;
+          // Dei dati dello stesso repository si tiene quello della lista dei propri, non quello dei preferiti.
+          if (entry.item.section === 'starred') entry.item = item;
         }
-        if (!matchesRepoFilters(item, repoFilters, attentionOf(item), starredKeys.has(`${item.account}|${item.repo}`))) continue;
-      } else {
+        continue;
+      }
+      base.set(item.section, (base.get(item.section) ?? 0) + 1);
+      {
         if (view.sections.includes(item.section)) {
           count(itemRepos, item.repo.toLowerCase(), item.repo);
           count(itemOwners, ownerOf(item).toLowerCase(), ownerOf(item));
@@ -116,6 +136,22 @@ export function useViewModel({
         if (!matchesItemFilters(item, itemFilters)) continue;
       }
       bySection.get(item.section)?.push(item);
+    }
+    // Repository: i propri, più i preferiti se richiesto (o se il filtro chiede solo i preferiti).
+    const repoInfo = new Map<string, RepoInfo>();
+    if (view.sections.includes('repos')) {
+      const includeStarred = showStarred || repoFilters.starred === 'yes';
+      const group = bySection.get('repos') ?? [];
+      let visible = 0;
+      for (const { item, info, own } of entries.values()) {
+        repoInfo.set(item.id, info);
+        if (!own && !includeStarred) continue;
+        visible += 1;
+        count(languages, item.language ?? NO_LANGUAGE, item.language ?? '');
+        count(owners, ownerOf(item).toLowerCase(), ownerOf(item));
+        if (matchesRepoFilters(item, repoFilters, attentionOf(item), info.starredBy.length > 0)) group.push(item);
+      }
+      base.set('repos', visible);
     }
     for (const [key, group] of bySection) {
       group.sort(isRepoSection(key) ? compareRepos(repoSort, attentionOf) : compareItems(itemSort));
@@ -135,7 +171,7 @@ export function useViewModel({
         if (total.total === null) unknown = true;
         else count += total.total;
       }
-      const exact = !found || needle !== '' || narrowed(key);
+      const exact = !found || needle !== '' || narrowed(key) || isRepoSection(key);
       totals.set(key, exact ? { count: shown, unknown: false } : { count: Math.max(count, shown), unknown });
     }
 
@@ -169,6 +205,6 @@ export function useViewModel({
       reasons: [...itemReasons.values()].sort(byCount),
     };
 
-    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets };
-  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, t]);
+    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo };
+  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t]);
 }

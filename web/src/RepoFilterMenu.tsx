@@ -22,12 +22,10 @@ interface Props {
   onChange: (next: SetStateAction<RepoFilters>) => void;
   /** Le scelte di linguaggio e proprietario presenti nei repository della vista. */
   facets: { languages: Facet[]; owners: Facet[] };
-  /** Il filtro «preferiti» serve solo dove ci sono anche repository non preferiti. */
-  showStarred: boolean;
 }
 
 /** Il pulsante «Filtra» e il pannello con tutti i gruppi di filtri, combinabili tra loro. */
-export function RepoFilterMenu({ filters, onChange, facets, showStarred }: Props) {
+export function RepoFilterMenu({ filters, onChange, facets }: Props) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -85,16 +83,14 @@ export function RepoFilterMenu({ filters, onChange, facets, showStarred }: Props
               onChange={(value) => set('origin', value)}
             />
           </Group>
-          {showStarred && (
-            <Group label={t('repo.filter.group.starred')}>
-              <Chips
-                label={t('repo.filter.group.starred')}
-                value={filters.starred}
-                options={optionsOf('repo.filter.starred', STARRED_FILTERS)}
-                onChange={(value) => set('starred', value)}
-              />
-            </Group>
-          )}
+        <Group label={t('repo.filter.group.starred')}>
+          <Chips
+            label={t('repo.filter.group.starred')}
+            value={filters.starred}
+            options={optionsOf('repo.filter.starred', STARRED_FILTERS)}
+            onChange={(value) => set('starred', value)}
+          />
+        </Group>
           <Group label={t('repo.filter.group.language')} htmlFor="filter-language">
             <FacetSelect
               id="filter-language"

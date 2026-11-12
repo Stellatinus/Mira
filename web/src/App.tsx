@@ -6,7 +6,7 @@ import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
-import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon } from './icons';
+import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemFilterMenu } from './ItemFilterMenu';
 import { DEFAULT_ITEM_FILTERS, DEFAULT_ITEM_SORT, ITEM_SORTS } from './itemview';
@@ -29,6 +29,7 @@ const FILTER_KEY = 'mira.accountFilter';
 const MODE_KEY = 'mira.mode';
 const REPO_SORT_KEY = 'mira.repoSort';
 const ITEM_SORT_KEY = 'mira.itemSort';
+const SHOW_STARRED_KEY = 'mira.showStarred';
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -71,6 +72,8 @@ export default function App() {
   });
   // Il filtro non si ricorda: riaprendo Mira si devono rivedere tutti i repository.
   const [repoFilters, setRepoFilters] = useState<RepoFilters>(DEFAULT_REPO_FILTERS);
+  // «Mostra preferiti»: spento di default, aggiunge ai repository anche i preferiti che non sono tra i propri.
+  const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   const [itemSort, setItemSort] = useState<ItemSort>(() => {
     const saved = readStored(ITEM_SORT_KEY, DEFAULT_ITEM_SORT);
     return ITEM_SORTS.find((s) => s === saved) ?? DEFAULT_ITEM_SORT;
@@ -137,15 +140,15 @@ export default function App() {
   );
   const isRepoView = config.tools === 'repos';
   const isItemView = config.tools === 'items';
-  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, t });
+  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t });
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
-  const selectedAccount = selected ? data?.accounts.find((a) => a.login === selected.account) : undefined;
-  const selectedStarred =
-    selected !== null &&
-    selected.type === 'repo' &&
-    (data?.items.some((i) => i.section === 'starred' && i.account === selected.account && i.repo === selected.repo) ?? false);
+  // Un repository è visto da più account e può avere la stella di alcuni: il pannello li mostra tutti.
+  const selectedInfo = selected?.type === 'repo' ? model.repoInfo.get(selected.id) : undefined;
+  const selectedAccounts = (selectedInfo?.accounts ?? (selected ? [selected.account] : [])).map(
+    (login) => data?.accounts.find((a) => a.login === login) ?? { login, avatarUrl: null },
+  );
 
   function chooseFilter(login: string) {
     setStoredFilter(login);
@@ -155,6 +158,12 @@ export default function App() {
   function chooseRepoSort(next: RepoSort) {
     setRepoSort(next);
     writeStored(REPO_SORT_KEY, next);
+  }
+
+  function toggleShowStarred() {
+    const next = !showStarred;
+    setShowStarred(next);
+    writeStored(SHOW_STARRED_KEY, String(next));
   }
 
   function chooseItemSort(next: ItemSort) {
@@ -230,7 +239,6 @@ export default function App() {
                       filters={repoFilters}
                       onChange={setRepoFilters}
                       facets={model.facets}
-                      showStarred={config.sections.includes('repos')}
                     />
                     <Dropdown
                       label={t('repo.sort.label')}
@@ -240,6 +248,14 @@ export default function App() {
                       options={REPO_SORTS.map((value) => ({ value, label: t(`repo.sort.${value}` as 'repo.sort.updated') }))}
                       onChange={chooseRepoSort}
                     />
+                    <button
+                      className={showStarred ? 'dd-btn highlighted' : 'dd-btn'}
+                      aria-pressed={showStarred}
+                      onClick={toggleShowStarred}
+                    >
+                      <StarIcon size={15} filled={showStarred} />
+                      <span className="dd-text">{t('repo.showStarred')}</span>
+                    </button>
                   </>
                 )}
                 {isItemView && (
@@ -327,8 +343,8 @@ export default function App() {
       {showItems && (
         <DetailPanel
           item={selected}
-          account={selectedAccount}
-          starred={selectedStarred}
+          accounts={selectedAccounts}
+          starredBy={selectedInfo?.starredBy ?? []}
           attention={selected?.type === 'repo' ? attention.get(repoKey(selected.repo)) : undefined}
           onClose={() => setSelectedId(null)}
         />
