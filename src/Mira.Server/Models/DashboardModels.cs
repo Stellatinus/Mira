@@ -17,7 +17,7 @@ public sealed record AccountStatus(
 /// Un elemento della dashboard.
 /// Section: review | assigned | mine-prs | mine-issues | mentions | notifications | repos | starred.
 /// Type: issue | pr | repo | release | commit | discussion | other.
-/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository) sono valorizzati solo dove hanno senso.
+/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository), Fork, ForkOf (repository da cui deriva) e UnassignedIssues (issue aperte senza assegnatario) sono valorizzati solo dove hanno senso.
 /// </summary>
 public sealed record DashboardItem(
     string Id,
@@ -38,7 +38,10 @@ public sealed record DashboardItem(
     bool Private = false,
     int OpenIssues = 0,
     int OpenPrs = 0,
-    string? LogoUrl = null);
+    string? LogoUrl = null,
+    bool Fork = false,
+    string? ForkOf = null,
+    int UnassignedIssues = 0);
 
 /// <summary>
 /// Quanti elementi ci sono davvero in una sezione per un account, anche oltre quelli scaricati.

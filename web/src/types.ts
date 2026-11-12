@@ -43,6 +43,11 @@ export interface DashboardItem {
   openPrs: number;
   /** Logo del repository (anteprima sociale personalizzata, altrimenti avatar del proprietario). */
   logoUrl: string | null;
+  /** Se il repository è un fork, e di quale repository ("owner/nome"). */
+  fork: boolean;
+  forkOf: string | null;
+  /** Issue aperte senza assegnatario, su tutto il repository. */
+  unassignedIssues: number;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */

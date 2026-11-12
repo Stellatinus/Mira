@@ -51,9 +51,14 @@ public sealed record GqlRepo(
     GqlCount PullRequests,
     string? OpenGraphImageUrl,
     bool UsesCustomOpenGraphImage,
-    GqlOwner? Owner);
+    GqlOwner? Owner,
+    bool IsFork,
+    GqlParent? Parent,
+    GqlCount Unassigned);
 
 public sealed record GqlOwner(string? AvatarUrl);
+
+public sealed record GqlParent(string NameWithOwner);
 
 public sealed record GqlLanguage(string Name);
 

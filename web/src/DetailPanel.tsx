@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState } from 'react';
-import { attentionLines, indicator, KINDS } from './attention';
-import type { Attention } from './attention';
+import { useEffect, useState } from 'react';
+import { KINDS, kindSummary, summaryLines } from './attention';
+import type { Attention, Kind } from './attention';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { CloseIcon, CopyIcon, DetailIcon, ExternalIcon, ItemIcon } from './icons';
@@ -98,22 +98,16 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
                     {item.stars}
                     {starred ? t('detail.starredByYou') : ''}
                   </dd>
+                  <dt>{t('detail.fork')}</dt>
+                  <dd>
+                    {item.fork
+                      ? item.forkOf
+                        ? t('detail.forkOf', { parent: item.forkOf })
+                        : t('detail.forkYes')
+                      : t('detail.forkNo')}
+                  </dd>
                 </>
               )}
-              {item.type === 'repo' &&
-                KINDS.filter((kind) => indicator(item, attention, kind).count > 0).map((kind) => (
-                  <Fragment key={kind}>
-                    <dt className="kind-label">
-                      <span className={`kind-dot ${kind}`} aria-hidden />
-                      {t(`attention.kind.${kind}` as 'attention.kind.pr')}
-                    </dt>
-                    <dd>
-                      {attentionLines(item, attention, kind, t).map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
-                    </dd>
-                  </Fragment>
-                ))}
               {item.comments > 0 && (
                 <>
                   <dt>{t('detail.comments')}</dt>
@@ -124,6 +118,9 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
               <dd title={formatDate(item.updatedAt)}>{timeAgo(item.updatedAt)}</dd>
             </dl>
             <div className="rule" />
+
+            {item.type === 'repo' &&
+              KINDS.map((kind) => <KindSection key={kind} kind={kind} item={item} attention={attention} />)}
 
             <h3 className="panel-label">{t('detail.seenBy')}</h3>
             <div className="shared">
@@ -150,5 +147,31 @@ export function DetailPanel({ item, account, starred, attention, onClose }: Prop
         </>
       )}
     </aside>
+  );
+}
+
+/**
+ * Una sezione del pannello di un repository, per le PR o per le issue: quante sono aperte e, tra
+ * parentesi, quante sono assegnate a te; per le issue anche quante non hanno assegnatario; poi il resto
+ * che aspetta te. Non compare se non c'è nulla.
+ */
+function KindSection({ kind, item, attention }: { kind: Kind; item: DashboardItem; attention?: Attention }) {
+  const { t } = useI18n();
+  const lines = summaryLines(kindSummary(item, attention, kind, t), t);
+  if (lines.length === 0) return null;
+
+  return (
+    <>
+      <h3 className="panel-label kind-head">
+        <span className={`kind-dot ${kind}`} aria-hidden />
+        {t(`detail.section.${kind}` as 'detail.section.pr')}
+      </h3>
+      <ul className="kind-lines">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <div className="rule" />
+    </>
   );
 }
