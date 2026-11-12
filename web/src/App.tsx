@@ -8,6 +8,9 @@ import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
 import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
+import { ItemFilterMenu } from './ItemFilterMenu';
+import { DEFAULT_ITEM_FILTERS, DEFAULT_ITEM_SORT, ITEM_SORTS } from './itemview';
+import type { ItemFilters, ItemSort } from './itemview';
 import { ItemsView } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
@@ -15,7 +18,7 @@ import { Sidebar } from './Sidebar';
 import { VIEWS } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
-import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, isRepoSection, REPO_SORTS } from './repoview';
+import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview';
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
@@ -25,6 +28,7 @@ import { useViewModel } from './viewmodel';
 const FILTER_KEY = 'mira.accountFilter';
 const MODE_KEY = 'mira.mode';
 const REPO_SORT_KEY = 'mira.repoSort';
+const ITEM_SORT_KEY = 'mira.itemSort';
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -67,6 +71,12 @@ export default function App() {
   });
   // Il filtro non si ricorda: riaprendo Mira si devono rivedere tutti i repository.
   const [repoFilters, setRepoFilters] = useState<RepoFilters>(DEFAULT_REPO_FILTERS);
+  const [itemSort, setItemSort] = useState<ItemSort>(() => {
+    const saved = readStored(ITEM_SORT_KEY, DEFAULT_ITEM_SORT);
+    return ITEM_SORTS.find((s) => s === saved) ?? DEFAULT_ITEM_SORT;
+  });
+  // I filtri degli elementi valgono per la vista in cui sono stati scelti: cambiando vista si azzerano.
+  const [itemFilters, setItemFilters] = useState<ItemFilters>(DEFAULT_ITEM_FILTERS);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -121,8 +131,9 @@ export default function App() {
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
   const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const showItems = view !== 'settings';
-  const isRepoView = config.sections.some(isRepoSection);
-  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, t });
+  const isRepoView = config.tools === 'repos';
+  const isItemView = config.tools === 'items';
+  const model = useViewModel({ data, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, t });
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = data?.items.find((i) => i.id === selectedId) ?? null;
@@ -142,6 +153,11 @@ export default function App() {
     writeStored(REPO_SORT_KEY, next);
   }
 
+  function chooseItemSort(next: ItemSort) {
+    setItemSort(next);
+    writeStored(ITEM_SORT_KEY, next);
+  }
+
   function chooseMode(next: Mode) {
     setMode(next);
     writeStored(MODE_KEY, next);
@@ -149,6 +165,7 @@ export default function App() {
 
   function chooseView(next: ViewKey) {
     setView(next);
+    setItemFilters(DEFAULT_ITEM_FILTERS);
     setSelectedId(null);
   }
 
@@ -217,6 +234,19 @@ export default function App() {
                       value={repoSort}
                       options={REPO_SORTS.map((value) => ({ value, label: t(`repo.sort.${value}` as 'repo.sort.updated') }))}
                       onChange={chooseRepoSort}
+                    />
+                  </>
+                )}
+                {isItemView && (
+                  <>
+                    <ItemFilterMenu filters={itemFilters} onChange={setItemFilters} facets={model.itemFacets} />
+                    <Dropdown
+                      label={t('repo.sort.label')}
+                      icon={<SortIcon size={15} />}
+                      text={t(`item.sort.${itemSort}` as 'item.sort.updated')}
+                      value={itemSort}
+                      options={ITEM_SORTS.map((value) => ({ value, label: t(`item.sort.${value}` as 'item.sort.updated') }))}
+                      onChange={chooseItemSort}
                     />
                   </>
                 )}

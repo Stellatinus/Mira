@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { repoKey } from './attention';
 import type { Attention } from './attention';
 import type { I18n } from './i18n';
+import { activeItemFilterCount, compareItems, matchesItemFilters } from './itemview';
+import type { ItemFilters, ItemSort } from './itemview';
 import { activeFilterCount, compareRepos, isRepoSection, matchesRepoFilters, NO_LANGUAGE, ownerOf } from './repoview';
 import type { RepoFilters, RepoSort } from './repoview';
 import type { ViewConfig } from './sections';
@@ -34,6 +36,8 @@ export interface ViewModel {
   countText: (key: Section) => string;
   /** Le scelte dei filtri a elenco, ricavate dai repository della vista (prima dei filtri dei repository). */
   facets: { languages: Facet[]; owners: Facet[] };
+  /** Come `facets`, per i filtri degli elementi (repository, proprietario e motivo delle notifiche). */
+  itemFacets: { repos: Facet[]; owners: Facet[]; reasons: Facet[] };
 }
 
 export const matchesQuery = (item: DashboardItem, needle: string): boolean =>
@@ -50,22 +54,39 @@ interface Args {
   attention: Map<string, Attention>;
   repoSort: RepoSort;
   repoFilters: RepoFilters;
+  itemSort: ItemSort;
+  itemFilters: ItemFilters;
   t: I18n['t'];
 }
 
-export function useViewModel({ data, view, filter, query, attention, repoSort, repoFilters, t }: Args): ViewModel {
+export function useViewModel({
+  data,
+  view,
+  filter,
+  query,
+  attention,
+  repoSort,
+  repoFilters,
+  itemSort,
+  itemFilters,
+  t,
+}: Args): ViewModel {
   return useMemo(() => {
     const needle = query.trim().toLowerCase();
     const items = data?.items ?? [];
     // Il filtro dei repository restringe l'elenco: i totali di GitHub non valgono più.
-    const filtering = activeFilterCount(repoFilters) > 0;
-    const narrowed = (key: Section) => isRepoSection(key) && filtering;
+    const repoFiltering = activeFilterCount(repoFilters) > 0;
+    const itemFiltering = activeItemFilterCount(itemFilters) > 0;
+    const narrowed = (key: Section) => (isRepoSection(key) ? repoFiltering : itemFiltering);
     const attentionOf = (item: DashboardItem) => attention.get(repoKey(item.repo));
 
     // Quali repository sono tra i preferiti di quale account (per il filtro «preferiti»).
     const starredKeys = new Set(items.filter((i) => i.section === 'starred').map((i) => `${i.account}|${i.repo}`));
     const languages = new Map<string, Facet>();
     const owners = new Map<string, Facet>();
+    const itemRepos = new Map<string, Facet>();
+    const itemOwners = new Map<string, Facet>();
+    const itemReasons = new Map<string, Facet>();
     const count = (map: Map<string, Facet>, value: string, label: string) => {
       const found = map.get(value);
       if (found) found.count += 1;
@@ -73,24 +94,31 @@ export function useViewModel({ data, view, filter, query, attention, repoSort, r
     };
 
     const bySection = new Map<Section, DashboardItem[]>(view.sections.map((key) => [key, []]));
-    // Quanti repository ci sono prima del filtro dei repository, per scrivere «14 di 65».
-    const repoBase = new Map<Section, number>();
+    // Quanti elementi ci sono prima dei filtri, per scrivere «14 di 65».
+    const base = new Map<Section, number>();
 
     for (const item of items) {
       if (filter !== 'all' && item.account !== filter) continue;
       if (needle && !matchesQuery(item, needle)) continue;
+      base.set(item.section, (base.get(item.section) ?? 0) + 1);
       if (isRepoSection(item.section)) {
-        repoBase.set(item.section, (repoBase.get(item.section) ?? 0) + 1);
         if (view.sections.includes(item.section)) {
           count(languages, item.language ?? NO_LANGUAGE, item.language ?? '');
           count(owners, ownerOf(item).toLowerCase(), ownerOf(item));
         }
         if (!matchesRepoFilters(item, repoFilters, attentionOf(item), starredKeys.has(`${item.account}|${item.repo}`))) continue;
+      } else {
+        if (view.sections.includes(item.section)) {
+          count(itemRepos, item.repo.toLowerCase(), item.repo);
+          count(itemOwners, ownerOf(item).toLowerCase(), ownerOf(item));
+          if (item.reason) count(itemReasons, item.reason, item.reason);
+        }
+        if (!matchesItemFilters(item, itemFilters)) continue;
       }
       bySection.get(item.section)?.push(item);
     }
     for (const [key, group] of bySection) {
-      if (isRepoSection(key)) group.sort(compareRepos(repoSort, attentionOf));
+      group.sort(isRepoSection(key) ? compareRepos(repoSort, attentionOf) : compareItems(itemSort));
     }
 
     // Totale reale per sezione (anche oltre gli elementi scaricati). Se per almeno un account
@@ -123,7 +151,7 @@ export function useViewModel({ data, view, filter, query, attention, repoSort, r
     };
     const countText = (key: Section) => {
       const shown = shownOf(key);
-      if (narrowed(key)) return t('items.countOf', { shown, total: repoBase.get(key) ?? shown });
+      if (narrowed(key)) return t('items.countOf', { shown, total: base.get(key) ?? shown });
       if (truncated(key)) return t('items.countOf', { shown, total: totalLabel(key) });
       return String(shown);
     };
@@ -135,6 +163,12 @@ export function useViewModel({ data, view, filter, query, attention, repoSort, r
       owners: [...owners.values()].sort(byCount),
     };
 
-    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets };
-  }, [data, view, filter, query, attention, repoSort, repoFilters, t]);
+    const itemFacets = {
+      repos: [...itemRepos.values()].sort(byCount),
+      owners: [...itemOwners.values()].sort(byCount),
+      reasons: [...itemReasons.values()].sort(byCount),
+    };
+
+    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets };
+  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, t]);
 }

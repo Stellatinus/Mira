@@ -88,7 +88,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
             {needle
               ? t('items.noResults.text')
               : repoFiltering
-                ? t('items.noResults.filterText')
+                ? t(view.tools === 'items' ? 'items.noResults.itemFilterText' : 'items.noResults.filterText')
                 : t('items.empty.text')}
           </p>
         </div>
