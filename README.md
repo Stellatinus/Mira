@@ -1,3 +1,5 @@
+<p align="center"><img src="web/public/logo.png" alt="Mira" width="160"></p>
+
 # Mira
 
 Una dashboard per tenere sotto controllo GitHub da un unico posto, anche con più account.
@@ -10,6 +12,7 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
 - **Notifiche non lette**: la casella di GitHub, ordinata e senza rumore
 - **Menzioni**: dove qualcuno ti ha taggato
 - **Le tue PR e issue aperte**
+- **Repository** e **repository preferiti** (con le stelle), dalla barra laterale
 - **Avvisi sui token**: quando un token sta per scadere o non è più valido
 
 Il nome viene da *Mira*, la stella variabile nella costellazione della Balena (in latino «la meravigliosa»):
@@ -52,7 +55,7 @@ Mira usa un **personal access token classic** per ogni account.
    (nome e permessi sono già compilati).
 2. Controlla gli scope: `notifications`, `repo`, `read:org`.
 3. Scegli una scadenza (consigliati 90 giorni). Mira ti avvisa 7 giorni prima.
-4. Genera il token, copialo (GitHub lo mostra una sola volta) e incollalo nella pagina **Account**.
+4. Genera il token, copialo (GitHub lo mostra una sola volta) e incollalo nella pagina **Impostazioni**.
 5. Se l'account fa parte di organizzazioni con SAML SSO, usa «Configure SSO» accanto al token per autorizzarle.
 
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account

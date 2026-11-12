@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { addAccount, removeAccount } from './api';
+import { Avatar } from './Avatar';
 import { daysUntil, formatDate } from './format';
 import type { AccountStatus } from './types';
 
@@ -59,11 +60,7 @@ export function AccountsView({ accounts, onChanged }: Props) {
           <ul className="items">
             {accounts.map((account) => (
               <li key={account.login} className="item account-row">
-                {account.avatarUrl ? (
-                  <img className="avatar large" src={account.avatarUrl} alt="" width={32} height={32} />
-                ) : (
-                  <span className="avatar large placeholder" />
-                )}
+                <Avatar account={account} size={36} />
                 <div className="item-main">
                   <strong>{account.login}</strong>
                   {account.name && <span className="muted"> · {account.name}</span>}

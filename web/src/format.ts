@@ -1,3 +1,5 @@
+import type { DashboardItem } from './types';
+
 const relative = new Intl.RelativeTimeFormat('it', { numeric: 'auto' });
 const dateFormat = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -40,4 +42,24 @@ const reasons: Record<string, string> = {
 
 export function reasonLabel(reason: string): string {
   return reasons[reason] ?? reason.replaceAll('_', ' ');
+}
+
+/** Etichetta breve del tipo di elemento, per card e pannello dettaglio. */
+export function typeLabel(item: Pick<DashboardItem, 'type' | 'draft' | 'private'>): string {
+  switch (item.type) {
+    case 'pr':
+      return item.draft ? 'PR in bozza' : 'Pull request';
+    case 'issue':
+      return 'Issue';
+    case 'repo':
+      return item.private ? 'Repository privato' : 'Repository pubblico';
+    case 'release':
+      return 'Release';
+    case 'commit':
+      return 'Commit';
+    case 'discussion':
+      return 'Discussione';
+    default:
+      return 'Notifica';
+  }
 }

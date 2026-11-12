@@ -21,7 +21,20 @@ public sealed record GhIssue(
     DateTimeOffset UpdatedAt,
     string? RepositoryUrl,
     GhUserRef? User,
-    JsonElement? PullRequest);
+    JsonElement? PullRequest,
+    string? Body);
+
+public sealed record GhRepo(
+    long Id,
+    string Name,
+    string FullName,
+    string? Description,
+    string HtmlUrl,
+    string? Language,
+    int StargazersCount,
+    bool Private,
+    DateTimeOffset? PushedAt,
+    DateTimeOffset? UpdatedAt);
 
 public sealed record GhNotification(
     string Id,

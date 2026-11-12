@@ -21,6 +21,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
     // (i più recenti) e mostriamo a parte il totale reale. Le notifiche arrivano al massimo a 50.
     private const int SearchPageSize = 100;
     private const int NotificationsPageSize = 50;
+    private const int ReposPageSize = 100;
+    private const int DescriptionMaxLength = 500;
 
     private sealed record Part(List<DashboardItem> Items, SectionTotal? Total, string? Error);
     private sealed record AccountData(
@@ -77,6 +79,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             .Select(d => SearchAsync(login, token, d.Section, d.Query, ct))
             .ToList();
         tasks.Add(NotificationsAsync(login, token, ct));
+        tasks.Add(ReposAsync(login, token, "repos", $"user/repos?sort=pushed&per_page={ReposPageSize}", ct));
+        tasks.Add(ReposAsync(login, token, "starred", $"user/starred?per_page={ReposPageSize}", ct));
 
         var parts = await Task.WhenAll(tasks);
 
@@ -108,6 +112,37 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             .Select(issue => ToItem(login, section, issue))
             .ToList();
         var total = Math.Max(response.Data?.TotalCount ?? 0, items.Count);
+        return new Part(items, new SectionTotal(login, section, total), null);
+    }
+
+    private async Task<Part> ReposAsync(string login, string token, string section, string path, CancellationToken ct)
+    {
+        var response = await api.GetAsync<List<GhRepo>>(token, path, ct);
+
+        if (!response.Ok)
+            return new Part(new List<DashboardItem>(), null, $"{login} / {section}: {response.Error}");
+
+        var items = (response.Data ?? new List<GhRepo>())
+            .Select(r => new DashboardItem(
+                $"{login}:{section}:{r.Id}",
+                login,
+                section,
+                "repo",
+                r.Name,
+                r.FullName,
+                r.HtmlUrl,
+                r.PushedAt ?? r.UpdatedAt ?? DateTimeOffset.MinValue,
+                null,
+                null,
+                false,
+                0,
+                Shorten(r.Description),
+                r.Language,
+                r.StargazersCount,
+                r.Private))
+            .ToList();
+        // Una pagina piena significa che potrebbero essercene altri: il totale non è noto.
+        int? total = items.Count < ReposPageSize ? items.Count : null;
         return new Part(items, new SectionTotal(login, section, total), null);
     }
 
@@ -150,7 +185,15 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         issue.User?.Login,
         null,
         issue.Draft == true,
-        issue.Comments);
+        issue.Comments,
+        Shorten(issue.Body));
+
+    private static string? Shorten(string? text)
+    {
+        text = text?.Trim();
+        if (string.IsNullOrEmpty(text)) return null;
+        return text.Length <= DescriptionMaxLength ? text : text[..DescriptionMaxLength].TrimEnd() + "…";
+    }
 
     // "https://api.github.com/repos/owner/repo" -> "owner/repo"
     private static string RepoFromApiUrl(string? url)

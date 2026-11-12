@@ -4,9 +4,11 @@ export type Section =
   | 'notifications'
   | 'mentions'
   | 'mine-prs'
-  | 'mine-issues';
+  | 'mine-issues'
+  | 'repos'
+  | 'starred';
 
-export type ItemType = 'issue' | 'pr' | 'release' | 'commit' | 'discussion' | 'other';
+export type ItemType = 'issue' | 'pr' | 'repo' | 'release' | 'commit' | 'discussion' | 'other';
 
 export interface AccountStatus {
   login: string;
@@ -31,6 +33,10 @@ export interface DashboardItem {
   reason: string | null;
   draft: boolean;
   comments: number;
+  description: string | null;
+  language: string | null;
+  stars: number;
+  private: boolean;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */

@@ -11,8 +11,10 @@ public sealed record AccountStatus(
     string[] Warnings);
 
 /// <summary>
-/// Un elemento della dashboard. Section: review | assigned | mine-prs | mine-issues | mentions | notifications.
-/// Type: issue | pr | release | commit | discussion | other.
+/// Un elemento della dashboard.
+/// Section: review | assigned | mine-prs | mine-issues | mentions | notifications | repos | starred.
+/// Type: issue | pr | repo | release | commit | discussion | other.
+/// Description, Language, Stars e Private sono valorizzati solo dove hanno senso.
 /// </summary>
 public sealed record DashboardItem(
     string Id,
@@ -26,7 +28,11 @@ public sealed record DashboardItem(
     string? Author,
     string? Reason,
     bool Draft,
-    int Comments);
+    int Comments,
+    string? Description = null,
+    string? Language = null,
+    int Stars = 0,
+    bool Private = false);
 
 /// <summary>
 /// Quanti elementi ci sono davvero in una sezione per un account, anche oltre quelli scaricati.
