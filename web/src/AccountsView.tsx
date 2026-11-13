@@ -88,7 +88,12 @@ export function AccountsView({ accounts, onChanged }: Props) {
                   <StatusPill state={account.state} t={t} />
                   {confirming === account.login ? (
                     <>
-                      <button className="btn danger" aria-disabled={busy} onClick={() => void remove(account.login)}>
+                      <button
+                        className="btn danger"
+                        aria-disabled={busy}
+                        aria-label={t('accounts.confirmFor', { login: account.login })}
+                        onClick={() => void remove(account.login)}
+                      >
                         {t('accounts.confirm')}
                       </button>
                       <button className="btn" onClick={() => setConfirming(null)}>
@@ -96,7 +101,11 @@ export function AccountsView({ accounts, onChanged }: Props) {
                       </button>
                     </>
                   ) : (
-                    <button className="btn" onClick={() => setConfirming(account.login)}>
+                    <button
+                      className="btn"
+                      aria-label={t('accounts.removeAccount', { login: account.login })}
+                      onClick={() => setConfirming(account.login)}
+                    >
                       {t('accounts.remove')}
                     </button>
                   )}
@@ -142,6 +151,7 @@ export function AccountsView({ accounts, onChanged }: Props) {
               link: (
                 <a href={TOKEN_URL} target="_blank" rel="noreferrer">
                   {t('guide.step1.link')}
+                  <span className="visually-hidden"> ({t('a11y.newTab')})</span>
                 </a>
               ),
             })}

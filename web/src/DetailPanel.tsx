@@ -215,6 +215,7 @@ export function DetailPanel({ item, accounts, starredBy, attention, focusSignal,
                 <ExternalIcon />
               </span>
               {t('detail.open')}
+              <span className="visually-hidden"> ({t('a11y.newTab')})</span>
             </a>
             <button className="action" onClick={() => void copyLink()}>
               <span className="action-icon">

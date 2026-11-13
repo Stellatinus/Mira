@@ -141,6 +141,7 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refr
           </div>
           <a className="btn" href="https://github.com/Stellatinus/Mira/releases" target="_blank" rel="noreferrer">
             {t('settings.releases')}
+            <span className="visually-hidden"> ({t('a11y.newTab')})</span>
           </a>
         </div>
       </section>

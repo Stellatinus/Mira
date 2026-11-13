@@ -33,6 +33,9 @@ interface Props {
   onManageAccounts: () => void;
 }
 
+/** L'ultimo numero di un conteggio («36», «123 di 214», «100+»): è quello che decide il singolare o il plurale. */
+export const lastNumber = (text: string) => Number(/\d+(?=\D*$)/.exec(text)?.[0] ?? 0);
+
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
@@ -104,12 +107,22 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
         const truncated = model.truncated(key);
 
         return (
-          <section key={key} id={`sec-${key}`} className="group" data-section={key}>
+          <section
+            key={key}
+            id={`sec-${key}`}
+            className="group"
+            data-section={key}
+            // Il nome della regione è il titolo; senza intestazione visibile (vista con una sola sezione) è un'etichetta.
+            aria-labelledby={showGroupHeader ? `sec-title-${key}` : undefined}
+            aria-label={showGroupHeader ? undefined : t(sectionTitle(key))}
+          >
             {showGroupHeader && (
               <header className="group-head">
-                <h2>{t(sectionTitle(key))}</h2>
+                <h2 id={`sec-title-${key}`}>{t(sectionTitle(key))}</h2>
                 <span className="count" title={truncated ? t('items.mostRecent') : undefined}>
                   {model.countText(key)}
+                  {/* Il numero da solo non dice cosa conta. */}
+                  <span className="visually-hidden"> {t('items.unit', { count: lastNumber(model.countText(key)) })}</span>
                 </span>
                 <span className="hint muted">{t(sectionHint(key))}</span>
               </header>
@@ -251,7 +264,7 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
           target="_blank"
           rel="noreferrer"
           onClick={stop}
-          aria-label={`${t('items.openOnGitHub')}: ${item.title}`}
+          aria-label={`${t('items.openOnGitHub')}: ${item.title} (${t('a11y.newTab')})`}
         >
           <ExternalIcon size={15} />
         </a>
