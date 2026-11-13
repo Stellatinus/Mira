@@ -10,6 +10,10 @@ export const en: Messages = {
   'app.serverDown': '{error}. Check that the Mira server is running.',
   'app.manageAccounts': 'Manage accounts',
   'app.cachedUpdating': 'Saved data from {when} · updating…',
+  'announce.updated': 'Updated: {assigned} assigned to you, {unread} unread notifications',
+  'announce.results.one': '{count} result',
+  'announce.results.other': '{count} results',
+  'announce.noResults': 'No results',
   'time.now': 'now',
 
   'mode.group': 'Display mode',

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAnnounce } from './announce';
 import { KINDS, kindSummary, summaryLines } from './attention';
 import type { Attention, Kind } from './attention';
 import { Avatar } from './Avatar';
@@ -22,6 +23,7 @@ interface Props {
 export function DetailPanel({ item, accounts, starredBy, attention, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
+  const announce = useAnnounce();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => setCopied(false), [item?.id]);
@@ -31,6 +33,7 @@ export function DetailPanel({ item, accounts, starredBy, attention, onClose }: P
     try {
       await navigator.clipboard.writeText(item.url);
       setCopied(true);
+      announce(t('detail.copied'));
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // appunti non disponibili: l'utente può comunque aprire il link

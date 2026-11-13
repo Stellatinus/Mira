@@ -17,6 +17,10 @@ export const it = {
   'app.serverDown': '{error}. Controlla che il server di Mira sia avviato.',
   'app.manageAccounts': 'Gestisci account',
   'app.cachedUpdating': 'Dati salvati {when} · aggiorno…',
+  'announce.updated': 'Aggiornato: {assigned} assegnate a te, {unread} notifiche non lette',
+  'announce.results.one': '{count} risultato',
+  'announce.results.other': '{count} risultati',
+  'announce.noResults': 'Nessun risultato',
   'time.now': 'ora',
 
   'mode.group': 'Modalità di visualizzazione',
