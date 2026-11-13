@@ -253,10 +253,13 @@ export default function App() {
             <button
               className={loading || extra?.loading ? 'icon-btn spinning' : 'icon-btn'}
               onClick={() => {
+                // aria-disabled e non disabled: un pulsante disabilitato perde il focus, e chi usa la tastiera
+                // dovrebbe ripartire dall'inizio della pagina a ogni aggiornamento.
+                if (loading || extra?.loading === true) return;
                 void load(true);
                 if (extraKey) void loadExtra(extraKey, true);
               }}
-              disabled={loading || extra?.loading === true}
+              aria-disabled={loading || extra?.loading === true}
               title={t('app.refresh')}
               aria-label={t('app.refresh')}
             >

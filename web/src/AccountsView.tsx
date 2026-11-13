@@ -24,8 +24,12 @@ export function AccountsView({ accounts, onChanged }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
 
+  // Mentre lavorano, i pulsanti usano aria-disabled (non disabled) per non far perdere il focus.
+  const cannotSubmit = busy || token.trim() === '';
+
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (cannotSubmit) return;
     setBusy(true);
     setError(null);
     try {
@@ -40,6 +44,7 @@ export function AccountsView({ accounts, onChanged }: Props) {
   }
 
   async function remove(login: string) {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -83,7 +88,7 @@ export function AccountsView({ accounts, onChanged }: Props) {
                   <StatusPill state={account.state} t={t} />
                   {confirming === account.login ? (
                     <>
-                      <button className="btn danger" disabled={busy} onClick={() => void remove(account.login)}>
+                      <button className="btn danger" aria-disabled={busy} onClick={() => void remove(account.login)}>
                         {t('accounts.confirm')}
                       </button>
                       <button className="btn" onClick={() => setConfirming(null)}>
@@ -118,7 +123,7 @@ export function AccountsView({ accounts, onChanged }: Props) {
               value={token}
               onChange={(e) => setToken(e.target.value)}
             />
-            <button className="btn primary" type="submit" disabled={busy || token.trim() === ''}>
+            <button className="btn primary" type="submit" aria-disabled={cannotSubmit}>
               {busy ? t('accounts.add.busy') : t('accounts.add.submit')}
             </button>
           </div>
