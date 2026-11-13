@@ -12,7 +12,7 @@ import { DetailPanel } from './DetailPanel';
 import { ItemFilterMenu } from './ItemFilterMenu';
 import { DEFAULT_ITEM_SORT, defaultItemFilters, ITEM_SORTS } from './itemview';
 import type { ItemFilters, ItemSort } from './itemview';
-import { ItemsView } from './ItemsView';
+import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
@@ -94,6 +94,7 @@ export default function App() {
   // Sale quando una card si sceglie da tastiera: il pannello porta il focus sul suo titolo.
   const [panelFocus, setPanelFocus] = useState(0);
   const [, setTick] = useState(0);
+  const mainRef = useRef<HTMLElement>(null);
   const firstLoad = useRef(true);
   const lastLoad = useRef(0);
   const [refreshMinutes, setRefreshMinutes] = useRefreshInterval();
@@ -279,6 +280,17 @@ export default function App() {
 
   return (
     <div className={classes.join(' ')}>
+      {/* Da tastiera si salta la barra laterale; visibile solo al focus. Niente #hash: l'URL non cambia. */}
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(event) => {
+          event.preventDefault();
+          mainRef.current?.focus();
+        }}
+      >
+        {t('a11y.skip')}
+      </a>
       <Sidebar
         view={view}
         onView={chooseView}
@@ -289,7 +301,7 @@ export default function App() {
         unreadNotifications={unreadNotifications}
       />
 
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1} ref={mainRef}>
         <header className="main-head">
           <h1>{t(`view.${config.key}.title` as 'view.home.title')}</h1>
           <div className="head-actions">
@@ -375,6 +387,7 @@ export default function App() {
                 {countKey && (
                   <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
                     {model.countText(countKey)}
+                    <span className="visually-hidden"> {t('items.unit', { count: lastNumber(model.countText(countKey)) })}</span>
                   </span>
                 )}
               </div>
