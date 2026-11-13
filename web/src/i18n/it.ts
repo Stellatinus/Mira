@@ -83,6 +83,7 @@ export const it = {
   'items.problems.one': '{count} richiesta non è andata a buon fine',
   'items.problems.other': '{count} richieste non sono andate a buon fine',
   'items.openOnGitHub': 'Apri su GitHub',
+  'items.seenBy': 'Visto da {accounts}',
 
   'item.filter.label': 'Filtra gli elementi',
   'item.filter.group.type': 'Tipo',
