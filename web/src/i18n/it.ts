@@ -227,6 +227,8 @@ export const it = {
   'detail.open': 'Apri',
   'detail.copyLink': 'Copia link',
   'detail.copied': 'Copiato',
+  'detail.copyFailed': 'Impossibile copiare',
+  'detail.copyManual': 'Copia il link da qui (Ctrl+C):',
   'comments.one': '{count} commento',
   'comments.other': '{count} commenti',
 

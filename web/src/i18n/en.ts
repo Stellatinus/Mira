@@ -220,6 +220,8 @@ export const en: Messages = {
   'detail.open': 'Open',
   'detail.copyLink': 'Copy link',
   'detail.copied': 'Copied',
+  'detail.copyFailed': 'Could not copy',
+  'detail.copyManual': 'Copy the link from here (Ctrl+C):',
   'comments.one': '{count} comment',
   'comments.other': '{count} comments',
 

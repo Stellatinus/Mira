@@ -41,13 +41,25 @@ export function DetailPanel({ item, accounts, starredBy, attention, focusSignal,
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const announce = useAnnounce();
-  const [copied, setCopied] = useState(false);
+  // 'failed': gli appunti non sono disponibili; si mostra il link da copiare a mano.
+  const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle');
+  // Il campo col link resta finché non si cambia elemento (il testo del pulsante torna normale dopo qualche secondo).
+  const [manualOpen, setManualOpen] = useState(false);
+  const manualLink = useRef<HTMLInputElement>(null);
   const narrow = useNarrow();
   const panel = useRef<HTMLElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const handledSignal = useRef(focusSignal);
 
-  useEffect(() => setCopied(false), [item?.id]);
+  useEffect(() => {
+    setCopied('idle');
+    setManualOpen(false);
+  }, [item?.id]);
+
+  // Il campo con il link compare già selezionato, pronto per Ctrl+C.
+  useEffect(() => {
+    if (manualOpen) manualLink.current?.select();
+  }, [manualOpen]);
 
   // Scelta da tastiera, oppure pannello a tutta pagina: il focus va al titolo, così si legge subito.
   const itemId = item?.id;
@@ -81,11 +93,15 @@ export function DetailPanel({ item, accounts, starredBy, attention, focusSignal,
     if (!item) return;
     try {
       await navigator.clipboard.writeText(item.url);
-      setCopied(true);
+      setCopied('copied');
       announce(t('detail.copied'));
-      window.setTimeout(() => setCopied(false), 1500);
+      window.setTimeout(() => setCopied((current) => (current === 'copied' ? 'idle' : current)), 1500);
     } catch {
-      // appunti non disponibili: l'utente può comunque aprire il link
+      // Appunti non disponibili (permesso negato, contesto non sicuro, finestra incorporata): si dice, e si offre il link.
+      setCopied('failed');
+      setManualOpen(true);
+      announce(t('detail.copyFailed'));
+      window.setTimeout(() => setCopied((current) => (current === 'failed' ? 'idle' : current)), 4000);
     }
   }
 
@@ -221,9 +237,17 @@ export function DetailPanel({ item, accounts, starredBy, attention, focusSignal,
               <span className="action-icon">
                 <CopyIcon />
               </span>
-              {copied ? t('detail.copied') : t('detail.copyLink')}
+              {copied === 'copied' ? t('detail.copied') : copied === 'failed' ? t('detail.copyFailed') : t('detail.copyLink')}
             </button>
           </div>
+          {manualOpen && (
+            <div className="manual-link">
+              <label htmlFor="manual-link" className="muted small">
+                {t('detail.copyManual')}
+              </label>
+              <input id="manual-link" ref={manualLink} readOnly value={item.url} onFocus={(event) => event.currentTarget.select()} />
+            </div>
+          )}
         </>
       )}
     </aside>
