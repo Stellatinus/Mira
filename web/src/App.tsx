@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getDashboard, getIssues } from './api';
 import { accountAlerts } from './alerts';
+import { useAnnounce } from './announce';
 import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
@@ -57,6 +58,7 @@ const MODES: { key: Mode; icon: ReactNode }[] = [
 export default function App() {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
+  const announce = useAnnounce();
   const [theme, setTheme] = useTheme();
   // Si parte dall'ultima fotografia salvata (se c'è), così all'apertura si vede subito qualcosa.
   const [saved] = useState<Dashboard | null>(loadSnapshot);
@@ -94,6 +96,10 @@ export default function App() {
   const lastLoad = useRef(0);
   const [refreshMinutes, setRefreshMinutes] = useRefreshInterval();
 
+  // Il testo degli annunci si legge al momento: così cambiare lingua non fa ricaricare i dati.
+  const say = useRef({ announce, t });
+  say.current = { announce, t };
+
   const load = useCallback(async (force = false) => {
     setLoading(true);
     try {
@@ -103,6 +109,15 @@ export default function App() {
       setFromCache(false);
       saveSnapshot(next);
       setError(null);
+      // Si annuncia l'esito dell'aggiornamento fatto a mano (non quello automatico, che parlerebbe ogni pochi minuti).
+      if (force) {
+        say.current.announce(
+          say.current.t('announce.updated', {
+            assigned: next.items.filter((i) => i.section === 'assigned').length,
+            unread: next.items.filter((i) => i.section === 'notifications').length,
+          }),
+        );
+      }
       if (firstLoad.current) {
         firstLoad.current = false;
         // Nessun account ancora collegato: si parte dalle impostazioni per aggiungerne uno.
@@ -172,6 +187,24 @@ export default function App() {
     [data, extra?.data],
   );
   const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t });
+  // Cercando o filtrando, i conteggi cambiano in silenzio: si dice quanti risultati ci sono, con un po' di ritardo
+  // per non parlare a ogni tasto. Un aggiornamento dei dati non cambia gli argomenti dell'effetto e non annuncia nulla.
+  const shownCount = showItems ? config.sections.reduce((sum, key) => sum + (model.bySection.get(key)?.length ?? 0), 0) : 0;
+  const shownRef = useRef(shownCount);
+  shownRef.current = shownCount;
+  const searchMounted = useRef(false);
+  useEffect(() => {
+    if (!searchMounted.current) {
+      searchMounted.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const count = shownRef.current;
+      say.current.announce(count === 0 ? say.current.t('announce.noResults') : say.current.t('announce.results', { count }));
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [query, repoFilters, itemFilters, showStarred, filter]);
+
   // Con una sola sezione il conteggio sta accanto al titolo della vista, non in un'intestazione a parte.
   const countKey = showItems && config.sections.length === 1 ? config.sections[0] : null;
   const selected = viewData?.items.find((i) => i.id === selectedId) ?? null;
@@ -269,7 +302,7 @@ export default function App() {
         </header>
         <div className="rule" />
 
-        <div className="scroll">
+        <div className="scroll" aria-busy={loading || extra?.loading === true}>
           {showItems && (
             <div className="toolbar">
               {/* A sinistra filtri, ordinamento e quanti sono; a destra i modi di visualizzazione. */}
