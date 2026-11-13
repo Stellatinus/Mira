@@ -76,6 +76,7 @@ export const en: Messages = {
   'items.problems.one': '{count} request failed',
   'items.problems.other': '{count} requests failed',
   'items.openOnGitHub': 'Open on GitHub',
+  'items.seenBy': 'Seen by {accounts}',
 
   'item.filter.label': 'Filter items',
   'item.filter.group.type': 'Type',

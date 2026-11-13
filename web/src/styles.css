@@ -277,19 +277,12 @@ h1, h2, h3, p { margin: 0; }
 .ci-open { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--muted); }
 .ci-open:hover { color: var(--text); background: var(--line); }
 .item-card .tile { grid-area: tile; justify-self: center; }
-.ci-title {
-  grid-area: title;
-  min-height: 2.6em;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: center;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
+.ci-title { grid-area: title; min-height: 2.6em; margin: 0; font-size: 13px; font-weight: 600; line-height: 1.3; text-align: center; }
+/* Il pulsante che seleziona la card sta nel titolo e ne ha l'aspetto; il troncamento a due righe è sul testo dentro. */
+.ci-select { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: inherit; cursor: pointer; }
+.ci-select:focus-visible { outline: none; }
+.item-card:has(.ci-select:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ci-title-text { overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .item-card .rule { grid-area: rule; margin: 0 4px; }
 .ci-meta { grid-area: meta; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .ci-meta .k { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -353,7 +346,8 @@ h1, h2, h3, p { margin: 0; }
 .cards.list .tile { width: 34px; height: 40px; border-radius: 7px; }
 .cards.list .logo { width: 36px; height: 36px; border-radius: 10px; }
 .cards.list .tile::after { width: 10px; height: 10px; }
-.cards.list .ci-title { min-height: 0; text-align: left; -webkit-line-clamp: 1; }
+.cards.list .ci-title { min-height: 0; text-align: left; }
+.cards.list .ci-title-text { -webkit-line-clamp: 1; }
 .cards.list .rule { display: none; }
 .cards.list .ci-attns { grid-area: attn; }
 .cards.list .ci-tag { justify-content: flex-end; min-width: 70px; }
