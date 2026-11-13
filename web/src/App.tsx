@@ -91,6 +91,8 @@ export default function App() {
   const [itemFilters, setItemFilters] = useState<ItemFilters>(() => defaultItemFilters(view));
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Sale quando una card si sceglie da tastiera: il pannello porta il focus sul suo titolo.
+  const [panelFocus, setPanelFocus] = useState(0);
   const [, setTick] = useState(0);
   const firstLoad = useRef(true);
   const lastLoad = useRef(0);
@@ -239,6 +241,31 @@ export default function App() {
     setMode(next);
     writeStored(MODE_KEY, next);
   }
+
+  function selectItem(id: string, viaKeyboard = false) {
+    setSelectedId(id);
+    if (viaKeyboard) setPanelFocus((n) => n + 1);
+  }
+
+  // Chiudendo il pannello il focus torna sulla card da cui si era partiti.
+  const closePanel = useCallback(() => {
+    const id = selectedId;
+    setSelectedId(null);
+    if (id === null) return;
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"] .ci-select`)?.focus();
+    });
+  }, [selectedId]);
+
+  // Esc chiude il pannello, ma non se un menu aperto sta già usando Esc per chiudersi.
+  useEffect(() => {
+    if (selectedId === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('[aria-expanded="true"]')) closePanel();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [selectedId, closePanel]);
 
   function chooseView(next: ViewKey) {
     setView(next);
@@ -403,7 +430,7 @@ export default function App() {
               selectedId={selected?.id ?? null}
               attention={attention}
               model={model}
-              onSelect={setSelectedId}
+              onSelect={selectItem}
               onManageAccounts={() => chooseView('settings')}
             />
           )}
@@ -426,7 +453,8 @@ export default function App() {
           accounts={selectedAccounts}
           starredBy={selectedInfo?.starredBy ?? []}
           attention={selected?.type === 'repo' ? attention.get(repoKey(selected.repo)) : undefined}
-          onClose={() => setSelectedId(null)}
+          focusSignal={panelFocus}
+          onClose={closePanel}
         />
       )}
     </div>

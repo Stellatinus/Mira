@@ -28,7 +28,8 @@ interface Props {
   attention: Map<string, Attention>;
   /** Gli elementi di ogni sezione, già filtrati e ordinati, con i loro conteggi. */
   model: ViewModel;
-  onSelect: (id: string) => void;
+  /** `viaKeyboard`: la scelta viene da Invio o Spazio, e il focus deve passare al pannello. */
+  onSelect: (id: string, viaKeyboard?: boolean) => void;
   onManageAccounts: () => void;
 }
 
@@ -175,7 +176,7 @@ interface CardProps {
   attention?: Attention;
   selected: boolean;
   showAccount: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, viaKeyboard?: boolean) => void;
 }
 
 /**
@@ -218,7 +219,11 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
     <article
       className={selected ? 'item-card selected' : 'item-card'}
       aria-labelledby={titleId}
-      onClick={() => onSelect(item.id)}
+      data-card-id={item.id}
+      onClick={(event) => {
+        // Il pulsante del titolo e il link hanno i loro clic: qui solo il resto della card.
+        if (!(event.target as HTMLElement).closest('.ci-select, a')) onSelect(item.id);
+      }}
     >
       {item.type === 'repo' ? (
         // Le stelle non sono sulla card: stanno nel pannello dei dettagli.
@@ -253,7 +258,14 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
       </span>
       <Tile item={item} iconSize={26} />
       <h3 className="ci-title" id={titleId}>
-        <button type="button" className="ci-select" aria-pressed={selected} title={item.title}>
+        <button
+          type="button"
+          className="ci-select"
+          aria-pressed={selected}
+          title={item.title}
+          // detail === 0: il clic è nato da tastiera (Invio, Spazio), non dal mouse.
+          onClick={(event) => onSelect(item.id, event.detail === 0)}
+        >
           <span className="ci-title-text">{item.title}</span>
         </button>
       </h3>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useAnnounce } from './announce';
 import { KINDS, kindSummary, summaryLines } from './attention';
 import type { Attention, Kind } from './attention';
@@ -17,16 +18,64 @@ interface Props {
   starredBy: string[];
   /** Cosa c'è di aperto nel repository selezionato (solo per gli elementi di tipo "repo"). */
   attention?: Attention;
+  /** Cambia quando la scelta viene da tastiera: il focus passa al titolo del pannello. */
+  focusSignal: number;
   onClose: () => void;
 }
 
-export function DetailPanel({ item, accounts, starredBy, attention, onClose }: Props) {
+/** Sotto questa larghezza il pannello copre la pagina (vedi styles.css): si comporta da finestra. */
+const NARROW = '(max-width: 1100px)';
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => window.matchMedia(NARROW).matches);
+  useEffect(() => {
+    const query = window.matchMedia(NARROW);
+    const onChange = () => setNarrow(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+  return narrow;
+}
+
+export function DetailPanel({ item, accounts, starredBy, attention, focusSignal, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const announce = useAnnounce();
   const [copied, setCopied] = useState(false);
+  const narrow = useNarrow();
+  const panel = useRef<HTMLElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const handledSignal = useRef(focusSignal);
 
   useEffect(() => setCopied(false), [item?.id]);
+
+  // Scelta da tastiera, oppure pannello a tutta pagina: il focus va al titolo, così si legge subito.
+  const itemId = item?.id;
+  useEffect(() => {
+    if (itemId === undefined) return;
+    const requested = focusSignal !== handledSignal.current;
+    handledSignal.current = focusSignal;
+    if (requested || narrow) title.current?.focus();
+  }, [itemId, focusSignal, narrow]);
+
+  // A schermo stretto il pannello è una finestra: Tab non esce da lì finché è aperta.
+  function trapFocus(event: KeyboardEvent<HTMLElement>) {
+    if (!narrow || event.key !== 'Tab' || !panel.current) return;
+    const focusable = [...panel.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')].filter(
+      (node) => node.offsetParent !== null,
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || active === title.current)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   async function copyLink() {
     if (!item) return;
@@ -40,8 +89,34 @@ export function DetailPanel({ item, accounts, starredBy, attention, onClose }: P
     }
   }
 
+  // Senza selezione il pannello è solo un segnaposto: non è una regione per i lettori di schermo.
+  if (!item) {
+    return (
+      <div className="panel" aria-hidden="true">
+        <header className="panel-head">
+          <DetailIcon />
+          <span>{t('detail.title')}</span>
+        </header>
+        <div className="rule" />
+        <div className="panel-empty">
+          <div className="tile big">
+            <ItemIcon type="other" size={44} />
+          </div>
+          <p className="muted">{t('detail.empty')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <aside className="panel" aria-label={t('detail.title')}>
+    <aside
+      className="panel"
+      ref={panel}
+      aria-label={t('detail.title')}
+      role={narrow ? 'dialog' : undefined}
+      aria-modal={narrow ? true : undefined}
+      onKeyDown={trapFocus}
+    >
       <header className="panel-head">
         <DetailIcon />
         <span>{t('detail.title')}</span>
@@ -51,20 +126,15 @@ export function DetailPanel({ item, accounts, starredBy, attention, onClose }: P
       </header>
       <div className="rule" />
 
-      {!item ? (
-        <div className="panel-empty">
-          <div className="tile big">
-            <ItemIcon type="other" size={44} />
-          </div>
-          <p className="muted">{t('detail.empty')}</p>
-        </div>
-      ) : (
+      {(
         <>
           <div className="panel-body">
             <Tile item={item} iconSize={52} big />
             <div className="rule" />
 
-            <h2 className="panel-title">{item.title}</h2>
+            <h2 className="panel-title" ref={title} tabIndex={-1}>
+              {item.title}
+            </h2>
             <p className="panel-sub">
               <span className="mono">{item.repo}</span>
             </p>
