@@ -84,7 +84,18 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
                 <span>{t(sectionTitle(key))}</span>
               </div>
             ) : (
-              <a key={key} className="stat" data-section={key} href={`#sec-${key}`}>
+              <a
+                key={key}
+                className="stat"
+                data-section={key}
+                href={`#sec-${key}`}
+                // Sposta la pagina alla sezione senza scrivere nell'URL: l'hash è della vista, e Indietro non deve
+                // passare da una tappa per ogni riquadro cliccato.
+                onClick={(event) => {
+                  event.preventDefault();
+                  document.getElementById(`sec-${key}`)?.scrollIntoView();
+                }}
+              >
                 <strong>{totalLabel(key)}</strong>
                 <span>{t(sectionTitle(key))}</span>
               </a>
