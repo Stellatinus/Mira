@@ -388,6 +388,10 @@ h1, h2, h3, p { margin: 0; }
 .facts dd { margin: 0; overflow-wrap: anywhere; }
 .shared { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
 
+.manual-link { display: grid; gap: 6px; padding-top: 14px; }
+.manual-link input { width: 100%; font: inherit; font-size: 12.5px; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--main); color: var(--text); }
+.manual-link input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .panel-actions { display: flex; justify-content: space-evenly; padding-top: 16px; }
 .action { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font-size: 12px; text-decoration: none; cursor: pointer; }
 .action-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }
