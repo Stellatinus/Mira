@@ -22,13 +22,14 @@ Servono [Node.js](https://nodejs.org) 24 e il [.NET SDK](https://dotnet.microsof
 cd web
 npm ci
 npm run build
+npm run contrast   # contrasti dei colori (WCAG AA), nei due temi
 
 # backend: compilazione con gli avvisi trattati come errori
 cd ..
 dotnet build src/Mira.Server --configuration Release -warnaserror
 ```
 
-Se questi due comandi passano, passa anche la CI.
+Se questi comandi passano, passa anche la CI.
 
 ## Cosa fa la CI
 
@@ -36,7 +37,7 @@ Il workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) parte a ogni 
 
 | Controllo | Dove gira | Cosa verifica |
 |---|---|---|
-| **Frontend** | Linux | `npm ci` e `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) |
+| **Frontend** | Linux | `npm ci`, `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) e `npm run contrast` (i colori di `styles.css` rispettano il contrasto WCAG AA nei due temi) |
 | **Backend** | Linux e Windows | `dotnet build` con gli avvisi come errori |
 
 **macOS non è controllato**, di proposito: per ora si controllano solo Linux e Windows. Per aggiungerlo si inserisce `macos-latest` nell'elenco `os` del job `backend`.
