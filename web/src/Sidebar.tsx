@@ -35,22 +35,32 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
       <img className="brand-logo" src={logoUrl} alt="Mira" width={56} height={56} />
 
       <nav className="nav" aria-label={t('nav.label')}>
-        {NAV_VIEWS.map((v) => (
-          <button
-            key={v.key}
-            className={view === v.key ? 'nav-item active' : 'nav-item'}
-            onClick={() => onView(v.key)}
-            aria-current={view === v.key ? 'page' : undefined}
-          >
-            <span className="nav-icon">
-              {ICONS[v.key]}
-              {v.key === 'notifications' && unreadNotifications > 0 && (
-                <span className="nav-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>
-              )}
-            </span>
-            <span className="nav-label">{t(`view.${v.key}.label` as 'view.home.label')}</span>
-          </button>
-        ))}
+        {NAV_VIEWS.map((v) => {
+          const label = t(`view.${v.key}.label` as 'view.home.label');
+          const unread = v.key === 'notifications' ? unreadNotifications : 0;
+          return (
+            <button
+              key={v.key}
+              className={view === v.key ? 'nav-item active' : 'nav-item'}
+              onClick={() => onView(v.key)}
+              aria-current={view === v.key ? 'page' : undefined}
+              // A schermo stretto l'etichetta non si vede: il tooltip la dice a chi usa il mouse.
+              title={label}
+            >
+              <span className="nav-icon">
+                {ICONS[v.key]}
+                {unread > 0 && (
+                  <span className="nav-badge" aria-hidden="true">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </span>
+              {/* L'etichetta resta nel documento anche quando è nascosta alla vista: è il nome del pulsante. */}
+              <span className="nav-label">{label}</span>
+              {unread > 0 && <span className="visually-hidden">{t('attention.notifications', { count: unread })}</span>}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="stack-box">
