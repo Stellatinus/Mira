@@ -2,7 +2,7 @@
 #
 # Cosa controlla:
 #  - frontend: installa le dipendenze (npm ci) e compila (npm run build), che include il controllo
-#    dei tipi di TypeScript e quindi anche le traduzioni mancanti;
+#    dei tipi di TypeScript e quindi anche le traduzioni mancanti; poi i contrasti dei colori (WCAG AA);
 #  - backend: compila il server .NET trattando gli avvisi come errori.
 #
 # Gli stessi comandi si lanciano in locale: vedi CONTRIBUTING.md.
@@ -42,6 +42,11 @@ jobs:
 
       - name: Controlla i tipi e compila
         run: npm run build
+        working-directory: web
+
+      # Rapporti di contrasto WCAG AA delle coppie di colori, nei due temi (web/scripts/check-contrast.mjs).
+      - name: Controlla i contrasti
+        run: npm run contrast
         working-directory: web
 
   backend:
