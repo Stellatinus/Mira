@@ -17,7 +17,7 @@ import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
-import { isExtraView, VIEWS } from './sections';
+import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
 import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview';
@@ -66,7 +66,8 @@ export default function App() {
   const [fromCache, setFromCache] = useState(saved !== null);
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<ViewKey>('home');
+  // La vista sta nell'URL (hash): segnalibri, Indietro e ricarica funzionano.
+  const [view, setView] = useState<ViewKey>(() => viewFromHash() ?? 'home');
   const [storedFilter, setStoredFilter] = useState(() => readStored(FILTER_KEY, 'all'));
   const [mode, setMode] = useState<Mode>(() => {
     const saved = readStored(MODE_KEY, 'grid');
@@ -124,7 +125,10 @@ export default function App() {
       if (firstLoad.current) {
         firstLoad.current = false;
         // Nessun account ancora collegato: si parte dalle impostazioni per aggiungerne uno.
-        if (next.accounts.length === 0) setView('settings');
+        if (next.accounts.length === 0) {
+          window.history.replaceState(null, '', hashFor('settings'));
+          setView('settings');
+        }
       }
     } catch (e) {
       setError(e ?? new Error('unknown'));
@@ -268,11 +272,48 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, [selectedId, closePanel]);
 
-  function chooseView(next: ViewKey) {
+  function applyView(next: ViewKey) {
     setView(next);
     setItemFilters(defaultItemFilters(next));
     setSelectedId(null);
   }
+
+  // Cambiare vista scrive l'hash; l'ascolto di `hashchange` (sotto) la applica, anche per Indietro e Avanti.
+  // Scegliere la vista in cui si è già riporta filtri e selezione allo stato iniziale, come prima.
+  function chooseView(next: ViewKey) {
+    if (viewFromHash() === next) {
+      applyView(next);
+    } else {
+      window.location.hash = hashFor(next);
+    }
+  }
+
+  // Un hash che non è una vista (come `#sec-review`) non cambia nulla.
+  useEffect(() => {
+    const onHash = () => {
+      const next = viewFromHash();
+      if (next !== null) applyView(next);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+    // applyView usa solo setter di stato: non serve rilegarlo a ogni render.
+  }, []);
+
+  // Il titolo della scheda dice dove si è, con le notifiche non lette davanti; al cambio di vista il focus passa
+  // al titolo della pagina, così il lettore di schermo la annuncia.
+  const viewLabel = t(`view.${config.key}.label` as 'view.home.label');
+  useEffect(() => {
+    document.title = `${unreadNotifications > 0 ? `(${unreadNotifications}) ` : ''}${viewLabel} · Mira`;
+  }, [viewLabel, unreadNotifications]);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [view]);
 
   const classes = ['shell'];
   if (!showItems) classes.push('no-panel');
@@ -303,7 +344,9 @@ export default function App() {
 
       <main className="main" id="main" tabIndex={-1} ref={mainRef}>
         <header className="main-head">
-          <h1>{t(`view.${config.key}.title` as 'view.home.title')}</h1>
+          <h1 ref={headingRef} tabIndex={-1}>
+            {t(`view.${config.key}.title` as 'view.home.title')}
+          </h1>
           <div className="head-actions">
             {data && (
               <span className="updated">

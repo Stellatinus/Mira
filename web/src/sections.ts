@@ -27,3 +27,16 @@ export const NAV_VIEWS = VIEWS.filter((v) => v.key !== 'settings');
 
 /** Le viste i cui elementi si scaricano a parte, alla richiesta. */
 export const isExtraView = (key: ViewKey): key is 'issues' => key === 'issues';
+
+/** L'hash che identifica una vista nell'URL: `#/issues`; la Home è `#/`. */
+export const hashFor = (key: ViewKey): string => (key === 'home' ? '#/' : `#/${key}`);
+
+/**
+ * La vista indicata dall'hash corrente, oppure null se l'hash non è una vista (per esempio `#sec-review`,
+ * il link di un riquadro della Home a una sezione della pagina). Senza hash è la Home.
+ */
+export function viewFromHash(hash: string = window.location.hash): ViewKey | null {
+  if (hash === '' || hash === '#' || hash === '#/') return 'home';
+  const match = /^#\/([\w-]+)\/?$/.exec(hash);
+  return VIEWS.find((v) => v.key === match?.[1])?.key ?? null;
+}
