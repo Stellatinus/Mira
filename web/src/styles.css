@@ -227,6 +227,10 @@ h1, h2, h3, p { margin: 0; }
 [data-section='mine-issues'] { --sec: var(--c-issue); }
 .stat { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 14px 18px; border-radius: 12px; background: var(--card); box-shadow: inset 4px 0 0 var(--sec, var(--line)); text-decoration: none; }
 .stat:hover { background: var(--card-hover); }
+/* A zero: niente link, aspetto più spento (il testo resta leggibile). */
+.stat.zero { box-shadow: inset 4px 0 0 var(--line); }
+.stat.zero strong { color: var(--muted); }
+.stat.zero:hover { background: var(--card); }
 .stat strong { font-size: 24px; line-height: 1.1; color: var(--sec, var(--text)); }
 .stat span { font-size: 12px; color: var(--muted); }
 

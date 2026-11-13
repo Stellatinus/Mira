@@ -76,12 +76,20 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
     <>
       {view.key === 'home' && (
         <div className="stats">
-          {view.sections.map((key) => (
-            <a key={key} className="stat" data-section={key} href={`#sec-${key}`}>
-              <strong>{totalLabel(key)}</strong>
-              <span>{t(sectionTitle(key))}</span>
-            </a>
-          ))}
+          {view.sections.map((key) =>
+            // Una sezione senza elementi non viene disegnata: il suo riquadro non può essere un link verso il nulla.
+            (bySection.get(key)?.length ?? 0) === 0 ? (
+              <div key={key} className="stat zero" data-section={key}>
+                <strong>{totalLabel(key)}</strong>
+                <span>{t(sectionTitle(key))}</span>
+              </div>
+            ) : (
+              <a key={key} className="stat" data-section={key} href={`#sec-${key}`}>
+                <strong>{totalLabel(key)}</strong>
+                <span>{t(sectionTitle(key))}</span>
+              </a>
+            ),
+          )}
         </div>
       )}
 
