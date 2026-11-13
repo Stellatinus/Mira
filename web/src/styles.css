@@ -481,3 +481,13 @@ h1, h2, h3, p { margin: 0; }
   .cards.list .item-card { grid-template-columns: 34px minmax(0, 1fr) auto auto; grid-template-areas: 'tile title attn open'; }
   .cards.list .ci-meta, .cards.list .ci-tag, .cards.list .ci-acct { display: none; }
 }
+
+/* ---------- Movimento ridotto ---------- */
+
+/* Chi chiede meno movimento al sistema non vede scorrimenti, trasformazioni né rotazioni: lo stato dell'aggiornamento
+   resta comunque chiaro (icona più tenue) e il pannello compare senza scivolare. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; transition-delay: 0s !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  .spinning svg { animation: none; opacity: 0.45; }
+  .stack-avatar:hover { transform: none; }
+}
