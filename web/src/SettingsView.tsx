@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getVersion } from './api';
 import { AccountsView } from './AccountsView';
 import { useI18n } from './i18n';
+import { RadioGroup } from './RadioGroup';
 import { REFRESH_OPTIONS } from './refresh';
 import { clearSnapshot, snapshotSizeKb } from './snapshot-cache';
 import { THEMES } from './theme';
@@ -47,19 +48,14 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refr
             <strong id="theme-label">{t('settings.theme')}</strong>
             <p className="muted small">{t('settings.themeHint')}</p>
           </div>
-          <div className="seg" role="radiogroup" aria-labelledby="theme-label">
-            {THEMES.map((option) => (
-              <button
-                key={option}
-                role="radio"
-                aria-checked={theme === option}
-                className={theme === option ? 'seg-btn active' : 'seg-btn'}
-                onClick={() => onTheme(option)}
-              >
-                {t(`theme.${option}` as 'theme.dark')}
-              </button>
-            ))}
-          </div>
+          <RadioGroup
+            className="seg"
+            itemClass="seg-btn"
+            labelledBy="theme-label"
+            value={theme}
+            options={THEMES.map((option) => ({ value: option, label: t(`theme.${option}` as 'theme.dark') }))}
+            onChange={onTheme}
+          />
         </div>
       </section>
 
