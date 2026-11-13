@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import { useId, useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { attentionLines, indicator, KINDS, repoKey } from './attention';
@@ -207,24 +207,18 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
-
-  function onKey(event: KeyboardEvent<HTMLElement>) {
-    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault();
-      onSelect(item.id);
-    }
-  }
+  const titleId = useId();
 
   const stop = (event: MouseEvent) => event.stopPropagation();
 
+  // La card non è un pulsante: con role="button" i figli diventano presentazionali (il link e il titolo
+  // spariscono per i lettori di schermo). Il controllo che seleziona è un vero <button> dentro il titolo;
+  // il clic del mouse sul resto della card seleziona comunque (il clic sul pulsante risale fin qui).
   return (
     <article
       className={selected ? 'item-card selected' : 'item-card'}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
+      aria-labelledby={titleId}
       onClick={() => onSelect(item.id)}
-      onKeyDown={onKey}
     >
       {item.type === 'repo' ? (
         // Le stelle non sono sulla card: stanno nel pannello dei dettagli.
@@ -237,7 +231,12 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
       <span className="ci-actions">
         {starredBy.length > 0 && (
           // Preferito: la stella (senza numero) dice che almeno un account l'ha messa; il tooltip dice chi.
-          <span className="ci-star" title={t('repo.starredBy', { accounts: starredBy.join(', ') })}>
+          <span
+            className="ci-star"
+            role="img"
+            title={t('repo.starredBy', { accounts: starredBy.join(', ') })}
+            aria-label={t('repo.starredBy', { accounts: starredBy.join(', ') })}
+          >
             <StarIcon size={14} filled />
           </span>
         )}
@@ -247,14 +246,16 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
           target="_blank"
           rel="noreferrer"
           onClick={stop}
-          aria-label={t('items.openOnGitHub')}
+          aria-label={`${t('items.openOnGitHub')}: ${item.title}`}
         >
           <ExternalIcon size={15} />
         </a>
       </span>
       <Tile item={item} iconSize={26} />
-      <h3 className="ci-title" title={item.title}>
-        {item.title}
+      <h3 className="ci-title" id={titleId}>
+        <button type="button" className="ci-select" aria-pressed={selected} title={item.title}>
+          <span className="ci-title-text">{item.title}</span>
+        </button>
       </h3>
       <div className="rule" />
       <div className="ci-meta">
@@ -266,6 +267,8 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
           {accounts.slice(0, 3).map((account) => (
             <Avatar key={account.login} account={account} size={22} />
           ))}
+          {/* Gli avatar sono decorativi: il nome degli account lo legge questo testo. */}
+          <span className="visually-hidden">{t('items.seenBy', { accounts: accounts.map((a) => a.login).join(', ') })}</span>
         </span>
       )}
     </article>
