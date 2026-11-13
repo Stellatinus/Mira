@@ -127,6 +127,7 @@ h1, h2, h3, p { margin: 0; }
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--main); }
 .main-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 32px 16px; }
 .main-head h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.005em; }
+.main-head h1:focus { outline: none; }
 .main > .rule { margin: 0 32px; }
 .head-actions { display: flex; align-items: center; gap: 10px; }
 .updated { color: var(--muted); font-size: 12px; white-space: nowrap; }
