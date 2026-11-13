@@ -94,6 +94,9 @@ code { background: var(--main); border: 1px solid var(--line); border-radius: 4p
 h1, h2, h3, p { margin: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Testo per i lettori di schermo: non si vede, ma resta nel documento. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 .pad { padding: 0 16px 14px; margin: 0; }
@@ -449,7 +452,8 @@ h1, h2, h3, p { margin: 0; }
 @media (max-width: 700px) {
   .shell, .shell.no-panel { grid-template-columns: 64px minmax(0, 1fr); }
   .brand-logo { width: 40px; height: 40px; }
-  .nav-label { display: none; }
+  /* Nascosta solo alla vista (non con display: none), così resta il nome accessibile del pulsante. */
+  .nav-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .stack-avatar .avatar { width: 28px !important; height: 28px !important; }
   .main-head { padding: 16px 16px 12px; }
   .main > .rule { margin: 0 16px; }
