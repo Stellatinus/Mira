@@ -99,6 +99,7 @@ GitHub concede a ogni account un numero di richieste per finestra di tempo, dive
 - Quando una richiesta fallisce per il limite, l'errore dice **quando riprovare** («riprova dopo le 10:42»): l'orario è quello di GitHub (`Retry-After` o azzeramento della finestra).
 - **L'aggiornamento automatico aspetta** se per un account restano 3 ricerche o meno, finché la finestra non si azzera, per non esaurirle del tutto. L'aggiornamento fatto a mano resta sempre possibile.
 - Un «accesso negato» di GitHub con richieste ancora disponibili (permessi, SSO) non ha un orario: non è un limite.
+- **Richieste condizionali (ETag):** Mira ricorda l'ultima risposta di ogni lettura e la sua «impronta» (ETag). La volta dopo la manda a GitHub (`If-None-Match`): se nulla è cambiato GitHub risponde **304**, senza riscaricare i dati, e **una 304 non conta per il limite di richieste**. Si tengono in memoria al massimo le **200** risposte più recenti (non più grandi di 1 MB ciascuna), separate per account; GraphQL e le azioni non sono condizionali. Mira **non sa** se GitHub risponde 304 anche per le ricerche e le notifiche: se non lo fa, tutto funziona come prima, senza risparmio.
 - I numeri sono quelli dell'**ultima risposta** di ogni risorsa: una finestra il cui azzeramento è già passato conta come piena.
 
 ## Limiti da conoscere
