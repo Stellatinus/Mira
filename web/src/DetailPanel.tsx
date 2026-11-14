@@ -7,6 +7,7 @@ import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { CheckIcon, ClockIcon, CloseIcon, CopyIcon, DetailIcon, ExternalIcon, EyeIcon, ItemIcon } from './icons';
 import { reasonLabel, typeLabel } from './labels';
+import { latestPerReviewer, newCommentsSince, reviewBadge } from './review';
 import { canMarkSeen, isHidden } from './seen';
 import { Tile } from './Tile';
 import type { AccountStatus, DashboardItem, SeenEntry } from './types';
@@ -217,6 +218,8 @@ export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen
             </dl>
             <div className="rule" />
 
+            {item.review && <ReviewSection item={item} seen={seen} />}
+
             {item.type === 'repo' &&
               KINDS.map((kind) => <KindSection key={kind} kind={kind} item={item} attention={attention} />)}
 
@@ -319,6 +322,40 @@ function KindSection({ kind, item, attention }: { kind: Kind; item: DashboardIte
         {lines.map((line) => (
           <li key={line}>{line}</li>
         ))}
+      </ul>
+      <div className="rule" />
+    </>
+  );
+}
+
+/** Come sta andando una PR dell'utente: esito, review di ciascuno, ultimo commento e quanti ne sono arrivati di nuovi. */
+function ReviewSection({ item, seen }: { item: DashboardItem; seen?: SeenEntry }) {
+  const { t, timeAgo } = useI18n();
+  const review = item.review!;
+  const badge = reviewBadge(review);
+  const reviews = latestPerReviewer(review.reviews).slice(0, 5);
+  const lastComment = review.comments.length > 0 ? review.comments[review.comments.length - 1] : null;
+  const fresh = newCommentsSince(item, seen);
+  const who = (login: string | null) => login ?? t('review.someone');
+
+  return (
+    <>
+      <h3 className="panel-label">{t('review.title')}</h3>
+      {badge && <p className={`ci-review ${badge}`}>{t(`review.badge.${badge}` as 'review.badge.approved')}</p>}
+      <ul className="kind-lines">
+        {reviews.length === 0 && <li>{t('review.none')}</li>}
+        {reviews.map((r) => (
+          <li key={`${r.login}:${r.at}`}>
+            {t('review.line', {
+              who: who(r.login),
+              what: t(`review.state.${r.state}` as 'review.state.APPROVED'),
+              when: r.at ? timeAgo(r.at) : '',
+            })}
+          </li>
+        ))}
+        {lastComment && <li>{t('review.lastComment', { who: who(lastComment.login), when: timeAgo(lastComment.at) })}</li>}
+        {review.commentCount > 0 && <li>{t('review.comments', { count: review.commentCount })}</li>}
+        {fresh !== null && fresh > 0 && <li>{t('review.newComments', { count: fresh })}</li>}
       </ul>
       <div className="rule" />
     </>

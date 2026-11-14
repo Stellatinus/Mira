@@ -35,6 +35,15 @@ A differenza della dashboard, che si ferma alle 100 voci più recenti per sezion
 - Il filtro **«Assegnazione»** divide l'insieme senza resto: **assegnate a te** (a un account in vista) + **ad altri** (con assegnatari, nessuno dei quali sei tu) + **non assegnate** = **tutte**. Di default si apre su «Assegnate a te»; «Azzera i filtri» mostra tutte. Il filtro **«Assegnatario»** sceglie una persona precisa.
 - Non esistono più le voci «Assegnate» e «Non assegnate» nella barra laterale: sono filtri di «Issue». Nella Home resta la sezione «Assegnate a te» (issue e PR).
 
+## Stato di review delle tue PR
+
+Le tue PR aperte (sezione «Le tue PR aperte» e vista PR) mostrano a che punto sono, letto da GitHub con **una sola richiesta GraphQL** per account (la REST ne vorrebbe una per PR):
+
+- **Badge sulla card:** **Approvata**, **Modifiche richieste** o **In attesa di review**. È l'esito che GitHub calcola (`reviewDecision`): **manca** se il repository non chiede review obbligatorie, e allora non c'è badge.
+- **Pannello dei dettagli → Review:** l'ultima review di ciascuno (chi, con che esito, quando), l'ultimo commento, quanti commenti ha la conversazione e, se avevi segnato la PR come vista, **quanti commenti sono arrivati dopo** (tra gli ultimi 10 che Mira conosce).
+- Si guardano le **100 PR aperte aggiornate più di recente**; le reviews e i commenti mostrati sono gli ultimi 10.
+- Se la richiesta fallisce le PR si vedono lo stesso, senza stato di review, e tra i problemi compare «Stato di review delle tue PR».
+
 ## Visto e rimandato
 
 Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **rimandare a domani** dal pannello dei dettagli, senza toccare GitHub. I repository non si segnano.

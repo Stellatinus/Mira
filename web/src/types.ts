@@ -60,6 +60,8 @@ export interface DashboardItem {
   unassignedIssues: number;
   /** I login degli assegnatari di una issue o PR. */
   assignees: string[] | null;
+  /** Stato di review, solo per le PR dell'utente. */
+  review?: ReviewInfo | null;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */
@@ -91,6 +93,26 @@ export interface ExtraSnapshot {
 }
 
 export type ExtraKey = 'issues';
+
+/** Una review su una PR: chi, con che esito (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, PENDING) e quando. */
+export interface PrReview {
+  login: string | null;
+  state: string;
+  at: string | null;
+}
+
+export interface PrComment {
+  login: string | null;
+  at: string;
+}
+
+/** A che punto è una PR dell'utente: esito di GitHub (se il repository chiede review), ultime review e ultimi commenti. */
+export interface ReviewInfo {
+  decision: string | null;
+  reviews: PrReview[];
+  comments: PrComment[];
+  commentCount: number;
+}
 
 /** Un elemento segnato come visto o rimandato (stato locale, vedi docs/REGOLE.md). */
 export interface SeenEntry {

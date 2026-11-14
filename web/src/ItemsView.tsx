@@ -6,6 +6,7 @@ import { attentionLines, indicator, KINDS, repoKey } from './attention';
 import type { Attention } from './attention';
 import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
+import { reviewBadge } from './review';
 import type { ViewConfig } from './sections';
 import { isHidden } from './seen';
 import type { SeenMap } from './seen';
@@ -276,6 +277,9 @@ function ItemCard({ item, accounts, starredBy, attention, selected, seenState, s
       ) : (
         <span className="ci-tag">
           <span className="tag-text">{tagLabel(item, i18n)}</span>
+          {reviewBadge(item.review) && (
+            <span className={`ci-review ${reviewBadge(item.review)}`}>{t(`review.badge.${reviewBadge(item.review)}` as 'review.badge.approved')}</span>
+          )}
           {seenState && <span className="ci-seen">· {t(`seen.badge.${seenState}` as 'seen.badge.seen')}</span>}
         </span>
       )}

@@ -17,11 +17,28 @@ public sealed record AccountStatus(
     string[] Warnings,
     IReadOnlyList<RateLimit>? RateLimits = null);
 
+/// <summary>Una review su una PR: chi, con che esito (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, PENDING) e quando.</summary>
+public sealed record PrReview(string? Login, string State, DateTimeOffset? At);
+
+/// <summary>Un commento su una PR: chi e quando.</summary>
+public sealed record PrComment(string? Login, DateTimeOffset At);
+
+/// <summary>
+/// A che punto è una PR dell'utente. Decision è quella di GitHub (APPROVED, CHANGES_REQUESTED, REVIEW_REQUIRED) e
+/// manca quando il repository non chiede review. Reviews e Comments sono gli ultimi (i più recenti per ultimi);
+/// CommentCount è il totale dei commenti della conversazione.
+/// </summary>
+public sealed record ReviewInfo(
+    string? Decision,
+    IReadOnlyList<PrReview> Reviews,
+    IReadOnlyList<PrComment> Comments,
+    int CommentCount);
+
 /// <summary>
 /// Un elemento della dashboard.
 /// Section: review | assigned | mine-prs | mine-issues | mentions | notifications | repos | starred.
 /// Type: issue | pr | repo | release | commit | discussion | other.
-/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository), Fork, ForkOf (repository da cui deriva) UnassignedIssues (issue aperte senza assegnatario) e Assegnatari (logins degli assegnatari di una issue o PR) sono valorizzati solo dove hanno senso.
+/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository), Fork, ForkOf (repository da cui deriva) UnassignedIssues (issue aperte senza assegnatario) Assegnatari (logins degli assegnatari di una issue o PR) e Review (stato di review di una PR dell'utente) sono valorizzati solo dove hanno senso.
 /// </summary>
 public sealed record DashboardItem(
     string Id,
@@ -46,7 +63,8 @@ public sealed record DashboardItem(
     bool Fork = false,
     string? ForkOf = null,
     int UnassignedIssues = 0,
-    string[]? Assignees = null);
+    string[]? Assignees = null,
+    ReviewInfo? Review = null);
 
 /// <summary>
 /// Quanti elementi ci sono davvero in una sezione per un account, anche oltre quelli scaricati.

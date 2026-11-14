@@ -16,7 +16,8 @@ public class DashboardServiceTests
     /// <summary>Un GitHub che risponde a ogni richiesta della dashboard; il test cambia solo ciò che gli interessa.</summary>
     private static Router Github() => new Router()
         .On(path => path == "user", UserFor)
-        .On("graphql", () => Gh.Json(Fixtures.Repositories([])))
+        .OnGraphQl("repositories(", () => Gh.Json(Fixtures.Repositories([])))
+        .OnGraphQl("reviewDecision", () => Gh.Json(Fixtures.NoReviews))
         .On("notifications", () => Gh.Json("[]"))
         .On("search/issues", () => Gh.Json(Fixtures.Search(0)));
 
@@ -178,14 +179,14 @@ public class DashboardServiceTests
 
         var snapshot = await service.GetAsync(false, CancellationToken.None);
 
-        Assert.Equal(new[] { "repos", "starred" }, snapshot.Errors.Select(e => e.Section).Order());
+        Assert.Equal(new[] { "repos", "reviews", "starred" }, snapshot.Errors.Select(e => e.Section).Order());
         Assert.All(snapshot.Errors, e => Assert.Equal("rate-limited", e.Error.Code));
     }
 
     [Fact]
     public async Task Repositories_carry_their_counts_and_a_logo_that_the_browser_can_reach()
     {
-        var router = Github().On("graphql", () => Gh.Json(Fixtures.Repositories(
+        var router = Github().OnGraphQl("repositories(", () => Gh.Json(Fixtures.Repositories(
         [
             Fixtures.Repo(1, "pubblico", customImage: true),
             Fixtures.Repo(2, "privato", isPrivate: true, customImage: true),
@@ -208,7 +209,7 @@ public class DashboardServiceTests
     public async Task A_full_page_of_repositories_means_the_total_is_not_known()
     {
         var hundred = Enumerable.Range(1, 100).Select(i => Fixtures.Repo(i, $"r{i}")).ToArray();
-        var router = Github().On("graphql", () => Gh.Json(Fixtures.Repositories(hundred)));
+        var router = Github().OnGraphQl("repositories(", () => Gh.Json(Fixtures.Repositories(hundred)));
         var service = Service(router, out _);
 
         var snapshot = await service.GetAsync(false, CancellationToken.None);
@@ -281,5 +282,116 @@ public class DashboardServiceTests
 
         Assert.Equal(501, item.Description!.Length);
         Assert.EndsWith("…", item.Description);
+    }
+}
+
+public class ReviewStateTests
+{
+    private const string Pr = "https://github.com/acme/app/pull/12";
+
+    private static Router Github(string pullRequestsJson) => new Router()
+        .On(path => path == "user", _ => Gh.Json(Gh.UserJson))
+        .OnGraphQl("repositories(", () => Gh.Json(Fixtures.Repositories([])))
+        .OnGraphQl("reviewDecision", () => Gh.Json(pullRequestsJson))
+        .On("notifications", () => Gh.Json("[]"))
+        .On("search/issues", () => Gh.Json(Fixtures.Search(0)))
+        .On("author:alice", () => Gh.Json(Fixtures.Search(1, Fixtures.Issue(12, "la mia PR", repo: "acme/app", pr: true))));
+
+    private static async Task<Mira.Server.Models.DashboardSnapshot> LoadAsync(Router router)
+    {
+        var service = new DashboardService(new InMemorySecretStore(("alice", "t")), Gh.Api(router.Handler()));
+        return await service.GetAsync(false, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task The_review_state_is_attached_to_the_users_own_prs_by_address()
+    {
+        var snapshot = await LoadAsync(Github(Fixtures.PullRequests(Fixtures.PullRequestState(Pr, "CHANGES_REQUESTED",
+            reviews: [Fixtures.Review("APPROVED", "carla", "2026-11-09T10:00:00Z"), Fixtures.Review("CHANGES_REQUESTED", "dario", "2026-11-10T10:00:00Z")],
+            comments: [Fixtures.Comment("dario", "2026-11-10T12:00:00Z")], commentCount: 7))));
+
+        var review = Assert.Single(snapshot.Items, i => i.Section == "mine-prs" && i.Url == Pr).Review!;
+        Assert.Equal("CHANGES_REQUESTED", review.Decision);
+        Assert.Equal(new[] { "carla", "dario" }, review.Reviews.Select(r => r.Login));
+        Assert.Equal(new[] { "APPROVED", "CHANGES_REQUESTED" }, review.Reviews.Select(r => r.State));
+        Assert.Equal("dario", Assert.Single(review.Comments).Login);
+        Assert.Equal(7, review.CommentCount);
+    }
+
+    [Fact]
+    public async Task A_pr_without_a_required_review_has_no_decision()
+    {
+        var snapshot = await LoadAsync(Github(Fixtures.PullRequests(Fixtures.PullRequestState(Pr, decision: null))));
+
+        var review = Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Review!;
+        Assert.Null(review.Decision);
+        Assert.Empty(review.Reviews);
+    }
+
+    [Fact]
+    public async Task A_deleted_author_does_not_break_anything()
+    {
+        var snapshot = await LoadAsync(Github(Fixtures.PullRequests(Fixtures.PullRequestState(Pr, "APPROVED",
+            reviews: [Fixtures.Review("APPROVED", login: null)], comments: [Fixtures.Comment(login: null)]))));
+
+        var review = Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Review!;
+        Assert.Null(Assert.Single(review.Reviews).Login);
+        Assert.Null(Assert.Single(review.Comments).Login);
+    }
+
+    [Fact]
+    public async Task Only_the_users_own_prs_get_a_review_state()
+    {
+        var router = Github(Fixtures.PullRequests(Fixtures.PullRequestState(Pr, "APPROVED")))
+            .On("review-requested:alice", () => Gh.Json(Fixtures.Search(1, Fixtures.Issue(12, "la mia PR", repo: "acme/app", pr: true))));
+
+        var snapshot = await LoadAsync(router);
+
+        Assert.NotNull(Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Review);
+        Assert.Null(Assert.Single(snapshot.Items, i => i.Section == "review").Review);
+    }
+
+    [Fact]
+    public async Task A_pr_that_graphql_does_not_know_is_left_without_a_review_state()
+    {
+        var snapshot = await LoadAsync(Github(Fixtures.NoReviews));
+
+        Assert.Null(Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Review);
+        Assert.Empty(snapshot.Errors);
+    }
+
+    [Fact]
+    public async Task If_the_review_request_fails_the_prs_still_show_and_the_problem_is_reported()
+    {
+        var router = Github(Fixtures.NoReviews).OnGraphQl("reviewDecision", () => Gh.Status(HttpStatusCode.Forbidden));
+
+        var snapshot = await LoadAsync(router);
+
+        Assert.Contains(snapshot.Items, i => i.Section == "mine-prs");
+        var error = Assert.Single(snapshot.Errors);
+        Assert.Equal(("alice", "reviews", "rate-limited"), (error.Account, error.Section, error.Error.Code));
+    }
+
+    [Fact]
+    public async Task Graphql_errors_without_data_are_reported_as_a_review_problem()
+    {
+        var snapshot = await LoadAsync(Github("""{"data":null,"errors":[{"type":"RATE_LIMITED","message":"limite"}]}"""));
+
+        var error = Assert.Single(snapshot.Errors);
+        Assert.Equal(("reviews", "rate-limited"), (error.Section, error.Error.Code));
+    }
+
+    [Fact]
+    public async Task The_review_query_asks_github_for_the_users_open_prs_only()
+    {
+        var router = Github(Fixtures.NoReviews);
+        var handler = router.Handler();
+        var service = new DashboardService(new InMemorySecretStore(("alice", "t")), Gh.Api(handler));
+
+        await service.GetAsync(false, CancellationToken.None);
+
+        var query = Assert.Single(handler.Requests, r => r.Body?.Contains("reviewDecision") == true).Body!;
+        Assert.Contains("states: OPEN", query);
+        Assert.Contains("viewer", query);
     }
 }
