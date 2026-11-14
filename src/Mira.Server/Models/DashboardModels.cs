@@ -1,8 +1,11 @@
+using Mira.Server.GitHub;
+
 namespace Mira.Server.Models;
 
 /// <summary>
 /// Stato di un account collegato. State: ok | invalid | error.
 /// Warnings sono codici tradotti dal frontend: "fine-grained" oppure "missing-scope:&lt;scope&gt;".
+/// RateLimits: quante richieste restano all'account per ogni risorsa di GitHub (core, search, graphql…), come risultano dall'ultima risposta.
 /// </summary>
 public sealed record AccountStatus(
     string Login,
@@ -11,7 +14,8 @@ public sealed record AccountStatus(
     string State,
     DateTimeOffset? TokenExpiresAt,
     string[] Scopes,
-    string[] Warnings);
+    string[] Warnings,
+    IReadOnlyList<RateLimit>? RateLimits = null);
 
 /// <summary>
 /// Un elemento della dashboard.

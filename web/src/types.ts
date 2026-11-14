@@ -11,6 +11,14 @@ export type Section =
 
 export type ItemType = 'issue' | 'pr' | 'repo' | 'release' | 'commit' | 'discussion' | 'other';
 
+/** Quante richieste restano a un account per una risorsa di GitHub (core, search, graphql…) e quando la finestra si azzera. */
+export interface RateLimit {
+  resource: string;
+  limit: number;
+  remaining: number;
+  resetsAt: string;
+}
+
 export interface AccountStatus {
   login: string;
   name: string | null;
@@ -20,6 +28,7 @@ export interface AccountStatus {
   scopes: string[];
   /** Codici: "fine-grained" oppure "missing-scope:<scope>"; l'interfaccia li traduce. */
   warnings: string[];
+  rateLimits?: RateLimit[];
 }
 
 export interface DashboardItem {

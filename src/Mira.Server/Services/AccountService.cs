@@ -17,7 +17,7 @@ public sealed class AccountService(ISecretStore store, GitHubApi api)
         var statuses = await Task.WhenAll(tokens.Select(async pair =>
         {
             var user = await api.GetAsync<GhUser>(pair.Value, "user", ct);
-            return BuildStatus(pair.Key, user);
+            return BuildStatus(pair.Key, user) with { RateLimits = api.RateLimitsFor(pair.Value) };
         }));
         return statuses.OrderBy(s => s.Login, StringComparer.OrdinalIgnoreCase).ToList();
     }
@@ -35,7 +35,7 @@ public sealed class AccountService(ISecretStore store, GitHubApi api)
             return new AddAccountResult(null, new ErrorInfo("github-unreachable", null, user.Error));
 
         await store.SaveAsync(user.Data.Login, token, ct);
-        return new AddAccountResult(BuildStatus(user.Data.Login, user), null);
+        return new AddAccountResult(BuildStatus(user.Data.Login, user) with { RateLimits = api.RateLimitsFor(token) }, null);
     }
 
     public Task RemoveAsync(string login, CancellationToken ct) => store.RemoveAsync(login, ct);

@@ -7,6 +7,7 @@ import { failureText } from './errors';
 import { daysUntil } from './format';
 import { useI18n } from './i18n';
 import type { I18n } from './i18n';
+import { isLow, limitsText } from './limits';
 import type { AccountStatus } from './types';
 
 const TOKEN_URL = 'https://github.com/settings/tokens/new?description=Mira&scopes=notifications,repo,read:org';
@@ -78,6 +79,13 @@ export function AccountsView({ accounts, onChanged }: Props) {
                   <div className="item-meta">
                     <span>{expiryText(account, i18n)}</span>
                   </div>
+                  {account.rateLimits && account.rateLimits.length > 0 && (
+                    <div className={account.rateLimits.some(isLow) ? 'item-meta warn-text' : 'item-meta'}>
+                      <span>
+                        {t('limits.label')}: {limitsText(account.rateLimits, i18n)}
+                      </span>
+                    </div>
+                  )}
                   {account.warnings.map((warning) => (
                     <div key={warning} className="item-meta warn-text">
                       {warningText(warning, t)}
