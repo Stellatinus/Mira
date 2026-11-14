@@ -75,6 +75,12 @@ Mira usa un **personal access token classic** per ogni account.
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account
 ripeti i passi accedendo ogni volta con l'account giusto.
 
+## Aggiornamenti
+
+All'apertura Mira chiede a GitHub, **senza token**, qual è l'ultima release del progetto e la confronta con la propria versione (`MAJOR.MINOR.PATCH`, vedi [`docs/RELEASING.md`](docs/RELEASING.md)). Se ce n'è una più nuova lo dice con un avviso (che si chiude, e non ricompare per la stessa versione) e nelle **Impostazioni → Informazioni**, con il link alle note di rilascio. **Non scarica né installa nulla**: per aggiornare si scarica il pacchetto dalla pagina delle release.
+
+Il controllo si spegne dalle Impostazioni («Controlla gli aggiornamenti all'apertura»); «Controlla ora» lo fa a richiesta. Una versione compilata dal sorgente (`0.0.0-dev`) non ha niente da controllare; una versione di prova (`1.3.0-rc.1`) viene avvisata della stabile che la segue, ma le pre-release non si propongono a chi ha una stabile.
+
 ## Tema e lingua
 
 Dalle **Impostazioni** (il pulsante `•••` sopra gli avatar, in basso a sinistra) si sceglie il tema

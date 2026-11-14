@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
+  ApiError,
   deleteSeen,
   getDashboard,
   getIssues,
   getSectionPage,
   getSeen,
+  getUpdate,
   markNotificationRead,
   markRepositoryNotificationsRead,
   postSeenBaseline,
@@ -37,7 +39,7 @@ import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview'
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
-import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, Section, SeenEntry } from './types';
+import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, Section, SeenEntry, UpdateInfo } from './types';
 import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
@@ -46,6 +48,8 @@ const REPO_SORT_KEY = 'mira.repoSort';
 const ITEM_SORT_KEY = 'mira.itemSort';
 const SHOW_STARRED_KEY = 'mira.showStarred';
 const SHOW_SEEN_KEY = 'mira.showSeen';
+const CHECK_UPDATES_KEY = 'mira.checkUpdates';
+const UPDATE_DISMISSED_KEY = 'mira.updateDismissed';
 
 /** Quante voci scarica la dashboard per sezione e account alla prima pagina; la ricerca di GitHub arriva a 10 pagine. */
 const FIRST_PAGE_SIZE: Partial<Record<Section, number>> = { notifications: 50 };
@@ -109,6 +113,11 @@ export default function App() {
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
   const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  // Controllo degli aggiornamenti: all'apertura (se non lo si spegne nelle Impostazioni) e a richiesta. Non scarica nulla.
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [checkUpdates, setCheckUpdates] = useState(() => readStored(CHECK_UPDATES_KEY, 'true') !== 'false');
+  const [dismissedUpdate, setDismissedUpdate] = useState(() => readStored(UPDATE_DISMISSED_KEY, ''));
   // «Carica altri»: le pagine oltre la prima, per account e sezione («account|sezione»).
   const [more, setMore] = useState<Record<string, MorePages>>({});
   const [loadingMore, setLoadingMore] = useState<Partial<Record<Section, boolean>>>({});
@@ -184,6 +193,22 @@ export default function App() {
       setExtras((prev) => ({ ...prev, [key]: { data: prev[key]?.data ?? null, loading: false, error: e ?? new Error('unknown') } }));
     }
   }, []);
+
+  const runUpdateCheck = useCallback(async (force: boolean) => {
+    setCheckingUpdate(true);
+    try {
+      setUpdate(await getUpdate(force));
+    } catch (e) {
+      // Il server non risponde: lo stesso esito di un errore di rete.
+      setUpdate({ current: '', latest: null, url: null, publishedAt: null, available: false, checkedAt: new Date().toISOString(), error: { code: e instanceof ApiError ? e.info.code : 'network' } });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (checkUpdates) void runUpdateCheck(false);
+  }, [checkUpdates, runUpdateCheck]);
 
   // Lo stato «visto» non blocca nulla: se non si legge, semplicemente non si nasconde niente.
   useEffect(() => {
@@ -391,6 +416,17 @@ export default function App() {
       say.current.announce(say.current.t('items.loadedMore'));
     }
     setLoadingMore((current) => ({ ...current, [section]: false }));
+  }
+
+  function changeCheckUpdates(next: boolean) {
+    setCheckUpdates(next);
+    writeStored(CHECK_UPDATES_KEY, String(next));
+  }
+
+  function dismissUpdate() {
+    if (!update?.latest) return;
+    setDismissedUpdate(update.latest);
+    writeStored(UPDATE_DISMISSED_KEY, update.latest);
   }
 
   function toggleShowSeen() {
@@ -678,6 +714,22 @@ export default function App() {
               {t('app.serverDown', { error: failureText(error, i18n) })}
             </div>
           )}
+          {update?.available && update.latest && dismissedUpdate !== update.latest && view !== 'settings' && (
+            <div className="alert info" role="status">
+              <span>
+                {t('update.banner', { version: update.latest })}{' '}
+                {update.url && (
+                  <a href={update.url} target="_blank" rel="noreferrer">
+                    {t('update.notes')}
+                    <span className="visually-hidden"> ({t('a11y.newTab')})</span>
+                  </a>
+                )}
+              </span>
+              <button className="link" onClick={dismissUpdate}>
+                {t('update.dismiss')}
+              </button>
+            </div>
+          )}
           {alerts.map((alert) => (
             <div key={alert.key} className={`alert ${alert.level}`} role="alert">
               <span>{alert.text}</span>
@@ -725,6 +777,11 @@ export default function App() {
               onTheme={setTheme}
               refreshMinutes={refreshMinutes}
               onRefreshMinutes={setRefreshMinutes}
+              update={update}
+              checkingUpdate={checkingUpdate}
+              onCheckUpdate={() => void runUpdateCheck(true)}
+              checkUpdates={checkUpdates}
+              onCheckUpdates={changeCheckUpdates}
             />
           )}
         </div>

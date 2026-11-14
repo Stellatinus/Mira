@@ -87,6 +87,17 @@ export interface DashboardError {
   error: ErrorInfo;
 }
 
+/** Il risultato del controllo degli aggiornamenti. */
+export interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  url: string | null;
+  publishedAt: string | null;
+  available: boolean;
+  checkedAt: string;
+  error: ErrorInfo | null;
+}
+
 /** Una pagina in più di una sezione per un account («Carica altri»). */
 export interface SectionPage {
   items: DashboardItem[];

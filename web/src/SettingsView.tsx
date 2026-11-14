@@ -7,7 +7,7 @@ import { REFRESH_OPTIONS } from './refresh';
 import { clearSnapshot, snapshotSizeKb } from './snapshot-cache';
 import { THEMES } from './theme';
 import type { ThemePreference } from './theme';
-import type { AccountStatus } from './types';
+import type { AccountStatus, UpdateInfo } from './types';
 
 interface Props {
   accounts: AccountStatus[];
@@ -17,10 +17,28 @@ interface Props {
   /** Ogni quanti minuti si aggiorna da sola (0 = mai). */
   refreshMinutes: number;
   onRefreshMinutes: (minutes: number) => void;
+  /** Il controllo degli aggiornamenti: l'ultimo esito, se è in corso, come rifarlo e se parte da solo all'apertura. */
+  update: UpdateInfo | null;
+  checkingUpdate: boolean;
+  onCheckUpdate: () => void;
+  checkUpdates: boolean;
+  onCheckUpdates: (enabled: boolean) => void;
 }
 
-export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refreshMinutes, onRefreshMinutes }: Props) {
-  const { t, language, languages, setLanguage } = useI18n();
+export function SettingsView({
+  accounts,
+  onAccountsChanged,
+  theme,
+  onTheme,
+  refreshMinutes,
+  onRefreshMinutes,
+  update,
+  checkingUpdate,
+  onCheckUpdate,
+  checkUpdates,
+  onCheckUpdates,
+}: Props) {
+  const { t, language, languages, setLanguage, errorText } = useI18n();
   const [cleared, setCleared] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
 
@@ -143,6 +161,45 @@ export function SettingsView({ accounts, onAccountsChanged, theme, onTheme, refr
             {t('settings.releases')}
             <span className="visually-hidden"> ({t('a11y.newTab')})</span>
           </a>
+        </div>
+        <div className="setting">
+          <div className="setting-text">
+            <strong>{t('update.title')}</strong>
+            <p className={update?.error ? 'warn-text small' : 'muted small'} role="status">
+              {checkingUpdate
+                ? t('update.checking')
+                : !update
+                  ? t('update.unknown')
+                  : update.error
+                    ? `${t('update.error')} (${errorText(update.error)})`
+                    : update.latest === null
+                      ? t('update.dev')
+                      : update.available
+                        ? t('update.available', { version: update.latest })
+                        : t('update.upToDate')}
+              {!checkingUpdate && update?.available && update.url && (
+                <>
+                  {' '}
+                  <a href={update.url} target="_blank" rel="noreferrer">
+                    {t('update.notes')}
+                    <span className="visually-hidden"> ({t('a11y.newTab')})</span>
+                  </a>
+                </>
+              )}
+            </p>
+          </div>
+          <button className="btn" aria-disabled={checkingUpdate} onClick={() => !checkingUpdate && onCheckUpdate()}>
+            {t('update.check')}
+          </button>
+        </div>
+        <div className="setting">
+          <div className="setting-text">
+            <label htmlFor="check-updates" className="strong">
+              {t('update.auto')}
+            </label>
+            <p className="muted small">{t('update.autoHint')}</p>
+          </div>
+          <input id="check-updates" type="checkbox" checked={checkUpdates} onChange={(e) => onCheckUpdates(e.target.checked)} />
         </div>
       </section>
     </>

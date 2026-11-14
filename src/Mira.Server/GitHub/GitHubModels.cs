@@ -127,3 +127,6 @@ public sealed record GqlContext(
     string? Context,
     string? State,
     string? TargetUrl);
+
+/// <summary>L'ultima release pubblicata di un repository (solo i campi che servono).</summary>
+public sealed record GhRelease(string TagName, string? Name, string HtmlUrl, bool Prerelease, bool Draft, DateTimeOffset? PublishedAt);

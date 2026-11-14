@@ -120,6 +120,10 @@ public static class Endpoints
             return Results.NoContent();
         });
 
+        // Esiste una release più nuova? Si legge solo alla richiesta e non scarica nulla.
+        api.MapGet("/update", async (bool? refresh, UpdateService updates, CancellationToken ct) =>
+            Results.Ok(await updates.GetAsync(refresh == true, ct)));
+
         api.MapGet("/version", () => Results.Ok(new { version = AppVersion.Current }));
 
         api.MapGet("/dashboard", async (bool? refresh, DashboardService dashboard, CancellationToken ct) =>
