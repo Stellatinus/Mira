@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { deleteSeen, getDashboard, getIssues, getSeen, putSeen } from './api';
+import {
+  deleteSeen,
+  getDashboard,
+  getIssues,
+  getSeen,
+  markNotificationRead,
+  markRepositoryNotificationsRead,
+  putSeen,
+  unsubscribeNotification,
+} from './api';
 import { accountAlerts } from './alerts';
 import { useAnnounce } from './announce';
 import { buildAttention, repoKey } from './attention';
@@ -16,7 +25,7 @@ import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
-import { isHidden, tomorrowMorning } from './seen';
+import { isHidden, threadIdOf, tomorrowMorning } from './seen';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
 import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
 import type { ViewKey } from './sections';
@@ -247,6 +256,40 @@ export default function App() {
     const next = !showStarred;
     setShowStarred(next);
     writeStored(SHOW_STARRED_KEY, String(next));
+  }
+
+  // Segna come letta una notifica, tutte quelle di un repository, o smette di seguire la conversazione. Si toglie subito dalla
+  // lista (e dal totale) e si fa su GitHub dopo; se GitHub rifiuta si dice e si rilegge tutto.
+  async function notifyAction(item: DashboardItem, action: 'read' | 'unsubscribe' | 'repoRead') {
+    const affected = (i: DashboardItem) =>
+      i.section === 'notifications' &&
+      i.account === item.account &&
+      (action === 'repoRead' ? i.repo.toLowerCase() === item.repo.toLowerCase() : i.id === item.id);
+    const removed = (data?.items ?? []).filter(affected).length;
+
+    setData((current) =>
+      current && {
+        ...current,
+        items: current.items.filter((i) => !affected(i)),
+        totals: current.totals.map((t) =>
+          t.account === item.account && t.section === 'notifications' && t.total !== null
+            ? { ...t, total: Math.max(0, t.total - removed) }
+            : t,
+        ),
+      },
+    );
+    setSelectedId(null);
+    headingRef.current?.focus();
+
+    try {
+      if (action === 'read') await markNotificationRead(item.account, threadIdOf(item));
+      else if (action === 'unsubscribe') await unsubscribeNotification(item.account, threadIdOf(item));
+      else await markRepositoryNotificationsRead(item.account, item.repo);
+      say.current.announce(say.current.t(`notify.announce.${action}` as 'notify.announce.read', { repo: item.repo }));
+    } catch {
+      say.current.announce(say.current.t('notify.error'));
+      void load(true);
+    }
   }
 
   function toggleShowSeen() {
@@ -578,6 +621,7 @@ export default function App() {
           attention={selected?.type === 'repo' ? attention.get(repoKey(selected.repo)) : undefined}
           seen={selected ? seen.get(selected.url) : undefined}
           onSeen={(action) => selected && void changeSeen(selected, action)}
+          onNotify={(action) => selected && void notifyAction(selected, action)}
           focusSignal={panelFocus}
           onClose={closePanel}
         />

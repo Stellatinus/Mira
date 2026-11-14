@@ -50,6 +50,33 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
             GraphQlOptions,
             ct);
 
+    /// <summary>
+    /// Una richiesta che cambia qualcosa su GitHub e non restituisce dati (segna come letta, annulla la sottoscrizione…):
+    /// risponde 204 o 205. `Data` è true se è andata a buon fine.
+    /// </summary>
+    public async Task<ApiResponse<bool>> ActAsync(string token, HttpMethod method, string path, object? body, CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(method, path);
+            if (body is not null) request.Content = JsonContent.Create(body);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await httpClientFactory.CreateClient("github").SendAsync(request, ct);
+            return response.IsSuccessStatusCode
+                ? new ApiResponse<bool>(response.StatusCode, true, null, null, null)
+                : new ApiResponse<bool>(response.StatusCode, false, null, null, Describe(response.StatusCode));
+        }
+        catch (HttpRequestException ex)
+        {
+            return new ApiResponse<bool>(0, false, null, null, new ErrorInfo("network", ex.Message));
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return new ApiResponse<bool>(0, false, null, null, new ErrorInfo("timeout"));
+        }
+    }
+
     private async Task<ApiResponse<T>> SendAsync<T>(
         string token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct)
     {

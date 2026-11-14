@@ -60,3 +60,18 @@ export const putSeen = (url: string, updatedAt: string, snoozeUntil: string | nu
 /** Senza indirizzo toglie tutte le voci. */
 export const deleteSeen = (url?: string) =>
   request<void>(`/api/seen${url ? `?url=${encodeURIComponent(url)}` : ''}`, { method: 'DELETE' });
+
+/** Le azioni sulle notifiche: il server le esegue su GitHub con il token dell'account a cui appartengono. */
+const notificationUrl = (account: string, rest: string) => `/api/notifications/${encodeURIComponent(account)}/${rest}`;
+
+export const markNotificationRead = (account: string, threadId: string) =>
+  request<void>(notificationUrl(account, `threads/${encodeURIComponent(threadId)}/read`), { method: 'POST' });
+
+export const unsubscribeNotification = (account: string, threadId: string) =>
+  request<void>(notificationUrl(account, `threads/${encodeURIComponent(threadId)}/unsubscribe`), { method: 'POST' });
+
+/** `repo` è «proprietario/nome». */
+export const markRepositoryNotificationsRead = (account: string, repo: string) => {
+  const [owner, name] = repo.split('/');
+  return request<void>(notificationUrl(account, `repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/read`), { method: 'POST' });
+};

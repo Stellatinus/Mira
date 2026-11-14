@@ -10,6 +10,23 @@ public sealed record SeenRequest(string? Url, DateTimeOffset? UpdatedAt, DateTim
 
 public static class Endpoints
 {
+    /// <summary>Esegue un'azione sulle notifiche: 400 se gli identificativi non sono validi, 404 se l'account non esiste, 502 se GitHub rifiuta.</summary>
+    private static async Task<IResult> NotificationAction(bool valid, Func<Task<ErrorInfo?>> action, DashboardService dashboard)
+    {
+        if (!valid)
+            return Results.BadRequest(new { error = new ErrorInfo("notification-invalid") });
+
+        var error = await action();
+        if (error is null)
+        {
+            // Le liste in cache mostrerebbero ancora la notifica: al prossimo aggiornamento si rileggono.
+            dashboard.Invalidate();
+            return Results.NoContent();
+        }
+
+        return Results.Json(new { error }, statusCode: error.Code == "account-unknown" ? StatusCodes.Status404NotFound : StatusCodes.Status502BadGateway);
+    }
+
     public static void MapMiraApi(this WebApplication app)
     {
         var api = app.MapGroup("/api");
@@ -44,6 +61,21 @@ public static class Endpoints
             IssueService.Views.Contains(view)
                 ? Results.Ok(await issues.GetAsync(view, refresh == true, ct))
                 : Results.NotFound());
+
+        // Azioni sulle notifiche di GitHub, con il token dell'account a cui appartengono.
+        var notifications = api.MapGroup("/notifications/{account}");
+
+        notifications.MapPost("/threads/{threadId}/read", (string account, string threadId, NotificationService service, DashboardService dashboard, CancellationToken ct) =>
+            NotificationAction(NotificationService.IsValidThreadId(threadId), () => service.MarkReadAsync(account, threadId, ct), dashboard));
+
+        notifications.MapPost("/threads/{threadId}/unsubscribe", (string account, string threadId, NotificationService service, DashboardService dashboard, CancellationToken ct) =>
+            NotificationAction(NotificationService.IsValidThreadId(threadId), () => service.UnsubscribeAsync(account, threadId, ct), dashboard));
+
+        notifications.MapPost("/repos/{owner}/{repo}/read", (string account, string owner, string repo, NotificationService service, DashboardService dashboard, CancellationToken ct) =>
+            NotificationAction(
+                NotificationService.IsValidRepoPart(owner) && NotificationService.IsValidRepoPart(repo),
+                () => service.MarkRepositoryReadAsync(account, owner, repo, ct),
+                dashboard));
 
         // Stato «visto» locale: non tocca GitHub, sta in un file della cartella di configurazione.
         api.MapGet("/seen", async (SeenStore seen, CancellationToken ct) => Results.Ok(await seen.GetAllAsync(ct)));

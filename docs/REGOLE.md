@@ -45,6 +45,16 @@ Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **r
 - I nascosti funzionano come un filtro: i conteggi diventano «14 di 36» e i totali di GitHub non valgono più. Il pulsante **«Mostra già visti»** (compare solo se ce ne sono, si ricorda tra una sessione e l'altra) li mostra con l'etichetta «Visto» o «Rimandato»; dal pannello si può farli tornare da vedere.
 - Lo stato sta nel file `seen.json` della cartella di configurazione, accanto ai token ma **non cifrato** (contiene solo indirizzi e date). Le voci non toccate da 180 giorni si cancellano da sole.
 
+## Notifiche: segna come lette
+
+Dal pannello di una notifica non letta (vista Notifiche e sezione della Home) si può agire su GitHub, con il token dell'account a cui la notifica appartiene:
+
+- **Segna come letta:** quella notifica.
+- **Segna lette tutte quelle del repository:** tutte le notifiche non lette di quel repository **per quell'account**.
+- **Non seguire più:** smette di seguire la conversazione. GitHub non manda più notifiche su quel thread **finché non ci scrivi o non ti menzionano**; non lo ignora per sempre.
+
+La notifica sparisce subito dalla lista e dal totale; se GitHub rifiuta (limite raggiunto, permessi) lo dice e rilegge la lista. Serve lo scope `notifications` (o `repo`) del token. Le **menzioni** non sono notifiche: si possono solo segnare come «viste» (vedi sopra). Mira non può cambiare le preferenze di notifica di GitHub (non esiste un'API): email e push di GitHub si regolano su github.com.
+
 ## Limiti da conoscere
 
 - Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.
