@@ -22,6 +22,7 @@ Servono [Node.js](https://nodejs.org) 24 e il [.NET SDK](https://dotnet.microsof
 cd web
 npm ci
 npm run build
+npm test           # prove della logica del frontend (in Node, senza dipendenze)
 npm run contrast   # contrasti dei colori (WCAG AA), nei due temi
 
 # backend: compilazione con gli avvisi trattati come errori
@@ -38,7 +39,7 @@ Il workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) parte a ogni 
 
 | Controllo | Dove gira | Cosa verifica |
 |---|---|---|
-| **Frontend** | Linux | `npm ci`, `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) e `npm run contrast` (i colori di `styles.css` rispettano il contrasto WCAG AA nei due temi) |
+| **Frontend** | Linux | `npm ci`, `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) `npm test` (la logica del frontend) e `npm run contrast` (i colori di `styles.css` rispettano il contrasto WCAG AA nei due temi) |
 | **Backend** | Linux e Windows | `dotnet build` con gli avvisi come errori e `dotnet test` (i test del backend, con un GitHub finto: niente rete né token) |
 
 **macOS non è controllato**, di proposito: per ora si controllano solo Linux e Windows. Per aggiungerlo si inserisce `macos-latest` nell'elenco `os` del job `backend`.

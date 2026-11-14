@@ -7,6 +7,7 @@ import { REFRESH_OPTIONS } from './refresh';
 import { clearSnapshot, snapshotSizeKb } from './snapshot-cache';
 import { THEMES } from './theme';
 import type { ThemePreference } from './theme';
+import type { OsNotifyPrefs, OsPermission } from './osNotify';
 import type { AccountStatus, UpdateInfo } from './types';
 
 interface Props {
@@ -23,6 +24,10 @@ interface Props {
   onCheckUpdate: () => void;
   checkUpdates: boolean;
   onCheckUpdates: (enabled: boolean) => void;
+  /** Gli avvisi del sistema per menzioni e review nuove, e il permesso del browser. */
+  osNotify: OsNotifyPrefs;
+  osPermission: OsPermission;
+  onOsNotify: (prefs: OsNotifyPrefs) => void;
 }
 
 export function SettingsView({
@@ -37,6 +42,9 @@ export function SettingsView({
   onCheckUpdate,
   checkUpdates,
   onCheckUpdates,
+  osNotify,
+  osPermission,
+  onOsNotify,
 }: Props) {
   const { t, language, languages, setLanguage, errorText } = useI18n();
   const [cleared, setCleared] = useState(false);
@@ -144,6 +152,42 @@ export function SettingsView({
             {cleared ? t('settings.cacheCleared') : t('settings.cacheClear')}
           </button>
         </div>
+      </section>
+
+      <section className="card">
+        <header className="card-head">
+          <h2>{t('osnotify.title')}</h2>
+        </header>
+        <div className="setting">
+          <div className="setting-text">
+            <label htmlFor="os-notify" className="strong">
+              {t('osnotify.enable')}
+            </label>
+            <p className="muted small">{t('osnotify.hint')}</p>
+            {osPermission === 'unsupported' && <p className="warn-text small">{t('osnotify.unsupported')}</p>}
+            {osPermission === 'denied' && <p className="warn-text small">{t('osnotify.denied')}</p>}
+          </div>
+          <input
+            id="os-notify"
+            type="checkbox"
+            checked={osNotify.enabled}
+            disabled={osPermission === 'unsupported'}
+            onChange={(e) => onOsNotify({ ...osNotify, enabled: e.target.checked })}
+          />
+        </div>
+        {osNotify.enabled && (
+          <fieldset className="setting-group">
+            <legend className="strong">{t('osnotify.events')}</legend>
+            <label>
+              <input type="checkbox" checked={osNotify.mentions} onChange={(e) => onOsNotify({ ...osNotify, mentions: e.target.checked })} />{' '}
+              {t('osnotify.mentions')}
+            </label>
+            <label>
+              <input type="checkbox" checked={osNotify.reviews} onChange={(e) => onOsNotify({ ...osNotify, reviews: e.target.checked })} />{' '}
+              {t('osnotify.reviews')}
+            </label>
+          </fieldset>
+        )}
       </section>
 
       <AccountsView accounts={accounts} onChanged={onAccountsChanged} />
