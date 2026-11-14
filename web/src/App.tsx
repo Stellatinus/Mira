@@ -30,6 +30,8 @@ import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
+import { defaultHomePrefs, normalizeHomePrefs, visibleSections } from './homePrefs';
+import type { HomePrefs } from './homePrefs';
 import { findNew } from './newItems';
 import { DEFAULT_OS_NOTIFY, loadOsNotify, osPermission, requestOsPermission, saveOsNotify, showNewItems } from './osNotify';
 import type { OsNotifyPrefs, OsPermission } from './osNotify';
@@ -51,6 +53,9 @@ const REPO_SORT_KEY = 'mira.repoSort';
 const ITEM_SORT_KEY = 'mira.itemSort';
 const SHOW_STARRED_KEY = 'mira.showStarred';
 const SHOW_SEEN_KEY = 'mira.showSeen';
+const HOME_KEY = 'mira.home';
+/** Le sezioni della Home, nell'ordine di sempre. */
+const HOME_SECTIONS = (VIEWS.find((v) => v.key === 'home')?.sections ?? []) as Section[];
 const CHECK_UPDATES_KEY = 'mira.checkUpdates';
 const UPDATE_DISMISSED_KEY = 'mira.updateDismissed';
 
@@ -116,6 +121,14 @@ export default function App() {
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
   const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  // La Home personalizzata: ordine e visibilità delle sezioni, quante card prima di «Mostra tutti». Si ricorda nel browser.
+  const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => {
+    try {
+      return normalizeHomePrefs(JSON.parse(readStored(HOME_KEY, 'null')), HOME_SECTIONS);
+    } catch {
+      return defaultHomePrefs(HOME_SECTIONS);
+    }
+  });
   // Avvisi del sistema (notifiche del browser) per menzioni e review nuove: spenti di default.
   const [osNotify, setOsNotify] = useState<OsNotifyPrefs>(loadOsNotify);
   const [osPerm, setOsPerm] = useState<OsPermission>(osPermission);
@@ -290,7 +303,12 @@ export default function App() {
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
   const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
-  const config = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
+  const baseConfig = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
+  // Nella Home le sezioni sono quelle scelte, nell'ordine scelto; le altre viste restano come sono.
+  const config = useMemo(
+    () => (baseConfig.key === 'home' ? { ...baseConfig, sections: visibleSections(homePrefs) } : baseConfig),
+    [baseConfig, homePrefs],
+  );
   const showItems = view !== 'settings';
   const unreadNotifications = useMemo(
     () => (data?.items ?? []).filter((i) => i.section === 'notifications' && (filter === 'all' || i.account === filter)).length,
@@ -447,6 +465,11 @@ export default function App() {
     }
     setOsNotify(prefs);
     saveOsNotify(prefs);
+  }
+
+  function changeHome(next: HomePrefs) {
+    setHomePrefs(next);
+    writeStored(HOME_KEY, JSON.stringify(next));
   }
 
   function changeCheckUpdates(next: boolean) {
@@ -790,6 +813,7 @@ export default function App() {
               model={model}
               seen={seen}
               showSeen={showSeen}
+              homeCollapsed={homePrefs.collapsed}
               more={{
                 can: (section) => pagesToLoad(section).length > 0,
                 loading: (section) => loadingMore[section] === true,
@@ -813,6 +837,7 @@ export default function App() {
               onCheckUpdate={() => void runUpdateCheck(true)}
               checkUpdates={checkUpdates}
               onCheckUpdates={changeCheckUpdates}
+              home={{ prefs: homePrefs, sections: HOME_SECTIONS, onChange: changeHome }}
               osNotify={osNotify}
               osPermission={osPerm}
               onOsNotify={(prefs) => void changeOsNotify(prefs)}

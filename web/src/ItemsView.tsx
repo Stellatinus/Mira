@@ -17,8 +17,7 @@ import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section }
 
 export type Mode = 'grid' | 'list' | 'compact';
 
-/** Nella Home ogni sezione mostra poche card; nelle altre viste c'è molto più spazio. */
-const COLLAPSED_HOME = 6;
+/** Nella Home ogni sezione mostra poche card (a scelta dell'utente, 6 di base); nelle altre viste c'è molto più spazio. */
 const COLLAPSED_OTHER = 24;
 
 interface Props {
@@ -32,6 +31,8 @@ interface Props {
   attention: Map<string, Attention>;
   /** Gli elementi di ogni sezione, già filtrati e ordinati, con i loro conteggi. */
   model: ViewModel;
+  /** Quante card per sezione prima di «Mostra tutti», nella Home. */
+  homeCollapsed: number;
   /** «Carica altri»: se una sezione ha altre pagine su GitHub, se si sta caricando, l'eventuale errore e come caricare. */
   more: {
     can: (section: Section) => boolean;
@@ -53,7 +54,7 @@ export const lastNumber = (text: string) => Number(/\d+(?=\D*$)/.exec(text)?.[0]
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
-export function ItemsView({ data, view, filter, mode, selectedId, attention, model, seen, showSeen, more, onSelect, onManageAccounts }: Props) {
+export function ItemsView({ data, view, filter, mode, selectedId, attention, model, seen, showSeen, homeCollapsed, more, onSelect, onManageAccounts }: Props) {
   const i18n = useI18n();
   const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -77,7 +78,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
   const repoFiltering = view.sections.some(model.narrowed);
   // Una vista con una sola sezione ha già il titolo e il conteggio nella riga in alto: niente intestazione ripetuta.
   const showGroupHeader = view.sections.length > 1;
-  const collapsedCount = view.key === 'home' ? COLLAPSED_HOME : COLLAPSED_OTHER;
+  const collapsedCount = view.key === 'home' ? homeCollapsed : COLLAPSED_OTHER;
   const showAccount = data.accounts.length > 1 && filter === 'all';
 
   // "account / sezione: errore" (senza sezione quando l'errore riguarda l'account intero).

@@ -7,8 +7,10 @@ import { REFRESH_OPTIONS } from './refresh';
 import { clearSnapshot, snapshotSizeKb } from './snapshot-cache';
 import { THEMES } from './theme';
 import type { ThemePreference } from './theme';
+import { COLLAPSED_CHOICES, defaultHomePrefs, isDefaultHome, moveSection, toggleSection, visibleSections } from './homePrefs';
+import type { HomePrefs } from './homePrefs';
 import type { OsNotifyPrefs, OsPermission } from './osNotify';
-import type { AccountStatus, UpdateInfo } from './types';
+import type { AccountStatus, Section, UpdateInfo } from './types';
 
 interface Props {
   accounts: AccountStatus[];
@@ -24,6 +26,8 @@ interface Props {
   onCheckUpdate: () => void;
   checkUpdates: boolean;
   onCheckUpdates: (enabled: boolean) => void;
+  /** La Home: ordine e visibilità delle sezioni, e quante card prima di «Mostra tutti». */
+  home: { prefs: HomePrefs; sections: Section[]; onChange: (prefs: HomePrefs) => void };
   /** Gli avvisi del sistema per menzioni e review nuove, e il permesso del browser. */
   osNotify: OsNotifyPrefs;
   osPermission: OsPermission;
@@ -42,6 +46,7 @@ export function SettingsView({
   onCheckUpdate,
   checkUpdates,
   onCheckUpdates,
+  home,
   osNotify,
   osPermission,
   onOsNotify,
@@ -150,6 +155,78 @@ export function SettingsView({
             }}
           >
             {cleared ? t('settings.cacheCleared') : t('settings.cacheClear')}
+          </button>
+        </div>
+      </section>
+
+      <section className="card">
+        <header className="card-head">
+          <h2>{t('home.title')}</h2>
+        </header>
+        <p className="muted small pad">{t('home.hint')}</p>
+        <ol className="home-list">
+          {home.prefs.order.map((section, index) => {
+            const title = t(`section.${section}.title` as 'section.review.title');
+            const shown = !home.prefs.hidden.includes(section);
+            return (
+              <li key={section}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={shown}
+                    disabled={shown && visibleSections(home.prefs).length <= 1}
+                    onChange={() => home.onChange(toggleSection(home.prefs, section))}
+                  />{' '}
+                  <span className={shown ? undefined : 'muted'}>{title}</span>
+                </label>
+                <span className="home-move">
+                  <button
+                    className="icon-btn"
+                    aria-label={t('home.up', { section: title })}
+                    disabled={index === 0}
+                    onClick={() => home.onChange(moveSection(home.prefs, section, -1))}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="icon-btn"
+                    aria-label={t('home.down', { section: title })}
+                    disabled={index === home.prefs.order.length - 1}
+                    onClick={() => home.onChange(moveSection(home.prefs, section, 1))}
+                  >
+                    ↓
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        <div className="setting">
+          <div className="setting-text">
+            <label htmlFor="home-collapsed" className="strong">
+              {t('home.collapsed')}
+            </label>
+            <p className="muted small">{t('home.collapsedHint')}</p>
+          </div>
+          <select
+            id="home-collapsed"
+            className="select"
+            value={home.prefs.collapsed}
+            onChange={(e) => home.onChange({ ...home.prefs, collapsed: Number(e.target.value) })}
+          >
+            {COLLAPSED_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="setting">
+          <div className="setting-text">
+            <strong>{t('home.reset')}</strong>
+          </div>
+          <button className="btn" disabled={isDefaultHome(home.prefs, home.sections)} onClick={() => home.onChange(defaultHomePrefs(home.sections))}>
+            {t('home.resetButton')}
           </button>
         </div>
       </section>
