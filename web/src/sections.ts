@@ -1,6 +1,6 @@
 import type { Section } from './types';
 
-export type ViewKey = 'home' | 'repos' | 'issues' | 'prs' | 'notifications' | 'settings';
+export type ViewKey = 'home' | 'repos' | 'issues' | 'prs' | 'notifications' | 'releases' | 'settings';
 
 export interface ViewConfig {
   key: ViewKey;
@@ -18,6 +18,8 @@ export const VIEWS: ViewConfig[] = [
   { key: 'issues', tools: 'items', sections: ['issues'] },
   { key: 'prs', tools: 'items', sections: ['review', 'mine-prs'] },
   { key: 'notifications', tools: 'items', sections: ['notifications', 'mentions'] },
+  // Le release dei repository seguiti (preferiti e scelti a mano): come «Issue», si scaricano alla richiesta.
+  { key: 'releases', tools: 'items', sections: ['releases'] },
   // Le impostazioni si aprono dal pulsante sopra gli avatar, non dall'elenco delle sezioni.
   { key: 'settings', sections: [] },
 ];
@@ -26,7 +28,7 @@ export const VIEWS: ViewConfig[] = [
 export const NAV_VIEWS = VIEWS.filter((v) => v.key !== 'settings');
 
 /** Le viste i cui elementi si scaricano a parte, alla richiesta. */
-export const isExtraView = (key: ViewKey): key is 'issues' => key === 'issues';
+export const isExtraView = (key: ViewKey): key is 'issues' | 'releases' => key === 'issues' || key === 'releases';
 
 /** L'hash che identifica una vista nell'URL: `#/issues`; la Home è `#/`. */
 export const hashFor = (key: ViewKey): string => (key === 'home' ? '#/' : `#/${key}`);

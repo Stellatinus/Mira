@@ -4,6 +4,7 @@ import {
   ApiError,
   deleteSeen,
   getDashboard,
+  getFollow,
   getIssues,
   getSectionPage,
   getSeen,
@@ -11,6 +12,7 @@ import {
   markNotificationRead,
   markRepositoryNotificationsRead,
   postSeenBaseline,
+  putFollow,
   putSeen,
   unsubscribeNotification,
 } from './api';
@@ -32,6 +34,7 @@ import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
 import { defaultHomePrefs, normalizeHomePrefs, visibleSections } from './homePrefs';
 import type { HomePrefs } from './homePrefs';
+import { isFollowed } from './follow';
 import { findNew } from './newItems';
 import { DEFAULT_OS_NOTIFY, loadOsNotify, osPermission, requestOsPermission, saveOsNotify, showNewItems } from './osNotify';
 import type { OsNotifyPrefs, OsPermission } from './osNotify';
@@ -44,7 +47,7 @@ import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview'
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
-import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, Section, SeenEntry, UpdateInfo } from './types';
+import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, FollowList, Section, SeenEntry, UpdateInfo } from './types';
 import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
@@ -137,6 +140,8 @@ export default function App() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [checkUpdates, setCheckUpdates] = useState(() => readStored(CHECK_UPDATES_KEY, 'true') !== 'false');
   const [dismissedUpdate, setDismissedUpdate] = useState(() => readStored(UPDATE_DISMISSED_KEY, ''));
+  // Release seguite: i repository aggiunti a mano o tolti (i preferiti si seguono di base).
+  const [follow, setFollow] = useState<FollowList>({ added: [], muted: [] });
   // «Carica altri»: le pagine oltre la prima, per account e sezione («account|sezione»).
   const [more, setMore] = useState<Record<string, MorePages>>({});
   const [loadingMore, setLoadingMore] = useState<Partial<Record<Section, boolean>>>({});
@@ -239,6 +244,12 @@ export default function App() {
   useEffect(() => {
     if (checkUpdates) void runUpdateCheck(false);
   }, [checkUpdates, runUpdateCheck]);
+
+  useEffect(() => {
+    getFollow()
+      .then(setFollow)
+      .catch(() => undefined);
+  }, []);
 
   // Lo stato «visto» non blocca nulla: se non si legge, semplicemente non si nasconde niente.
   useEffect(() => {
@@ -465,6 +476,24 @@ export default function App() {
     }
     setOsNotify(prefs);
     saveOsNotify(prefs);
+  }
+
+  // Segue o smette di seguire le release di un repository; la lista delle release si rilegge alla prossima apertura.
+  async function changeFollow(repo: string, next: boolean) {
+    const key = repo.toLowerCase();
+    const previous = follow;
+    setFollow({
+      added: next ? [...follow.added.filter((r) => r !== key), key] : follow.added.filter((r) => r !== key),
+      muted: next ? follow.muted.filter((r) => r !== key) : [...follow.muted.filter((r) => r !== key), key],
+    });
+    setExtras((current) => ({ ...current, releases: undefined }));
+    try {
+      await putFollow(repo, next);
+      say.current.announce(say.current.t(next ? 'follow.announce.on' : 'follow.announce.off', { repo }));
+    } catch {
+      setFollow(previous);
+      say.current.announce(say.current.t('follow.error'));
+    }
   }
 
   function changeHome(next: HomePrefs) {
@@ -855,6 +884,8 @@ export default function App() {
           seen={selected ? seen.get(selected.url) : undefined}
           onSeen={(action) => selected && void changeSeen(selected, action)}
           onNotify={(action) => selected && void notifyAction(selected, action)}
+          followed={selected?.type === 'repo' && isFollowed(selected.repo, (selectedInfo?.starredBy.length ?? 0) > 0, follow)}
+          onFollow={(next) => selected && void changeFollow(selected.repo, next)}
           focusSignal={panelFocus}
           onClose={closePanel}
         />

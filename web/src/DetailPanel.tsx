@@ -25,6 +25,9 @@ interface Props {
   seen?: SeenEntry;
   /** Segna come visto, rimanda a domani o riporta da vedere. */
   onSeen: (action: 'seen' | 'snoozed' | 'unseen') => void;
+  /** Per un repository: se se ne seguono le release (preferiti e aggiunti a mano, non tolti) e come cambiarlo. */
+  followed: boolean;
+  onFollow: (follow: boolean) => void;
   /** Azioni sulla notifica di GitHub: segna come letta, tutte quelle del repository, non seguire più. */
   onNotify: (action: 'read' | 'repoRead' | 'unsubscribe') => void;
   /** Cambia quando la scelta viene da tastiera: il focus passa al titolo del pannello. */
@@ -46,7 +49,7 @@ function useNarrow(): boolean {
   return narrow;
 }
 
-export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen, onNotify, focusSignal, onClose }: Props) {
+export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen, onNotify, followed, onFollow, focusSignal, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const announce = useAnnounce();
@@ -248,6 +251,14 @@ export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen
               <button className="btn" onClick={() => onNotify('repoRead')}>
                 <CheckIcon size={14} /> {t('notify.readRepo', { repo: item.repo })}
               </button>
+            </div>
+          )}
+          {item.type === 'repo' && (
+            <div className="seen-box" role="group" aria-label={t('follow.group')}>
+              <button className="btn" aria-pressed={followed} onClick={() => onFollow(!followed)}>
+                <ItemIcon type="release" size={14} /> {followed ? t('follow.stop') : t('follow.start')}
+              </button>
+              <p className="muted small">{t('follow.hint')}</p>
             </div>
           )}
           {canMarkSeen(item) && (

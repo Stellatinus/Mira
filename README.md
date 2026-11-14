@@ -21,6 +21,7 @@ Mira mostra, per tutti gli account collegati (con filtro per account):
   assegnate, menzioni, notifiche non lette, su tutti gli account collegati), solo contorno altrimenti.
   Il pannello dettaglio ha una sezione per le PR e una per le issue: «31 aperte (3 tue)» (le tue sono quelle
   assegnate a te), le issue senza assegnatario, e cosa aspetta te; in più dice se il repository è un fork
+- **Release dei repository che segui** (vista **Release**): le nuove release uscite negli ultimi 30 giorni dei tuoi **preferiti** e dei repository che scegli tu, senza aprire la casella di posta
 - **Avvisi sui token**: quando un token sta per scadere o non è più valido
 
 Il nome viene da *Mira*, la stella variabile nella costellazione della Balena (in latino «la meravigliosa»):

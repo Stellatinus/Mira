@@ -163,3 +163,15 @@ test('homePrefs: le sezioni nascoste non compaiono ma restano nell\'ordine', () 
   assert.ok(prefs.order.includes('assigned'));
   assert.equal(isDefaultHome(prefs, HOME), false);
 });
+
+// --- Release dei repository seguiti ---
+import { isFollowed } from '../src/follow.ts';
+
+test('isFollowed: i preferiti si seguono di base, gli aggiunti anche, i tolti no', () => {
+  const none = { added: [], muted: [] };
+  assert.equal(isFollowed('Acme/App', true, none), true, 'preferito');
+  assert.equal(isFollowed('Acme/App', false, none), false, 'né preferito né aggiunto');
+  assert.equal(isFollowed('Acme/App', false, { added: ['acme/app'], muted: [] }), true, 'aggiunto, senza maiuscole');
+  assert.equal(isFollowed('Acme/App', true, { added: [], muted: ['acme/app'] }), false, 'preferito ma tolto');
+  assert.equal(isFollowed('other/tool', true, { added: [], muted: ['acme/app'] }), true, 'il tolto è un altro');
+});

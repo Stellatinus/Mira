@@ -73,6 +73,15 @@ Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **r
 - I nascosti funzionano come un filtro: i conteggi diventano «14 di 36» e i totali di GitHub non valgono più. Il pulsante **«Mostra già visti»** (compare solo se ce ne sono, si ricorda tra una sessione e l'altra) li mostra con l'etichetta «Visto» o «Rimandato»; dal pannello si può farli tornare da vedere.
 - Lo stato sta nel file `seen.json` della cartella di configurazione, accanto ai token ma **non cifrato** (contiene solo indirizzi e date). Le voci non toccate da 180 giorni si cancellano da sole.
 
+## Release dei repository che segui
+
+La vista **Release** mostra le release dei repository che segui, uscite **negli ultimi 30 giorni**, dalla più recente.
+
+- **Quali repository:** i **preferiti** di tutti gli account (si seguono di base), più quelli che aggiungi a mano, **meno quelli che togli**. Dal pannello di un repository (vista Repo) il pulsante **«Segui le release» / «Non seguire le release»** cambia la scelta; la scelta sta nel file `follow.json` della cartella di configurazione.
+- **Cosa si legge:** per ogni account **una richiesta GraphQL** dà l'ultima release (`latestRelease`: salta bozze e pre-release) di tutti i preferiti, e una seconda quella dei repository aggiunti a mano (uno per alias). Un repository che un account non vede non è un errore: basta che lo veda un altro. Lo stesso repository visto da più account compare una volta.
+- **Solo l'ultima release** di ogni repository: se ne escono due nei 30 giorni si vede la più recente. Si guardano al massimo i **100 preferiti** più recenti per account.
+- Come per le altre voci, **«Segna come visto»** la nasconde finché non cambia, e le **note di rilascio** stanno nel pannello dei dettagli. La lista si scarica quando si apre la vista e resta in cache 15 minuti.
+
 ## Notifiche: segna come lette
 
 Dal pannello di una notifica non letta (vista Notifiche e sezione della Home) si può agire su GitHub, con il token dell'account a cui la notifica appartiene:
