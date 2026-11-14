@@ -111,3 +111,55 @@ test('searchNearlyExhausted: aspetta solo con poche ricerche e finestra non anco
   assert.equal(searchNearlyExhausted([{ rateLimits: [{ resource: 'core', limit: 5000, remaining: 0, resetsAt: '2026-11-14T13:00:00Z' }] }], now), false, 'solo la ricerca conta');
   assert.equal(searchNearlyExhausted(undefined, now), false);
 });
+
+// --- Home personalizzabile ---
+import { COLLAPSED_CHOICES, defaultHomePrefs, isDefaultHome, moveSection, normalizeHomePrefs, toggleSection, visibleSections } from '../src/homePrefs.ts';
+
+const HOME = ['review', 'assigned', 'notifications', 'mentions', 'mine-prs', 'mine-issues'];
+
+test('homePrefs: i valori predefiniti mostrano tutto nell\'ordine di sempre con 6 card', () => {
+  const prefs = defaultHomePrefs(HOME);
+  assert.deepEqual(visibleSections(prefs), HOME);
+  assert.equal(prefs.collapsed, 6);
+  assert.equal(isDefaultHome(prefs, HOME), true);
+});
+
+test('homePrefs: normalizza preferenze vecchie o rovinate', () => {
+  assert.deepEqual(normalizeHomePrefs(null, HOME), defaultHomePrefs(HOME));
+  assert.deepEqual(normalizeHomePrefs('boh', HOME), defaultHomePrefs(HOME));
+  const p = normalizeHomePrefs({ order: ['mine-prs', 'sezione-che-non-esiste', 'mine-prs', 'review'], hidden: ['mentions', 'altra'], collapsed: 12 }, HOME);
+  assert.deepEqual(p.order, ['mine-prs', 'review', 'assigned', 'notifications', 'mentions', 'mine-issues'], 'doppioni e sconosciute tolte, le mancanti in fondo');
+  assert.deepEqual(p.hidden, ['mentions']);
+  assert.equal(p.collapsed, 12);
+});
+
+test('homePrefs: il numero di card è uno di quelli ammessi', () => {
+  assert.equal(normalizeHomePrefs({ collapsed: 7 }, HOME).collapsed, 6);
+  assert.equal(normalizeHomePrefs({ collapsed: '12' }, HOME).collapsed, 6);
+  for (const n of COLLAPSED_CHOICES) assert.equal(normalizeHomePrefs({ collapsed: n }, HOME).collapsed, n);
+});
+
+test('homePrefs: non si può nascondere tutto', () => {
+  assert.deepEqual(normalizeHomePrefs({ hidden: HOME }, HOME).hidden, []);
+  let prefs = defaultHomePrefs(HOME);
+  for (const s of HOME.slice(0, 5)) prefs = toggleSection(prefs, s);
+  assert.deepEqual(visibleSections(prefs), ['mine-issues']);
+  assert.deepEqual(toggleSection(prefs, 'mine-issues'), prefs, "l'ultima sezione resta");
+  assert.deepEqual(visibleSections(toggleSection(prefs, 'review')), ['review', 'mine-issues']);
+});
+
+test('homePrefs: spostare una sezione scambia con la vicina e non esce dai bordi', () => {
+  const prefs = defaultHomePrefs(HOME);
+  assert.deepEqual(moveSection(prefs, 'assigned', -1).order.slice(0, 2), ['assigned', 'review']);
+  assert.deepEqual(moveSection(prefs, 'review', 1).order.slice(0, 2), ['assigned', 'review']);
+  assert.deepEqual(moveSection(prefs, 'review', -1), prefs);
+  assert.deepEqual(moveSection(prefs, 'mine-issues', 1), prefs);
+  assert.equal(isDefaultHome(moveSection(prefs, 'review', 1), HOME), false);
+});
+
+test('homePrefs: le sezioni nascoste non compaiono ma restano nell\'ordine', () => {
+  const prefs = toggleSection(moveSection(defaultHomePrefs(HOME), 'mine-prs', -1), 'assigned');
+  assert.deepEqual(visibleSections(prefs), ['review', 'notifications', 'mine-prs', 'mentions', 'mine-issues']);
+  assert.ok(prefs.order.includes('assigned'));
+  assert.equal(isDefaultHome(prefs, HOME), false);
+});

@@ -76,6 +76,10 @@ Mira usa un **personal access token classic** per ogni account.
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account
 ripeti i passi accedendo ogni volta con l'account giusto.
 
+## La Home a modo tuo
+
+In **Impostazioni → Home** si sceglie quali sezioni della Home mostrare (la Home deve averne almeno una), in che **ordine** (con le frecce ↑ ↓, anche da tastiera) e **quante card** ogni sezione mostra prima di «Mostra tutti» (3, 6, 9, 12 o 24; di base 6). Vale anche per i riquadri dei conteggi in alto. Le scelte restano nel browser e «Ripristina la Home» riporta tutto com'era. Nascondere una sezione non cambia i dati: i conteggi e le notifiche altrove restano uguali.
+
 ## Avvisi del sistema
 
 Dalle **Impostazioni → Avvisi del sistema** si può chiedere a Mira di mandare una **notifica del browser** quando arriva una **menzione** o una **review richiesta**, scegliendo quali. Sono **spenti di default**; attivandoli il browser chiede il permesso (solo allora). Mira avvisa solo quando è aperta ma **non la stai guardando** (scheda in secondo piano o finestra senza focus), e solo per ciò che è comparso dall'ultimo aggiornamento: non avvisa di quello che c'era già, né di ciò che hai segnato come visto. Cliccando l'avviso si apre la vista giusta.
