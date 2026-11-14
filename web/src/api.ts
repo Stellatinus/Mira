@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, SectionPage, SeenEntry, UpdateInfo } from './types';
+import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, FollowList, SectionPage, SeenEntry, UpdateInfo } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -33,7 +33,7 @@ export const getDashboard = (refresh = false) =>
 
 /** Tutte le issue di una vista («issues»), scaricate alla richiesta. */
 export const getIssues = (view: ExtraKey, refresh = false) =>
-  request<ExtraSnapshot>(`/api/issues/${view}${refresh ? '?refresh=true' : ''}`);
+  request<ExtraSnapshot>(`${view === 'releases' ? '/api/releases' : `/api/issues/${view}`}${refresh ? '?refresh=true' : ''}`);
 
 export const getVersion = () => request<{ version: string }>('/api/version');
 
@@ -104,3 +104,13 @@ export const getSectionPage = (account: string, section: string, page: number) =
 
 /** Esiste una release più nuova? Il server lo chiede a GitHub (senza token) e non scarica nulla. */
 export const getUpdate = (refresh = false) => request<UpdateInfo>(`/api/update${refresh ? '?refresh=true' : ''}`);
+
+/** I repository seguiti per le release oltre ai preferiti, e quelli tolti. */
+export const getFollow = () => request<FollowList>('/api/follow');
+
+export const putFollow = (repo: string, follow: boolean) =>
+  request<void>('/api/follow', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repo, follow }),
+  });

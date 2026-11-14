@@ -230,6 +230,8 @@ public sealed class SeenEndpointsTests : IAsyncLifetime
         builder.Services.AddSingleton<IssueService>();
         builder.Services.AddSingleton<NotificationService>();
         builder.Services.AddSingleton<SectionService>();
+        builder.Services.AddSingleton(new FollowStore(Path.Combine(Path.GetTempPath(), "mira-follow-" + Guid.NewGuid().ToString("N"))));
+        builder.Services.AddSingleton<ReleaseService>();
         builder.Services.AddSingleton(provider => new UpdateService(provider.GetRequiredService<Mira.Server.GitHub.GitHubApi>(), "1.2.0"));
         _app = builder.Build();
         _app.MapMiraApi();

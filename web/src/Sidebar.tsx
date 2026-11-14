@@ -13,6 +13,7 @@ const ICONS: Partial<Record<ViewKey, ReactNode>> = {
   issues: <ItemIcon type="issue" size={20} />,
   prs: <PullRequestIcon size={20} />,
   notifications: <BellIcon size={20} />,
+  releases: <ItemIcon type="release" size={20} />,
 };
 
 interface Props {

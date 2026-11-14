@@ -130,3 +130,15 @@ public sealed record GqlContext(
 
 /// <summary>L'ultima release pubblicata di un repository (solo i campi che servono).</summary>
 public sealed record GhRelease(string TagName, string? Name, string HtmlUrl, bool Prerelease, bool Draft, DateTimeOffset? PublishedAt);
+
+// --- GraphQL: ultima release dei repository seguiti ---
+
+public sealed record GqlReleaseData(GqlReleaseViewer? Viewer);
+
+public sealed record GqlReleaseViewer(GqlReleaseRepoList? StarredRepositories);
+
+public sealed record GqlReleaseRepoList(List<GqlReleaseRepo?>? Nodes);
+
+public sealed record GqlReleaseRepo(string NameWithOwner, bool IsPrivate, GqlLatestRelease? LatestRelease);
+
+public sealed record GqlLatestRelease(string? Name, string TagName, string Url, DateTimeOffset? PublishedAt, string? Description);

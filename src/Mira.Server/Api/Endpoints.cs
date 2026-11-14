@@ -10,6 +10,8 @@ public sealed record SeenRequest(string? Url, DateTimeOffset? UpdatedAt, DateTim
 
 public sealed record BaselineRequest(List<SeenBaseline>? Items);
 
+public sealed record FollowRequest(string? Repo, bool? Follow);
+
 public static class Endpoints
 {
     /// <summary>Esegue un'azione sulle notifiche: 400 se gli identificativi non sono validi, 404 se l'account non esiste, 502 se GitHub rifiuta.</summary>
@@ -37,7 +39,7 @@ public static class Endpoints
             Results.Ok(await accounts.GetStatusesAsync(ct)));
 
         api.MapPost("/accounts", async (
-            AddAccountRequest request, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections,
+            AddAccountRequest request, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections, ReleaseService releases,
             CancellationToken ct) =>
         {
             var result = await accounts.AddAsync(request.Token, ct);
@@ -47,6 +49,7 @@ public static class Endpoints
             dashboard.Invalidate();
             issues.Invalidate();
             sections.Invalidate();
+            releases.Invalidate();
             return Results.Ok(result.Account);
         });
 
@@ -66,12 +69,14 @@ public static class Endpoints
         });
 
         api.MapDelete("/accounts/{login}", async (
-            string login, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections, CancellationToken ct) =>
+            string login, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections, ReleaseService releases,
+            CancellationToken ct) =>
         {
             await accounts.RemoveAsync(login, ct);
             dashboard.Invalidate();
             issues.Invalidate();
             sections.Invalidate();
+            releases.Invalidate();
             return Results.NoContent();
         });
 
@@ -92,6 +97,22 @@ public static class Endpoints
                 return Results.Ok(result);
 
             return Results.Json(new { error }, statusCode: error?.Code == "account-unknown" ? StatusCodes.Status404NotFound : StatusCodes.Status502BadGateway);
+        });
+
+        // Le release dei repository seguiti (preferiti più quelli aggiunti a mano, meno quelli tolti).
+        api.MapGet("/releases", async (bool? refresh, ReleaseService releases, CancellationToken ct) =>
+            Results.Ok(await releases.GetAsync(refresh == true, ct)));
+
+        api.MapGet("/follow", async (FollowStore follow, CancellationToken ct) => Results.Ok(await follow.GetAsync(ct)));
+
+        api.MapPut("/follow", async (FollowRequest request, FollowStore follow, ReleaseService releases, CancellationToken ct) =>
+        {
+            if (!FollowStore.IsValidRepo(request.Repo) || request.Follow is null)
+                return Results.BadRequest(new { error = new ErrorInfo("follow-invalid") });
+
+            await follow.SetAsync(request.Repo!, request.Follow.Value, ct);
+            releases.Invalidate();
+            return Results.NoContent();
         });
 
         // Azioni sulle notifiche di GitHub, con il token dell'account a cui appartengono.

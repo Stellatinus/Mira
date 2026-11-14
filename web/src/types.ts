@@ -7,7 +7,8 @@ export type Section =
   | 'mine-issues'
   | 'repos'
   | 'starred'
-  | 'issues';
+  | 'issues'
+  | 'releases';
 
 export type ItemType = 'issue' | 'pr' | 'repo' | 'release' | 'commit' | 'discussion' | 'other';
 
@@ -112,7 +113,13 @@ export interface ExtraSnapshot {
   errors: DashboardError[];
 }
 
-export type ExtraKey = 'issues';
+export type ExtraKey = 'issues' | 'releases';
+
+/** I repository che l'utente segue per le release oltre ai preferiti (aggiunti a mano) e quelli che ha tolto. */
+export interface FollowList {
+  added: string[];
+  muted: string[];
+}
 
 /** Una review su una PR: chi, con che esito (APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, PENDING) e quando. */
 export interface PrReview {
