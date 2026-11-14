@@ -70,7 +70,8 @@ Mira usa un **personal access token classic** per ogni account.
 2. Controlla gli scope: `notifications`, `repo`, `read:org`.
 3. Scegli una scadenza (consigliati 90 giorni). Mira ti avvisa 7 giorni prima.
 4. Genera il token, copialo (GitHub lo mostra una sola volta) e incollalo nella pagina **Impostazioni**.
-5. Se l'account fa parte di organizzazioni con SAML SSO, usa «Configure SSO» accanto al token per autorizzarle.
+5. Quando il token sta per scadere (o non vale più) usa **«Rinnova il token»** accanto all'account, in Impostazioni: Mira apre la pagina di creazione già compilata, incolli il nuovo token e lo sostituisce **senza scollegare l'account** (non si perde nulla di ciò che Mira ricorda). Il nuovo token deve essere **dello stesso account**: se appartiene a un altro, non viene salvato.
+6. Se l'account fa parte di organizzazioni con SAML SSO, usa «Configure SSO» accanto al token per autorizzarle.
 
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account
 ripeti i passi accedendo ogni volta con l'account giusto.

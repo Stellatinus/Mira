@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { addAccount, removeAccount } from './api';
-import { warningText } from './alerts';
+import { addAccount, removeAccount, renewAccount } from './api';
+import { EXPIRY_WARNING_DAYS, warningText } from './alerts';
 import { Avatar } from './Avatar';
 import { failureText } from './errors';
 import { daysUntil } from './format';
@@ -24,6 +24,10 @@ export function AccountsView({ accounts, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  // Rinnovo del token: l'account aperto, il nuovo token incollato e l'eventuale errore.
+  const [renewing, setRenewing] = useState<string | null>(null);
+  const [renewToken, setRenewToken] = useState('');
+  const [renewError, setRenewError] = useState<string | null>(null);
 
   // Mentre lavorano, i pulsanti usano aria-disabled (non disabled) per non far perdere il focus.
   const cannotSubmit = busy || token.trim() === '';
@@ -39,6 +43,29 @@ export function AccountsView({ accounts, onChanged }: Props) {
       await onChanged();
     } catch (e) {
       setError(failureText(e, i18n));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openRenew(login: string) {
+    setRenewing(renewing === login ? null : login);
+    setRenewToken('');
+    setRenewError(null);
+  }
+
+  async function renew(event: FormEvent, login: string) {
+    event.preventDefault();
+    if (busy || renewToken.trim() === '') return;
+    setBusy(true);
+    setRenewError(null);
+    try {
+      await renewAccount(login, renewToken);
+      setRenewing(null);
+      setRenewToken('');
+      await onChanged();
+    } catch (e) {
+      setRenewError(failureText(e, i18n));
     } finally {
       setBusy(false);
     }
@@ -91,9 +118,51 @@ export function AccountsView({ accounts, onChanged }: Props) {
                       {warningText(warning, t)}
                     </div>
                   ))}
+                  {renewing === account.login && (
+                    <form className="renew-form" onSubmit={(e) => void renew(e, account.login)}>
+                      <p className="small">
+                        {t('accounts.renew.step1', { login: account.login })}{' '}
+                        <a href={TOKEN_URL} target="_blank" rel="noreferrer">
+                          {t('guide.step1.link')}
+                          <span className="visually-hidden"> ({t('a11y.newTab')})</span>
+                        </a>
+                      </p>
+                      <label htmlFor={`renew-${account.login}`} className="small">
+                        {t('accounts.renew.step2')}
+                      </label>
+                      <div className="row">
+                        <input
+                          id={`renew-${account.login}`}
+                          type="password"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="ghp_…"
+                          value={renewToken}
+                          onChange={(e) => setRenewToken(e.target.value)}
+                          autoFocus
+                        />
+                        <button className="btn primary" type="submit" aria-disabled={busy || renewToken.trim() === ''}>
+                          {busy ? t('accounts.add.busy') : t('accounts.renew.submit')}
+                        </button>
+                      </div>
+                      {renewError && (
+                        <p className="warn-text small" role="alert">
+                          {renewError}
+                        </p>
+                      )}
+                    </form>
+                  )}
                 </div>
                 <div className="item-side">
                   <StatusPill state={account.state} t={t} />
+                  <button
+                    className={needsRenewal(account) ? 'btn primary' : 'btn'}
+                    aria-expanded={renewing === account.login}
+                    aria-label={t('accounts.renew.for', { login: account.login })}
+                    onClick={() => openRenew(account.login)}
+                  >
+                    {t('accounts.renew')}
+                  </button>
                   {confirming === account.login ? (
                     <>
                       <button
@@ -188,6 +257,12 @@ function StatusPill({ state, t }: { state: AccountStatus['state']; t: I18n['t'] 
   const label =
     state === 'ok' ? t('accounts.status.ok') : state === 'invalid' ? t('accounts.status.invalid') : t('accounts.status.error');
   return <span className={`pill ${state}`}>{label}</span>;
+}
+
+/** Il token è scaduto, non vale più, o sta per scadere (negli stessi giorni dell'avviso): il rinnovo è il passo da fare. */
+function needsRenewal(account: AccountStatus): boolean {
+  if (account.state === 'invalid') return true;
+  return account.tokenExpiresAt !== null && daysUntil(account.tokenExpiresAt) <= EXPIRY_WARNING_DAYS;
 }
 
 function expiryText(account: AccountStatus, { t, formatDate }: I18n): string {

@@ -44,6 +44,14 @@ export const addAccount = (token: string) =>
     body: JSON.stringify({ token }),
   });
 
+/** Sostituisce il token di un account già collegato; il nuovo deve essere dello stesso account. */
+export const renewAccount = (login: string, token: string) =>
+  request<AccountStatus>(`/api/accounts/${encodeURIComponent(login)}/renew`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+
 export const removeAccount = (login: string) =>
   request<void>(`/api/accounts/${encodeURIComponent(login)}`, { method: 'DELETE' });
 

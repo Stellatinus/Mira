@@ -50,6 +50,21 @@ public static class Endpoints
             return Results.Ok(result.Account);
         });
 
+        // Sostituisce il token di un account già collegato; il nuovo deve essere dello stesso account.
+        api.MapPost("/accounts/{login}/renew", async (
+            string login, AddAccountRequest request, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections,
+            CancellationToken ct) =>
+        {
+            var result = await accounts.RenewAsync(login, request.Token, ct);
+            if (result.Error is not null)
+                return Results.Json(new { error = result.Error }, statusCode: result.Error.Code == "account-unknown" ? StatusCodes.Status404NotFound : StatusCodes.Status400BadRequest);
+
+            dashboard.Invalidate();
+            issues.Invalidate();
+            sections.Invalidate();
+            return Results.Ok(result.Account);
+        });
+
         api.MapDelete("/accounts/{login}", async (
             string login, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections, CancellationToken ct) =>
         {
