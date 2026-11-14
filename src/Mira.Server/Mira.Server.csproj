@@ -10,4 +10,9 @@
     <Version>0.0.0-dev</Version>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- I test vedono le parti interne (per esempio DashboardService.ToItem). -->
+    <InternalsVisibleTo Include="Mira.Server.Tests" />
+  </ItemGroup>
+
 </Project>

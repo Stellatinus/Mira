@@ -27,6 +27,7 @@ npm run contrast   # contrasti dei colori (WCAG AA), nei due temi
 # backend: compilazione con gli avvisi trattati come errori
 cd ..
 dotnet build src/Mira.Server --configuration Release -warnaserror
+dotnet test tests/Mira.Server.Tests --configuration Release   # test del backend (xUnit, senza rete)
 ```
 
 Se questi comandi passano, passa anche la CI.
@@ -38,11 +39,11 @@ Il workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) parte a ogni 
 | Controllo | Dove gira | Cosa verifica |
 |---|---|---|
 | **Frontend** | Linux | `npm ci`, `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) e `npm run contrast` (i colori di `styles.css` rispettano il contrasto WCAG AA nei due temi) |
-| **Backend** | Linux e Windows | `dotnet build` con gli avvisi come errori |
+| **Backend** | Linux e Windows | `dotnet build` con gli avvisi come errori e `dotnet test` (i test del backend, con un GitHub finto: niente rete né token) |
 
 **macOS non è controllato**, di proposito: per ora si controllano solo Linux e Windows. Per aggiungerlo si inserisce `macos-latest` nell'elenco `os` del job `backend`.
 
-La CI non usa token di GitHub e non esegue il programma: controlla che il codice si compili. Prove vere con i dati si fanno in locale.
+La CI non usa token di GitHub e non avvia il programma: controlla che il codice si compili e che i test passino. Prove vere con i dati di GitHub si fanno in locale.
 
 ## Regole del progetto
 
