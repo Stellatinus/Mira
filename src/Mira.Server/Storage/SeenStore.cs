@@ -9,8 +9,19 @@ namespace Mira.Server.Storage;
 /// UpdatedAt è l'ultimo aggiornamento che l'utente ha visto: se l'elemento cambia dopo, riappare da solo.
 /// SnoozeUntil, se c'è, è il momento in cui un elemento rimandato torna da vedere comunque.
 /// SavedAt serve solo a ripulire le voci vecchie.
+/// Comments è quanti commenti aveva l'elemento l'ultima volta che l'utente l'ha visto: serve a contare le novità.
+/// Hidden dice se la voce nasconde l'elemento (visto, rimandato) oppure è solo il punto di partenza per contare le novità.
 /// </summary>
-public sealed record SeenEntry(string Url, DateTimeOffset UpdatedAt, DateTimeOffset? SnoozeUntil, DateTimeOffset SavedAt);
+public sealed record SeenEntry(
+    string Url,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? SnoozeUntil,
+    DateTimeOffset SavedAt,
+    int? Comments = null,
+    bool Hidden = true);
+
+/// <summary>Il punto di partenza di un elemento: quanti commenti aveva quando Mira l'ha visto per la prima volta.</summary>
+public sealed record SeenBaseline(string Url, DateTimeOffset UpdatedAt, int Comments);
 
 /// <summary>
 /// Lo stato «visto» in locale, in un file della cartella di configurazione (accanto ai token ma non cifrato:
@@ -49,14 +60,41 @@ public sealed class SeenStore
         finally { _gate.Release(); }
     }
 
-    public async Task SetAsync(string url, DateTimeOffset updatedAt, DateTimeOffset? snoozeUntil, CancellationToken ct = default)
+    public async Task SetAsync(
+        string url, DateTimeOffset updatedAt, DateTimeOffset? snoozeUntil, int? comments = null, bool hidden = true, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
         try
         {
             var all = await ReadAsync(ct);
             var now = DateTimeOffset.UtcNow;
-            all[url] = new SeenEntry(url, updatedAt, snoozeUntil, now);
+            all[url] = new SeenEntry(url, updatedAt, snoozeUntil, now, comments, hidden);
+            Prune(all, now);
+            await WriteAsync(all, ct);
+        }
+        finally { _gate.Release(); }
+    }
+
+    /// <summary>
+    /// Registra il punto di partenza degli elementi che non hanno ancora una voce (senza nasconderli e senza toccare le voci
+    /// che ci sono già): da lì si contano i commenti nuovi. Gli indirizzi non validi si ignorano.
+    /// </summary>
+    public async Task AddBaselinesAsync(IEnumerable<SeenBaseline> baselines, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var all = await ReadAsync(ct);
+            var now = DateTimeOffset.UtcNow;
+            var changed = false;
+            foreach (var baseline in baselines.Where(b => IsValidUrl(b.Url) && b.Comments >= 0))
+            {
+                if (all.ContainsKey(baseline.Url)) continue;
+                all[baseline.Url] = new SeenEntry(baseline.Url, baseline.UpdatedAt, null, now, baseline.Comments, Hidden: false);
+                changed = true;
+            }
+
+            if (!changed) return;
             Prune(all, now);
             await WriteAsync(all, ct);
         }

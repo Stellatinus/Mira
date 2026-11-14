@@ -138,6 +138,10 @@ export interface SeenEntry {
   /** Se rimandato, quando torna da vedere comunque. */
   snoozeUntil: string | null;
   savedAt: string;
+  /** Quanti commenti aveva l'elemento l'ultima volta che l'hai visto: da qui si contano le novità. */
+  comments: number | null;
+  /** Falso per il solo punto di partenza delle novità: la voce non nasconde l'elemento. */
+  hidden: boolean;
 }
 
 export interface Dashboard {

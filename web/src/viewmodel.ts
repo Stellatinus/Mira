@@ -6,7 +6,7 @@ import { activeItemFilterCount, compareItems, matchesItemFilters } from './itemv
 import type { ItemFilters, ItemSort } from './itemview';
 import { activeFilterCount, compareRepos, isRepoSection, matchesRepoFilters, NO_LANGUAGE, ownerOf } from './repoview';
 import type { RepoFilters, RepoSort } from './repoview';
-import { isHidden } from './seen';
+import { isHidden, newComments, tracksNews } from './seen';
 import type { SeenMap } from './seen';
 import type { ViewConfig } from './sections';
 import type { Dashboard, DashboardItem, Section } from './types';
@@ -185,6 +185,12 @@ export function useViewModel({
     }
     for (const [key, group] of bySection) {
       group.sort(isRepoSection(key) ? compareRepos(repoSort, attentionOf) : compareItems(itemSort));
+      // Le tue issue con commenti nuovi vanno in cima, nell'ordine scelto.
+      if (key === 'mine-issues') {
+        const fresh = (item: DashboardItem) => tracksNews(item) && newComments(seen.get(item.url), item) > 0;
+        const withNews = group.filter(fresh);
+        if (withNews.length > 0) group.splice(0, group.length, ...withNews, ...group.filter((item) => !fresh(item)));
+      }
     }
 
     // Totale reale per sezione (anche oltre gli elementi scaricati). Se per almeno un account

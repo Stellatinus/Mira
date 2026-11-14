@@ -50,11 +50,25 @@ export const removeAccount = (login: string) =>
 /** Lo stato «visto» salvato dal server (non tocca GitHub). */
 export const getSeen = () => request<SeenEntry[]>('/api/seen');
 
-export const putSeen = (url: string, updatedAt: string, snoozeUntil: string | null) =>
+export const putSeen = (
+  url: string,
+  updatedAt: string,
+  snoozeUntil: string | null,
+  comments: number | null = null,
+  hidden = true,
+) =>
   request<void>('/api/seen', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, updatedAt, snoozeUntil }),
+    body: JSON.stringify({ url, updatedAt, snoozeUntil, comments, hidden }),
+  });
+
+/** Il punto di partenza per contare le novità: il server aggiunge solo gli elementi che non hanno ancora una voce. */
+export const postSeenBaseline = (items: { url: string; updatedAt: string; comments: number }[]) =>
+  request<void>('/api/seen/baseline', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
   });
 
 /** Senza indirizzo toglie tutte le voci. */

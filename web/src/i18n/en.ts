@@ -262,6 +262,8 @@ export const en: Messages = {
   'review.newComments.other': '{count} new comments since you marked it as seen',
   'section.reviews.title': 'Review status of your PRs',
   'checks.title': 'Checks (CI)',
+  'news.comments.one': '{count} new comment',
+  'news.comments.other': '{count} new comments',
   'checks.badge.success': 'CI passed',
   'checks.badge.failure': 'CI failed',
   'checks.badge.pending': 'CI running',

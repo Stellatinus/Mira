@@ -54,6 +54,15 @@ Insieme allo stato di review (stessa richiesta GraphQL) Mira legge i **controlli
 - **Filtro «Solo CI rossa»** (nel menu «Filtra» di PR e Home, compare quando ci sono PR con controlli): le PR con almeno un controllo fallito.
 - Si leggono i primi **50 controlli** dell'ultimo commit.
 
+## Novità sulle issue che hai aperto
+
+Nella sezione «Le tue issue aperte» una issue con **commenti nuovi** dall'ultima volta che l'hai vista porta l'etichetta **«N commenti nuovi»** e va **in cima alla sezione** (nell'ordine che hai scelto). Serve a sapere quando qualcuno ti risponde senza aprire la casella di posta.
+
+- **Il punto di partenza** è lo stato «visto» (vedi sotto): per ogni tua issue Mira ricorda **quanti commenti aveva** l'ultima volta che l'ha vista. La **prima volta** che Mira vede una issue ne registra com'è **senza nasconderla** e senza segnalare novità: da quel momento conta i commenti in più.
+- **Aprire la issue** (selezionarla, per vedere i dettagli) **conta come vederla**: l'etichetta sparisce e da lì si contano i commenti successivi. Anche «Segna come visto» e «Rimanda» aggiornano il punto di partenza.
+- Si confronta il **numero di commenti** della issue con quello ricordato: non dice chi ha scritto né se un commento è stato cancellato (cancellandone uno si può scendere sotto il punto di partenza: allora non ci sono novità).
+- Vale solo per le **issue** aperte da te, non per le PR (per quelle c'è lo stato di review).
+
 ## Visto e rimandato
 
 Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **rimandare a domani** dal pannello dei dettagli, senza toccare GitHub. I repository non si segnano.

@@ -9,7 +9,7 @@ import { reasonLabel, tagLabel } from './labels';
 import { ciState } from './checks';
 import { reviewBadge } from './review';
 import type { ViewConfig } from './sections';
-import { isHidden } from './seen';
+import { isHidden, newComments, tracksNews } from './seen';
 import type { SeenMap } from './seen';
 import { Tile } from './Tile';
 import type { ViewModel } from './viewmodel';
@@ -168,6 +168,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
                     attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
                     selected={item.id === selectedId}
                     seenState={showSeen ? seenStateOf(seen.get(item.url), item) : null}
+                    news={tracksNews(item) ? newComments(seen.get(item.url), item) : 0}
                     showAccount={showAccount}
                     onSelect={onSelect}
                   />
@@ -217,6 +218,8 @@ interface CardProps {
   selected: boolean;
   /** Se l'elemento è già visto o rimandato (mostrato perché si è chiesto «mostra già visti»). */
   seenState: 'seen' | 'snoozed' | null;
+  /** Commenti arrivati su una tua issue dall'ultima volta che l'hai vista. */
+  news: number;
   showAccount: boolean;
   onSelect: (id: string, viaKeyboard?: boolean) => void;
 }
@@ -251,7 +254,7 @@ function seenStateOf(entry: Parameters<typeof isHidden>[0], item: DashboardItem)
   return entry?.snoozeUntil ? 'snoozed' : 'seen';
 }
 
-function ItemCard({ item, accounts, starredBy, attention, selected, seenState, showAccount, onSelect }: CardProps) {
+function ItemCard({ item, accounts, starredBy, attention, selected, seenState, news, showAccount, onSelect }: CardProps) {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
@@ -284,6 +287,7 @@ function ItemCard({ item, accounts, starredBy, attention, selected, seenState, s
           {ciState(item.checks) && (
             <span className={`ci-review ci-${ciState(item.checks)}`}>{t(`checks.badge.${ciState(item.checks)}` as 'checks.badge.success')}</span>
           )}
+          {news > 0 && <span className="ci-news">{t('news.comments', { count: news })}</span>}
           {seenState && <span className="ci-seen">· {t(`seen.badge.${seenState}` as 'seen.badge.seen')}</span>}
         </span>
       )}
