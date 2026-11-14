@@ -62,6 +62,8 @@ export interface DashboardItem {
   assignees: string[] | null;
   /** Stato di review, solo per le PR dell'utente. */
   review?: ReviewInfo | null;
+  /** Esito della CI, solo per le PR dell'utente che hanno controlli. */
+  checks?: ChecksInfo | null;
 }
 
 /** Totale reale di una sezione per un account; null quando GitHub non lo indica. */
@@ -112,6 +114,20 @@ export interface ReviewInfo {
   reviews: PrReview[];
   comments: PrComment[];
   commentCount: number;
+}
+
+/** Un controllo che ha fallito: nome e, se c'è, l'indirizzo dei dettagli. */
+export interface CheckRef {
+  name: string;
+  url: string | null;
+}
+
+/** Esito dei controlli (CI) sull'ultimo commit: stato di GitHub (SUCCESS, FAILURE, ERROR, PENDING, EXPECTED), totali e falliti. */
+export interface ChecksInfo {
+  state: string;
+  total: number;
+  pending: number;
+  failed: CheckRef[];
 }
 
 /** Un elemento segnato come visto o rimandato (stato locale, vedi docs/REGOLE.md). */

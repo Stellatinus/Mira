@@ -520,7 +520,7 @@ export default function App() {
                 )}
                 {isItemView && (
                   <>
-                    <ItemFilterMenu filters={itemFilters} onChange={setItemFilters} facets={model.itemFacets} assignable={view === 'issues'} />
+                    <ItemFilterMenu filters={itemFilters} onChange={setItemFilters} facets={model.itemFacets} assignable={view === 'issues'} hasChecks={model.hasChecks} />
                     <Dropdown
                       label={t('repo.sort.label')}
                       icon={<SortIcon size={15} />}

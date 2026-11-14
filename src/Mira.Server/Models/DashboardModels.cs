@@ -34,11 +34,20 @@ public sealed record ReviewInfo(
     IReadOnlyList<PrComment> Comments,
     int CommentCount);
 
+/// <summary>Un controllo (check o stato) che ha fallito: nome e, se c'è, l'indirizzo dei dettagli.</summary>
+public sealed record CheckRef(string Name, string? Url);
+
+/// <summary>
+/// Esito dei controlli (CI) sull'ultimo commit di una PR. State è quello complessivo di GitHub: SUCCESS, FAILURE, ERROR,
+/// PENDING o EXPECTED. Total sono tutti i controlli, Pending quelli ancora in corso, Failed quelli falliti.
+/// </summary>
+public sealed record ChecksInfo(string State, int Total, int Pending, IReadOnlyList<CheckRef> Failed);
+
 /// <summary>
 /// Un elemento della dashboard.
 /// Section: review | assigned | mine-prs | mine-issues | mentions | notifications | repos | starred.
 /// Type: issue | pr | repo | release | commit | discussion | other.
-/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository), Fork, ForkOf (repository da cui deriva) UnassignedIssues (issue aperte senza assegnatario) Assegnatari (logins degli assegnatari di una issue o PR) e Review (stato di review di una PR dell'utente) sono valorizzati solo dove hanno senso.
+/// Description, Language, Stars, Private, OpenIssues e OpenPrs (aperte nel repository), LogoUrl (immagine del repository), Fork, ForkOf (repository da cui deriva) UnassignedIssues (issue aperte senza assegnatario) Assegnatari (logins degli assegnatari di una issue o PR) Review (stato di review di una PR dell'utente) e Checks (esito della CI sull'ultimo commit) sono valorizzati solo dove hanno senso.
 /// </summary>
 public sealed record DashboardItem(
     string Id,
@@ -64,7 +73,8 @@ public sealed record DashboardItem(
     string? ForkOf = null,
     int UnassignedIssues = 0,
     string[]? Assignees = null,
-    ReviewInfo? Review = null);
+    ReviewInfo? Review = null,
+    ChecksInfo? Checks = null);
 
 /// <summary>
 /// Quanti elementi ci sono davvero in una sezione per un account, anche oltre quelli scaricati.

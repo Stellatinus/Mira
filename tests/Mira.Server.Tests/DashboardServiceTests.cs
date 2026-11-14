@@ -394,4 +394,82 @@ public class ReviewStateTests
         Assert.Contains("states: OPEN", query);
         Assert.Contains("viewer", query);
     }
+
+    private static string Rollup(string state, params string[] contexts) =>
+        Fixtures.PullRequests(Fixtures.PullRequestState(Pr, null, rollup: Fixtures.Rollup(state, contexts)));
+
+    [Fact]
+    public async Task A_green_ci_is_reported_with_no_failures()
+    {
+        var snapshot = await LoadAsync(Github(Rollup("SUCCESS", Fixtures.CheckRun("build", "COMPLETED", "SUCCESS"), Fixtures.StatusContext("deploy", "SUCCESS"))));
+
+        var checks = Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Checks!;
+        Assert.Equal("SUCCESS", checks.State);
+        Assert.Equal((2, 0), (checks.Total, checks.Pending));
+        Assert.Empty(checks.Failed);
+    }
+
+    [Fact]
+    public async Task Failed_checks_are_listed_by_name_with_their_links()
+    {
+        var snapshot = await LoadAsync(Github(Rollup("FAILURE",
+            Fixtures.CheckRun("test (linux)", "COMPLETED", "FAILURE", "https://github.com/acme/app/runs/5"),
+            Fixtures.CheckRun("lint", "COMPLETED", "SUCCESS"),
+            Fixtures.CheckRun("test (windows)", "COMPLETED", "TIMED_OUT", null),
+            Fixtures.StatusContext("ci/legacy", "ERROR", "https://ci.example/9"))));
+
+        var checks = Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Checks!;
+        Assert.Equal("FAILURE", checks.State);
+        Assert.Equal(new[] { "test (linux)", "test (windows)", "ci/legacy" }, checks.Failed.Select(f => f.Name));
+        Assert.Equal("https://github.com/acme/app/runs/5", checks.Failed[0].Url);
+        Assert.Null(checks.Failed[1].Url);
+        Assert.Equal("https://ci.example/9", checks.Failed[2].Url);
+    }
+
+    [Fact]
+    public async Task Checks_still_running_are_counted_as_pending()
+    {
+        var snapshot = await LoadAsync(Github(Rollup("PENDING",
+            Fixtures.CheckRun("build", "IN_PROGRESS", null),
+            Fixtures.CheckRun("queued", "QUEUED", null),
+            Fixtures.StatusContext("ci/old", "PENDING"),
+            Fixtures.CheckRun("lint", "COMPLETED", "SUCCESS"))));
+
+        var checks = Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Checks!;
+        Assert.Equal("PENDING", checks.State);
+        Assert.Equal((4, 3), (checks.Total, checks.Pending));
+        Assert.Empty(checks.Failed);
+    }
+
+    [Fact]
+    public async Task A_neutral_or_skipped_check_is_not_a_failure()
+    {
+        var snapshot = await LoadAsync(Github(Rollup("SUCCESS",
+            Fixtures.CheckRun("a", "COMPLETED", "NEUTRAL"), Fixtures.CheckRun("b", "COMPLETED", "SKIPPED"), Fixtures.CheckRun("c", "COMPLETED", "ACTION_REQUIRED"))));
+
+        Assert.Empty(Assert.Single(snapshot.Items, i => i.Section == "mine-prs").Checks!.Failed);
+    }
+
+    [Fact]
+    public async Task A_pr_with_no_checks_has_no_ci_information()
+    {
+        var snapshot = await LoadAsync(Github(Fixtures.PullRequests(Fixtures.PullRequestState(Pr, "APPROVED", rollup: "null"))));
+
+        var item = Assert.Single(snapshot.Items, i => i.Section == "mine-prs");
+        Assert.Null(item.Checks);
+        Assert.NotNull(item.Review);
+    }
+
+    [Fact]
+    public async Task The_query_asks_for_the_checks_of_the_last_commit()
+    {
+        var handler = Github(Fixtures.NoReviews).Handler();
+        var service = new DashboardService(new InMemorySecretStore(("alice", "t")), Gh.Api(handler));
+
+        await service.GetAsync(false, CancellationToken.None);
+
+        var query = Assert.Single(handler.Requests, r => r.Body?.Contains("reviewDecision") == true).Body!;
+        Assert.Contains("statusCheckRollup", query);
+        Assert.Contains("commits(last: 1)", query);
+    }
 }

@@ -50,6 +50,8 @@ export interface ViewModel {
   repoInfo: Map<string, RepoInfo>;
   /** Quanti elementi della vista sono segnati come visti o rimandati (nascosti, o mostrati se si è chiesto «mostra già visti»). */
   seenCount: number;
+  /** Almeno una PR della vista ha l'esito della CI: solo allora ha senso il filtro «Solo CI rossa». */
+  hasChecks: boolean;
 }
 
 export const matchesQuery = (item: DashboardItem, needle: string): boolean =>
@@ -104,6 +106,7 @@ export function useViewModel({
       isRepoSection(key) ? repoFiltering : itemFiltering || (hiddenIn.get(key) ?? 0) > 0;
     const now = Date.now();
     let seenCount = 0;
+    let hasChecks = false;
     // I login degli account in vista: «assegnate a te» vuol dire assegnate a uno di loro.
     const mine = new Set(
       (data?.accounts ?? []).filter((a) => filter === 'all' || a.login === filter).map((a) => a.login.toLowerCase()),
@@ -152,6 +155,7 @@ export function useViewModel({
         const hidden = isHidden(entry, item, now);
         if (view.sections.includes(item.section)) {
           if (hidden) seenCount += 1;
+          if (item.checks) hasChecks = true;
           if (hidden && !showSeen) hiddenIn.set(item.section, (hiddenIn.get(item.section) ?? 0) + 1);
           count(itemRepos, item.repo.toLowerCase(), item.repo);
           count(itemOwners, ownerOf(item).toLowerCase(), ownerOf(item));
@@ -232,6 +236,6 @@ export function useViewModel({
       assignees: [...itemAssignees.values()].sort(byCount),
     };
 
-    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo, seenCount };
+    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo, seenCount, hasChecks };
   }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, seen, showSeen, t]);
 }

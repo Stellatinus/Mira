@@ -91,7 +91,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             for (var i = 0; i < part.Items.Count; i++)
             {
                 if (part.Items[i] is { Section: "mine-prs" } item && reviewInfo.TryGetValue(item.Url, out var info))
-                    part.Items[i] = item with { Review = info };
+                    part.Items[i] = item with { Review = info.Review, Checks = info.Checks };
             }
         }
 
@@ -170,7 +170,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         return [RepoPart(login, "repos", viewer.Repos), RepoPart(login, "starred", viewer.Starred)];
     }
 
-    // Lo stato di review di tutte le PR aperte dell'utente in una sola richiesta GraphQL (la REST ne vorrebbe una per PR).
+    // Lo stato di review e l'esito della CI (controlli dell'ultimo commit) di tutte le PR aperte dell'utente in una sola
+    // richiesta GraphQL (la REST ne vorrebbe una per PR).
     // Le liste annidate sono corte (le ultime 10): il costo resta basso.
     private const string ReviewsQuery = """
         query($first: Int!) {
@@ -181,6 +182,22 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
                 reviewDecision
                 reviews(last: 10) { nodes { state submittedAt author { login } } }
                 comments(last: 10) { totalCount nodes { createdAt author { login } } }
+                commits(last: 1) {
+                  nodes {
+                    commit {
+                      statusCheckRollup {
+                        state
+                        contexts(first: 50) {
+                          nodes {
+                            __typename
+                            ... on CheckRun { name conclusion status detailsUrl }
+                            ... on StatusContext { context state targetUrl }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -188,9 +205,9 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         """;
 
     /// <summary>Se la richiesta fallisce le PR si vedono lo stesso, senza stato di review, e l'errore compare tra i problemi.</summary>
-    private async Task<(Dictionary<string, ReviewInfo> Info, DashboardError? Error)> ReviewsAsync(string login, string token, CancellationToken ct)
+    private async Task<(Dictionary<string, (ReviewInfo Review, ChecksInfo? Checks)> Info, DashboardError? Error)> ReviewsAsync(string login, string token, CancellationToken ct)
     {
-        var info = new Dictionary<string, ReviewInfo>(StringComparer.OrdinalIgnoreCase);
+        var info = new Dictionary<string, (ReviewInfo Review, ChecksInfo? Checks)>(StringComparer.OrdinalIgnoreCase);
         var response = await api.QueryAsync<GqlPrData>(token, ReviewsQuery, new { first = SearchPageSize }, ct);
         var list = response.Data?.Data?.Viewer?.PullRequests;
 
@@ -202,14 +219,45 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
 
         foreach (var pr in list.Nodes?.OfType<GqlPr>() ?? [])
         {
-            info[pr.Url] = new ReviewInfo(
+            var review = new ReviewInfo(
                 pr.ReviewDecision,
                 (pr.Reviews?.Nodes ?? []).OfType<GqlReview>().Select(r => new PrReview(r.Author?.Login, r.State, r.SubmittedAt)).ToList(),
                 (pr.Comments?.Nodes ?? []).OfType<GqlComment>().Select(c => new PrComment(c.Author?.Login, c.CreatedAt)).ToList(),
                 pr.Comments?.TotalCount ?? 0);
+            var rollup = pr.Commits?.Nodes?.OfType<GqlCommitNode>().LastOrDefault()?.Commit?.StatusCheckRollup;
+            info[pr.Url] = (review, ToChecks(rollup));
         }
 
         return (info, null);
+    }
+
+    // Un controllo è fallito se la conclusione è negativa; è in corso se non è ancora finito.
+    private static readonly HashSet<string> FailedConclusions = ["FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "CANCELLED"];
+
+    /// <summary>L'esito della CI: lo stato complessivo di GitHub, quanti controlli sono in corso e quali sono falliti. Senza controlli, null.</summary>
+    internal static ChecksInfo? ToChecks(GqlRollup? rollup)
+    {
+        if (rollup is null) return null;
+
+        var contexts = rollup.Contexts?.Nodes?.OfType<GqlContext>().ToList() ?? [];
+        var failed = new List<CheckRef>();
+        var pending = 0;
+        foreach (var context in contexts)
+        {
+            if (context.TypeName == "CheckRun")
+            {
+                if (context.Status != "COMPLETED") pending++;
+                else if (context.Conclusion is not null && FailedConclusions.Contains(context.Conclusion))
+                    failed.Add(new CheckRef(context.Name ?? "?", context.DetailsUrl));
+            }
+            else
+            {
+                if (context.State is "FAILURE" or "ERROR") failed.Add(new CheckRef(context.Context ?? "?", context.TargetUrl));
+                else if (context.State is "PENDING" or "EXPECTED") pending++;
+            }
+        }
+
+        return new ChecksInfo(rollup.State, contexts.Count, pending, failed);
     }
 
     private static ErrorInfo GraphQlError(List<GqlError>? errors)
