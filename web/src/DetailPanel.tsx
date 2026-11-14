@@ -23,6 +23,8 @@ interface Props {
   seen?: SeenEntry;
   /** Segna come visto, rimanda a domani o riporta da vedere. */
   onSeen: (action: 'seen' | 'snoozed' | 'unseen') => void;
+  /** Azioni sulla notifica di GitHub: segna come letta, tutte quelle del repository, non seguire più. */
+  onNotify: (action: 'read' | 'repoRead' | 'unsubscribe') => void;
   /** Cambia quando la scelta viene da tastiera: il focus passa al titolo del pannello. */
   focusSignal: number;
   onClose: () => void;
@@ -42,7 +44,7 @@ function useNarrow(): boolean {
   return narrow;
 }
 
-export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen, focusSignal, onClose }: Props) {
+export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen, onNotify, focusSignal, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const announce = useAnnounce();
@@ -230,6 +232,19 @@ export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen
           </div>
 
           <div className="rule" />
+          {item.section === 'notifications' && (
+            <div className="seen-box" role="group" aria-label={t('notify.group')}>
+              <button className="btn" onClick={() => onNotify('read')}>
+                <CheckIcon size={14} /> {t('notify.read')}
+              </button>
+              <button className="btn" onClick={() => onNotify('unsubscribe')}>
+                <CloseIcon size={14} /> {t('notify.unsubscribe')}
+              </button>
+              <button className="btn" onClick={() => onNotify('repoRead')}>
+                <CheckIcon size={14} /> {t('notify.readRepo', { repo: item.repo })}
+              </button>
+            </div>
+          )}
           {canMarkSeen(item) && (
             <div className="seen-box" role="group" aria-label={t('seen.group')}>
               {isHidden(seen, item, Date.now()) ? (

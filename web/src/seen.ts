@@ -25,3 +25,6 @@ export function tomorrowMorning(now: Date = new Date()): Date {
 
 /** Gli elementi per cui ha senso segnare «visto»: i repository non si «gestiscono». */
 export const canMarkSeen = (item: Pick<DashboardItem, 'type'>): boolean => item.type !== 'repo';
+
+/** L'identificativo che GitHub dà a una notifica: l'id dell'elemento è «account:notifications:<id>». */
+export const threadIdOf = (item: Pick<DashboardItem, 'id'>): string => item.id.split(':').pop() ?? '';

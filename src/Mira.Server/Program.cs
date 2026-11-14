@@ -29,6 +29,7 @@ builder.Services.AddSingleton<GitHubApi>();
 builder.Services.AddSingleton<AccountService>();
 builder.Services.AddSingleton<DashboardService>();
 builder.Services.AddSingleton<IssueService>();
+builder.Services.AddSingleton<NotificationService>();
 
 var app = builder.Build();
 
