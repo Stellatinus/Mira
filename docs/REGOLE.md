@@ -55,6 +55,15 @@ Dal pannello di una notifica non letta (vista Notifiche e sezione della Home) si
 
 La notifica sparisce subito dalla lista e dal totale; se GitHub rifiuta (limite raggiunto, permessi) lo dice e rilegge la lista. Serve lo scope `notifications` (o `repo`) del token. Le **menzioni** non sono notifiche: si possono solo segnare come «viste» (vedi sopra). Mira non può cambiare le preferenze di notifica di GitHub (non esiste un'API): email e push di GitHub si regolano su github.com.
 
+## Limiti di richieste di GitHub
+
+GitHub concede a ogni account un numero di richieste per finestra di tempo, diverso per ogni risorsa: la **ricerca** solo 30 al minuto, l'**API** (core) 5000 all'ora, **GraphQL** 5000 all'ora. Mira legge i limiti dalle risposte di GitHub e li mostra per ogni account in **Impostazioni → Account** («API 4990/5000 · ricerca 28/30»); in rosso se una risorsa è finita o sotto il 10%.
+
+- Quando una richiesta fallisce per il limite, l'errore dice **quando riprovare** («riprova dopo le 10:42»): l'orario è quello di GitHub (`Retry-After` o azzeramento della finestra).
+- **L'aggiornamento automatico aspetta** se per un account restano 3 ricerche o meno, finché la finestra non si azzera, per non esaurirle del tutto. L'aggiornamento fatto a mano resta sempre possibile.
+- Un «accesso negato» di GitHub con richieste ancora disponibili (permessi, SSO) non ha un orario: non è un limite.
+- I numeri sono quelli dell'**ultima risposta** di ogni risorsa: una finestra il cui azzeramento è già passato conta come piena.
+
 ## Limiti da conoscere
 
 - Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.

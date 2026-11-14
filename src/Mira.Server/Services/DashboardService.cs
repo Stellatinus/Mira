@@ -72,7 +72,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             // Un token scaduto è già segnalato dallo stato dell'account: non è un errore a parte.
             if (user.Status != HttpStatusCode.Unauthorized)
                 errors.Add(new DashboardError(login, "account", user.Error ?? new ErrorInfo("unknown")));
-            return new AccountData(status, new List<DashboardItem>(), new List<SectionTotal>(), errors);
+            return new AccountData(status with { RateLimits = api.RateLimitsFor(token) }, new List<DashboardItem>(), new List<SectionTotal>(), errors);
         }
 
         var tasks = SearchDefinitions(login)
@@ -84,7 +84,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         var parts = (await Task.WhenAll(tasks)).Concat(await repositories).ToArray();
 
         return new AccountData(
-            status,
+            // I limiti si leggono alla fine: le ricerche e la richiesta GraphQL li hanno appena aggiornati.
+            status with { RateLimits = api.RateLimitsFor(token) },
             parts.SelectMany(p => p.Items).ToList(),
             parts.Where(p => p.Total is not null).Select(p => p.Total!).ToList(),
             parts.Where(p => p.Error is not null).Select(p => p.Error!).ToList());

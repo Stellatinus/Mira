@@ -89,6 +89,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     };
 
     const errorText = (error: ErrorInfo): string => {
+      // Un limite di richieste che dice quando si potrà riprovare ha il suo testo, con l'orario.
+      if (error.code === 'rate-limited' && error.detail && !Number.isNaN(Date.parse(error.detail))) {
+        const at = new Date(error.detail);
+        const sameDay = at.toDateString() === new Date().toDateString();
+        const time = new Intl.DateTimeFormat(locale, sameDay ? { timeStyle: 'short' } : { dateStyle: 'short', timeStyle: 'short' }).format(at);
+        return lookup('error.rate-limited.until', { time });
+      }
       const key = `error.${error.code}`;
       if (!has(key)) return error.code;
       return lookup(key, {

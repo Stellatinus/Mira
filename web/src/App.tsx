@@ -15,6 +15,7 @@ import { useAnnounce } from './announce';
 import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
+import { searchNearlyExhausted } from './limits';
 import { Dropdown } from './Dropdown';
 import { CompactIcon, EyeIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
@@ -110,6 +111,7 @@ export default function App() {
   const [panelFocus, setPanelFocus] = useState(0);
   const [, setTick] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
+  const dataRef = useRef<Dashboard | null>(null);
   const firstLoad = useRef(true);
   const lastLoad = useRef(0);
   const [refreshMinutes, setRefreshMinutes] = useRefreshInterval();
@@ -180,9 +182,13 @@ export default function App() {
   useEffect(() => {
     if (refreshMinutes === 0) return;
     const interval = refreshMinutes * 60_000;
-    const timer = window.setInterval(() => void load(), interval);
+    // Se le ricerche di un account sono quasi finite, l'aggiornamento automatico aspetta: non le esaurisce del tutto.
+    const auto = () => {
+      if (!searchNearlyExhausted(dataRef.current?.accounts)) void load();
+    };
+    const timer = window.setInterval(auto, interval);
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastLoad.current >= interval) void load();
+      if (document.visibilityState === 'visible' && Date.now() - lastLoad.current >= interval) auto();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
@@ -191,6 +197,7 @@ export default function App() {
     };
   }, [load, refreshMinutes]);
 
+  dataRef.current = data;
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
   const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
