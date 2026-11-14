@@ -392,6 +392,11 @@ h1, h2, h3, p { margin: 0; }
 .manual-link input { width: 100%; font: inherit; font-size: 12.5px; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--main); color: var(--text); }
 .manual-link input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+.seen-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding-top: 14px; }
+.seen-box .btn { display: inline-flex; align-items: center; gap: 6px; }
+.seen-box p { flex-basis: 100%; text-align: center; }
+.ci-seen { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
 .panel-actions { display: flex; justify-content: space-evenly; padding-top: 16px; }
 .action { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font-size: 12px; text-decoration: none; cursor: pointer; }
 .action-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }

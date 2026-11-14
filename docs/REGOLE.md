@@ -35,6 +35,16 @@ A differenza della dashboard, che si ferma alle 100 voci più recenti per sezion
 - Il filtro **«Assegnazione»** divide l'insieme senza resto: **assegnate a te** (a un account in vista) + **ad altri** (con assegnatari, nessuno dei quali sei tu) + **non assegnate** = **tutte**. Di default si apre su «Assegnate a te»; «Azzera i filtri» mostra tutte. Il filtro **«Assegnatario»** sceglie una persona precisa.
 - Non esistono più le voci «Assegnate» e «Non assegnate» nella barra laterale: sono filtri di «Issue». Nella Home resta la sezione «Assegnate a te» (issue e PR).
 
+## Visto e rimandato
+
+Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **rimandare a domani** dal pannello dei dettagli, senza toccare GitHub. I repository non si segnano.
+
+- L'elemento si riconosce dal suo **indirizzo**: lo stesso elemento in più sezioni (per esempio «Review richieste» e «Assegnate a te») o visto da più account si nasconde ovunque insieme.
+- **Visto:** resta nascosto finché non cambia. Se GitHub lo segna come aggiornato dopo l'ultima volta che l'hai visto (nuovo commento, nuovo commit…), **riappare da solo**.
+- **Rimandato:** nascosto fino alle **8 del mattino del giorno dopo** (ora del tuo computer); se cambia prima, riappare comunque.
+- I nascosti funzionano come un filtro: i conteggi diventano «14 di 36» e i totali di GitHub non valgono più. Il pulsante **«Mostra già visti»** (compare solo se ce ne sono, si ricorda tra una sessione e l'altra) li mostra con l'etichetta «Visto» o «Rimandato»; dal pannello si può farli tornare da vedere.
+- Lo stato sta nel file `seen.json` della cartella di configurazione, accanto ai token ma **non cifrato** (contiene solo indirizzi e date). Le voci non toccate da 180 giorni si cancellano da sole.
+
 ## Limiti da conoscere
 
 - Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { getDashboard, getIssues } from './api';
+import { deleteSeen, getDashboard, getIssues, getSeen, putSeen } from './api';
 import { accountAlerts } from './alerts';
 import { useAnnounce } from './announce';
 import { buildAttention, repoKey } from './attention';
 import { failureText } from './errors';
 import { useI18n } from './i18n';
 import { Dropdown } from './Dropdown';
-import { CompactIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
+import { CompactIcon, EyeIcon, GridIcon, ListIcon, RefreshIcon, SearchIcon, SortIcon, StarIcon } from './icons';
 import { DetailPanel } from './DetailPanel';
 import { ItemFilterMenu } from './ItemFilterMenu';
 import { DEFAULT_ITEM_SORT, defaultItemFilters, ITEM_SORTS } from './itemview';
@@ -16,6 +16,7 @@ import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
+import { isHidden, tomorrowMorning } from './seen';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
 import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
 import type { ViewKey } from './sections';
@@ -24,7 +25,7 @@ import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview'
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
-import type { Dashboard, ExtraKey, ExtraSnapshot } from './types';
+import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, SeenEntry } from './types';
 import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
@@ -32,6 +33,7 @@ const MODE_KEY = 'mira.mode';
 const REPO_SORT_KEY = 'mira.repoSort';
 const ITEM_SORT_KEY = 'mira.itemSort';
 const SHOW_STARRED_KEY = 'mira.showStarred';
+const SHOW_SEEN_KEY = 'mira.showSeen';
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -81,6 +83,9 @@ export default function App() {
   const [repoFilters, setRepoFilters] = useState<RepoFilters>(DEFAULT_REPO_FILTERS);
   // «Mostra preferiti»: spento di default, aggiunge ai repository anche i preferiti che non sono tra i propri.
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
+  // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
+  const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  const [showSeen, setShowSeen] = useState(() => readStored(SHOW_SEEN_KEY, 'false') === 'true');
   // Le viste «Issue» e «Non assegnate» scaricano tutte le pagine alla richiesta, quando si aprono.
   const [extras, setExtras] = useState<Partial<Record<ExtraKey, { data: ExtraSnapshot | null; loading: boolean; error: unknown }>>>({});
   // «Assegnate a te»: attivo di default nella vista Issue; spegnendolo si vedono tutte.
@@ -147,6 +152,13 @@ export default function App() {
     }
   }, []);
 
+  // Lo stato «visto» non blocca nulla: se non si legge, semplicemente non si nasconde niente.
+  useEffect(() => {
+    getSeen()
+      .then((list) => setSeen(new Map(list.map((entry) => [entry.url, entry]))))
+      .catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     void load();
     // Ogni 30 secondi si ridisegna, così «2 minuti fa» resta giusto.
@@ -193,7 +205,7 @@ export default function App() {
     () => (data && extra?.data ? { ...data, items: [...data.items, ...extra.data.items], errors: [...data.errors, ...extra.data.errors] } : data),
     [data, extra?.data],
   );
-  const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t });
+  const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, seen, showSeen, t });
   // Cercando o filtrando, i conteggi cambiano in silenzio: si dice quanti risultati ci sono, con un po' di ritardo
   // per non parlare a ogni tasto. Un aggiornamento dei dati non cambia gli argomenti dell'effetto e non annuncia nulla.
   const shownCount = showItems ? config.sections.reduce((sum, key) => sum + (model.bySection.get(key)?.length ?? 0), 0) : 0;
@@ -235,6 +247,48 @@ export default function App() {
     const next = !showStarred;
     setShowStarred(next);
     writeStored(SHOW_STARRED_KEY, String(next));
+  }
+
+  function toggleShowSeen() {
+    const next = !showSeen;
+    setShowSeen(next);
+    writeStored(SHOW_SEEN_KEY, String(next));
+  }
+
+  // Segna come visto, rimanda o riporta da vedere: si aggiorna subito e si salva dopo; se il salvataggio fallisce si torna indietro.
+  async function changeSeen(item: DashboardItem, action: 'seen' | 'snoozed' | 'unseen') {
+    const previous = seen.get(item.url);
+    const entry: SeenEntry | undefined =
+      action === 'unseen'
+        ? undefined
+        : {
+            url: item.url,
+            updatedAt: item.updatedAt,
+            snoozeUntil: action === 'snoozed' ? tomorrowMorning().toISOString() : null,
+            savedAt: new Date().toISOString(),
+          };
+    const apply = (value: SeenEntry | undefined) =>
+      setSeen((current) => {
+        const next = new Map(current);
+        if (value) next.set(item.url, value);
+        else next.delete(item.url);
+        return next;
+      });
+
+    apply(entry);
+    try {
+      if (entry) await putSeen(entry.url, entry.updatedAt, entry.snoozeUntil);
+      else await deleteSeen(item.url);
+      say.current.announce(say.current.t(`seen.announce.${action}` as 'seen.announce.seen'));
+      // L'elemento sparisce dall'elenco: il pannello non ha più senso e il focus passa al titolo della pagina.
+      if (entry && isHidden(entry, item, Date.now()) && !showSeen) {
+        setSelectedId(null);
+        headingRef.current?.focus();
+      }
+    } catch {
+      apply(previous);
+      say.current.announce(say.current.t('seen.error'));
+    }
   }
 
   function chooseItemSort(next: ItemSort) {
@@ -427,6 +481,17 @@ export default function App() {
                     />
                   </>
                 )}
+                {!isRepoView && (model.seenCount > 0 || showSeen) && (
+                  <button
+                    className={showSeen ? 'dd-btn highlighted' : 'dd-btn'}
+                    aria-pressed={showSeen}
+                    onClick={toggleShowSeen}
+                  >
+                    <EyeIcon size={15} />
+                    <span className="dd-text">{t('seen.show')}</span>
+                    <span className="count">{model.seenCount}</span>
+                  </button>
+                )}
                 {countKey && (
                   <span className="count" title={model.truncated(countKey) ? t('items.mostRecent') : undefined}>
                     {model.countText(countKey)}
@@ -486,6 +551,8 @@ export default function App() {
               selectedId={selected?.id ?? null}
               attention={attention}
               model={model}
+              seen={seen}
+              showSeen={showSeen}
               onSelect={selectItem}
               onManageAccounts={() => chooseView('settings')}
             />
@@ -509,6 +576,8 @@ export default function App() {
           accounts={selectedAccounts}
           starredBy={selectedInfo?.starredBy ?? []}
           attention={selected?.type === 'repo' ? attention.get(repoKey(selected.repo)) : undefined}
+          seen={selected ? seen.get(selected.url) : undefined}
+          onSeen={(action) => selected && void changeSeen(selected, action)}
           focusSignal={panelFocus}
           onClose={closePanel}
         />

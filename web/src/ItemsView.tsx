@@ -7,6 +7,8 @@ import type { Attention } from './attention';
 import { ExternalIcon, ItemIcon, PullRequestIcon, StarIcon } from './icons';
 import { reasonLabel, tagLabel } from './labels';
 import type { ViewConfig } from './sections';
+import { isHidden } from './seen';
+import type { SeenMap } from './seen';
 import { Tile } from './Tile';
 import type { ViewModel } from './viewmodel';
 import type { AccountStatus, Dashboard, DashboardError, DashboardItem, Section } from './types';
@@ -28,6 +30,9 @@ interface Props {
   attention: Map<string, Attention>;
   /** Gli elementi di ogni sezione, già filtrati e ordinati, con i loro conteggi. */
   model: ViewModel;
+  /** Elementi visti o rimandati e se vanno mostrati comunque (allora portano un'etichetta). */
+  seen: SeenMap;
+  showSeen: boolean;
   /** `viaKeyboard`: la scelta viene da Invio o Spazio, e il focus deve passare al pannello. */
   onSelect: (id: string, viaKeyboard?: boolean) => void;
   onManageAccounts: () => void;
@@ -39,7 +44,7 @@ export const lastNumber = (text: string) => Number(/\d+(?=\D*$)/.exec(text)?.[0]
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
-export function ItemsView({ data, view, filter, mode, selectedId, attention, model, onSelect, onManageAccounts }: Props) {
+export function ItemsView({ data, view, filter, mode, selectedId, attention, model, seen, showSeen, onSelect, onManageAccounts }: Props) {
   const i18n = useI18n();
   const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -160,6 +165,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
                     starredBy={info?.starredBy ?? []}
                     attention={item.type === 'repo' ? attention.get(repoKey(item.repo)) : undefined}
                     selected={item.id === selectedId}
+                    seenState={showSeen ? seenStateOf(seen.get(item.url), item) : null}
                     showAccount={showAccount}
                     onSelect={onSelect}
                   />
@@ -207,6 +213,8 @@ interface CardProps {
   starredBy: string[];
   attention?: Attention;
   selected: boolean;
+  /** Se l'elemento è già visto o rimandato (mostrato perché si è chiesto «mostra già visti»). */
+  seenState: 'seen' | 'snoozed' | null;
   showAccount: boolean;
   onSelect: (id: string, viaKeyboard?: boolean) => void;
 }
@@ -236,7 +244,12 @@ function AttentionBadges({ item, attention }: { item: DashboardItem; attention?:
   return <span className="ci-attns">{badges}</span>;
 }
 
-function ItemCard({ item, accounts, starredBy, attention, selected, showAccount, onSelect }: CardProps) {
+function seenStateOf(entry: Parameters<typeof isHidden>[0], item: DashboardItem): 'seen' | 'snoozed' | null {
+  if (!isHidden(entry, item, Date.now())) return null;
+  return entry?.snoozeUntil ? 'snoozed' : 'seen';
+}
+
+function ItemCard({ item, accounts, starredBy, attention, selected, seenState, showAccount, onSelect }: CardProps) {
   const i18n = useI18n();
   const { t, timeAgo } = i18n;
   const when = item.reason ? `${reasonLabel(item.reason, i18n)} · ${timeAgo(item.updatedAt)}` : timeAgo(item.updatedAt);
@@ -263,6 +276,7 @@ function ItemCard({ item, accounts, starredBy, attention, selected, showAccount,
       ) : (
         <span className="ci-tag">
           <span className="tag-text">{tagLabel(item, i18n)}</span>
+          {seenState && <span className="ci-seen">· {t(`seen.badge.${seenState}` as 'seen.badge.seen')}</span>}
         </span>
       )}
       <span className="ci-actions">

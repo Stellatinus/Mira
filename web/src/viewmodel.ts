@@ -6,6 +6,8 @@ import { activeItemFilterCount, compareItems, matchesItemFilters } from './itemv
 import type { ItemFilters, ItemSort } from './itemview';
 import { activeFilterCount, compareRepos, isRepoSection, matchesRepoFilters, NO_LANGUAGE, ownerOf } from './repoview';
 import type { RepoFilters, RepoSort } from './repoview';
+import { isHidden } from './seen';
+import type { SeenMap } from './seen';
 import type { ViewConfig } from './sections';
 import type { Dashboard, DashboardItem, Section } from './types';
 
@@ -46,6 +48,8 @@ export interface ViewModel {
   itemFacets: { repos: Facet[]; owners: Facet[]; reasons: Facet[]; assignees: Facet[] };
   /** Per ogni repository della vista Repo (per id dell'elemento), gli account e le stelle: una card per repository. */
   repoInfo: Map<string, RepoInfo>;
+  /** Quanti elementi della vista sono segnati come visti o rimandati (nascosti, o mostrati se si è chiesto «mostra già visti»). */
+  seenCount: number;
 }
 
 export const matchesQuery = (item: DashboardItem, needle: string): boolean =>
@@ -66,6 +70,10 @@ interface Args {
   itemFilters: ItemFilters;
   /** Include nell'elenco dei repository anche i preferiti che non sono nei propri. */
   showStarred: boolean;
+  /** Gli elementi segnati come visti o rimandati (stato locale). */
+  seen: SeenMap;
+  /** Mostra anche gli elementi nascosti perché già visti. */
+  showSeen: boolean;
   t: I18n['t'];
 }
 
@@ -80,6 +88,8 @@ export function useViewModel({
   itemSort,
   itemFilters,
   showStarred,
+  seen,
+  showSeen,
   t,
 }: Args): ViewModel {
   return useMemo(() => {
@@ -88,8 +98,12 @@ export function useViewModel({
     // Il filtro dei repository restringe l'elenco: i totali di GitHub non valgono più.
     const repoFiltering = activeFilterCount(repoFilters) > 0;
     const itemFiltering = activeItemFilterCount(itemFilters) > 0;
+    // Gli elementi già visti sono nascosti: è un filtro come gli altri, e i totali di GitHub non valgono più.
+    const hiddenIn = new Map<Section, number>();
     const narrowed = (key: Section) =>
-      isRepoSection(key) ? repoFiltering : itemFiltering;
+      isRepoSection(key) ? repoFiltering : itemFiltering || (hiddenIn.get(key) ?? 0) > 0;
+    const now = Date.now();
+    let seenCount = 0;
     // I login degli account in vista: «assegnate a te» vuol dire assegnate a uno di loro.
     const mine = new Set(
       (data?.accounts ?? []).filter((a) => filter === 'all' || a.login === filter).map((a) => a.login.toLowerCase()),
@@ -134,12 +148,17 @@ export function useViewModel({
       }
       base.set(item.section, (base.get(item.section) ?? 0) + 1);
       {
+        const entry = seen.get(item.url);
+        const hidden = isHidden(entry, item, now);
         if (view.sections.includes(item.section)) {
+          if (hidden) seenCount += 1;
+          if (hidden && !showSeen) hiddenIn.set(item.section, (hiddenIn.get(item.section) ?? 0) + 1);
           count(itemRepos, item.repo.toLowerCase(), item.repo);
           count(itemOwners, ownerOf(item).toLowerCase(), ownerOf(item));
           if (item.reason) count(itemReasons, item.reason, item.reason);
           for (const login of item.assignees ?? []) count(itemAssignees, login.toLowerCase(), login);
         }
+        if (hidden && !showSeen) continue;
         if (!matchesItemFilters(item, itemFilters, mine)) continue;
       }
       bySection.get(item.section)?.push(item);
@@ -213,6 +232,6 @@ export function useViewModel({
       assignees: [...itemAssignees.values()].sort(byCount),
     };
 
-    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo };
-  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, t]);
+    return { needle, bySection, narrowed, truncated, totalLabel, countText, facets, itemFacets, repoInfo, seenCount };
+  }, [data, view, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, seen, showSeen, t]);
 }
