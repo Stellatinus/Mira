@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.WebHost.UseUrls(Environment.GetEnvironmentVariable("MIRA_URLS") ?? "http://127.0.0.1:5080");
 
 builder.Services.AddSingleton<ISecretStore>(_ => new EncryptedFileSecretStore(DataDirectory.Resolve()));
+builder.Services.AddSingleton(_ => new SeenStore(DataDirectory.Resolve()));
 builder.Services.AddHttpClient("github", client =>
 {
     client.BaseAddress = new Uri("https://api.github.com/");

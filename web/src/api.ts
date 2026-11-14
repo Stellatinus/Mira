@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot } from './types';
+import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, SeenEntry } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -46,3 +46,17 @@ export const addAccount = (token: string) =>
 
 export const removeAccount = (login: string) =>
   request<void>(`/api/accounts/${encodeURIComponent(login)}`, { method: 'DELETE' });
+
+/** Lo stato «visto» salvato dal server (non tocca GitHub). */
+export const getSeen = () => request<SeenEntry[]>('/api/seen');
+
+export const putSeen = (url: string, updatedAt: string, snoozeUntil: string | null) =>
+  request<void>('/api/seen', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, updatedAt, snoozeUntil }),
+  });
+
+/** Senza indirizzo toglie tutte le voci. */
+export const deleteSeen = (url?: string) =>
+  request<void>(`/api/seen${url ? `?url=${encodeURIComponent(url)}` : ''}`, { method: 'DELETE' });

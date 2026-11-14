@@ -83,6 +83,16 @@ export interface ExtraSnapshot {
 
 export type ExtraKey = 'issues';
 
+/** Un elemento segnato come visto o rimandato (stato locale, vedi docs/REGOLE.md). */
+export interface SeenEntry {
+  url: string;
+  /** L'ultimo aggiornamento che l'utente ha visto: se l'elemento cambia dopo, riappare. */
+  updatedAt: string;
+  /** Se rimandato, quando torna da vedere comunque. */
+  snoozeUntil: string | null;
+  savedAt: string;
+}
+
 export interface Dashboard {
   generatedAt: string;
   accounts: AccountStatus[];

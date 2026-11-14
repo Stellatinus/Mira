@@ -95,6 +95,10 @@ La nuova lingua compare da sola nell'elenco delle Impostazioni; date e tempi rel
 
 Per mostrare subito qualcosa all'apertura, Mira salva nel browser l'ultima fotografia dei dati e la mostra mentre scarica quelli nuovi da GitHub (in alto compare «Dati salvati 3 ore fa · aggiorno…»). Sono nello storage locale del browser, non nei cookie. Contengono titoli di issue e PR, anche dei repository privati, ma **mai i token**, e restano su questo computer. Dalle Impostazioni si possono cancellare; si risalvano all'aggiornamento successivo.
 
+## Elementi visti
+
+Dal pannello dei dettagli si può segnare un elemento come **visto** o **rimandarlo a domani**: sparisce dall'elenco finché non cambia (o fino alle 8 di domani) e il pulsante «Mostra già visti» lo riporta in vista. Non tocca GitHub: lo stato è nel file `seen.json` della cartella di configurazione (non cifrato, solo indirizzi e date). Le regole sono in [`docs/REGOLE.md`](docs/REGOLE.md).
+
 ## Dove stanno i token
 
 - In un file cifrato (AES-GCM) nella cartella di configurazione dell'utente, fuori dal repository:

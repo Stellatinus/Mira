@@ -5,10 +5,11 @@ import { KINDS, kindSummary, summaryLines } from './attention';
 import type { Attention, Kind } from './attention';
 import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
-import { CloseIcon, CopyIcon, DetailIcon, ExternalIcon, ItemIcon } from './icons';
+import { CheckIcon, ClockIcon, CloseIcon, CopyIcon, DetailIcon, ExternalIcon, EyeIcon, ItemIcon } from './icons';
 import { reasonLabel, typeLabel } from './labels';
+import { canMarkSeen, isHidden } from './seen';
 import { Tile } from './Tile';
-import type { AccountStatus, DashboardItem } from './types';
+import type { AccountStatus, DashboardItem, SeenEntry } from './types';
 
 interface Props {
   item: DashboardItem | null;
@@ -18,6 +19,10 @@ interface Props {
   starredBy: string[];
   /** Cosa c'è di aperto nel repository selezionato (solo per gli elementi di tipo "repo"). */
   attention?: Attention;
+  /** La voce «visto» di questo elemento, se c'è. */
+  seen?: SeenEntry;
+  /** Segna come visto, rimanda a domani o riporta da vedere. */
+  onSeen: (action: 'seen' | 'snoozed' | 'unseen') => void;
   /** Cambia quando la scelta viene da tastiera: il focus passa al titolo del pannello. */
   focusSignal: number;
   onClose: () => void;
@@ -37,7 +42,7 @@ function useNarrow(): boolean {
   return narrow;
 }
 
-export function DetailPanel({ item, accounts, starredBy, attention, focusSignal, onClose }: Props) {
+export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen, focusSignal, onClose }: Props) {
   const i18n = useI18n();
   const { t, timeAgo, formatDate } = i18n;
   const announce = useAnnounce();
@@ -225,6 +230,31 @@ export function DetailPanel({ item, accounts, starredBy, attention, focusSignal,
           </div>
 
           <div className="rule" />
+          {canMarkSeen(item) && (
+            <div className="seen-box" role="group" aria-label={t('seen.group')}>
+              {isHidden(seen, item, Date.now()) ? (
+                <>
+                  <p className="muted small">
+                    {seen?.snoozeUntil
+                      ? t('seen.status.snoozed', { when: new Date(seen.snoozeUntil).toLocaleString(i18n.language.locale, { weekday: 'long', hour: '2-digit', minute: '2-digit' }) })
+                      : t('seen.status.seen')}
+                  </p>
+                  <button className="btn" onClick={() => onSeen('unseen')}>
+                    <EyeIcon size={14} /> {t('seen.unmark')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="btn" onClick={() => onSeen('seen')}>
+                    <CheckIcon size={14} /> {t('seen.mark')}
+                  </button>
+                  <button className="btn" onClick={() => onSeen('snoozed')}>
+                    <ClockIcon size={14} /> {t('seen.snooze')}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <div className="panel-actions">
             <a className="action" href={item.url} target="_blank" rel="noreferrer">
               <span className="action-icon">

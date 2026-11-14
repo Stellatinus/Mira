@@ -193,3 +193,17 @@ export const CheckIcon = ({ size = 16 }: IconProps) => (
     <path d="m3.5 8.5 3 3 6-7" />
   </Svg>
 );
+
+export const ClockIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 4.5V8l2.2 1.4" />
+  </Svg>
+);
+
+export const EyeIcon = ({ size = 16 }: IconProps) => (
+  <Svg size={size}>
+    <path d="M1.5 8S3.8 3.5 8 3.5 14.5 8 14.5 8 12.2 12.5 8 12.5 1.5 8 1.5 8Z" />
+    <circle cx="8" cy="8" r="2" />
+  </Svg>
+);
