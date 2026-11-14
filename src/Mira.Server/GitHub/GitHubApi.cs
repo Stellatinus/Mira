@@ -35,6 +35,34 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
     private const string ExpirationHeader = "github-authentication-token-expiration";
     private const string ScopesHeader = "x-oauth-scopes";
 
+    /// <summary>L'ultima risposta di una lettura, con il suo ETag: se GitHub dice «non è cambiato» (304) si riusa senza riscaricarla.</summary>
+    private sealed record CachedResponse(string ETag, string Body, DateTimeOffset? Expires, string[]? Scopes);
+
+    /// <summary>Quante risposte si tengono in memoria (le più vecchie escono per prime) e quanto può pesare una sola.</summary>
+    public const int MaxCachedResponses = 200;
+    private const int MaxCachedBodyBytes = 1_000_000;
+
+    private readonly object _etagLock = new();
+    private readonly Dictionary<string, CachedResponse> _etags = new();
+    private readonly Queue<string> _etagOrder = new();
+
+    private CachedResponse? CachedFor(string key)
+    {
+        lock (_etagLock) return _etags.GetValueOrDefault(key);
+    }
+
+    private void Remember(string key, CachedResponse response)
+    {
+        if (response.Body.Length > MaxCachedBodyBytes) return;
+        lock (_etagLock)
+        {
+            if (!_etags.ContainsKey(key)) _etagOrder.Enqueue(key);
+            _etags[key] = response;
+            while (_etags.Count > MaxCachedResponses && _etagOrder.TryDequeue(out var oldest))
+                _etags.Remove(oldest);
+        }
+    }
+
     // Per ogni token (se ne tiene solo l'impronta) l'ultimo limite visto per ciascuna risorsa.
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, RateLimit>> _limits = new();
 
@@ -90,11 +118,11 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
     }
 
     public Task<ApiResponse<T>> GetAsync<T>(string token, string path, CancellationToken ct) =>
-        SendAsync<T>(token, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct);
+        SendAsync<T>(token, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct, conditional: true);
 
     /// <summary>Una lettura senza token, per le informazioni pubbliche (per esempio l'ultima release di Mira): con il limite basso delle richieste anonime.</summary>
     public Task<ApiResponse<T>> GetAnonymousAsync<T>(string path, CancellationToken ct) =>
-        SendAsync<T>(null, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct);
+        SendAsync<T>(null, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct, conditional: true);
 
     /// <summary>
     /// Esegue una query GraphQL. GraphQL risponde 200 anche con errori parziali (es. un'organizzazione
@@ -136,8 +164,13 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
         }
     }
 
+    /// <summary>
+    /// Con <paramref name="conditional"/> la lettura è «condizionale»: se si ha già la risposta, si manda il suo ETag
+    /// (<c>If-None-Match</c>) e se GitHub risponde 304 si riusa quella, e una 304 non conta per il limite di richieste.
+    /// La chiave è l'impronta del token più l'indirizzo, quindi account diversi non si mescolano.
+    /// </summary>
     private async Task<ApiResponse<T>> SendAsync<T>(
-        string? token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct)
+        string? token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct, bool conditional = false)
     {
         try
         {
@@ -145,13 +178,32 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
             if (token is not null)
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
+            var cacheKey = conditional ? (token is null ? "anonimo" : KeyOf(token)) + "|" + request.RequestUri : null;
+            var cached = cacheKey is null ? null : CachedFor(cacheKey);
+            if (cached is not null)
+                request.Headers.TryAddWithoutValidation("If-None-Match", cached.ETag);
+
             using var response = await httpClientFactory.CreateClient("github").SendAsync(request, ct);
             if (token is not null) Track(token, response);
             var expires = ParseExpiration(response, logger);
             var scopes = ParseScopes(response);
 
+            if (response.StatusCode == HttpStatusCode.NotModified && cached is not null)
+            {
+                // Non è cambiato: i dati sono quelli di prima; scadenza e scope, se la 304 non li ripete, anche.
+                var reused = JsonSerializer.Deserialize<T>(cached.Body, options);
+                return new ApiResponse<T>(HttpStatusCode.OK, reused, expires ?? cached.Expires, scopes ?? cached.Scopes, null);
+            }
+
             if (!response.IsSuccessStatusCode)
                 return new ApiResponse<T>(response.StatusCode, default, expires, scopes, Describe(response));
+
+            if (cacheKey is not null && response.Headers.ETag is { } etag)
+            {
+                var body = await response.Content.ReadAsStringAsync(ct);
+                Remember(cacheKey, new CachedResponse(etag.ToString(), body, expires, scopes));
+                return new ApiResponse<T>(response.StatusCode, JsonSerializer.Deserialize<T>(body, options), expires, scopes, null);
+            }
 
             var data = await response.Content.ReadFromJsonAsync<T>(options, ct);
             return new ApiResponse<T>(response.StatusCode, data, expires, scopes, null);

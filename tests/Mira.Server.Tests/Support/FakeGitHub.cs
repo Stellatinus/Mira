@@ -9,9 +9,9 @@ namespace Mira.Server.Tests.Support;
 /// <summary>Un HttpMessageHandler che risponde con quello che decide il test e ricorda le richieste ricevute.</summary>
 public sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
 {
-    private readonly List<(HttpMethod Method, string Path, string? Authorization, string? Body)> _requests = [];
+    private readonly List<(HttpMethod Method, string Path, string? Authorization, string? Body, string? IfNoneMatch)> _requests = [];
 
-    public IReadOnlyList<(HttpMethod Method, string Path, string? Authorization, string? Body)> Requests
+    public IReadOnlyList<(HttpMethod Method, string Path, string? Authorization, string? Body, string? IfNoneMatch)> Requests
     {
         get { lock (_requests) return _requests.ToList(); }
     }
@@ -24,7 +24,7 @@ public sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> re
     {
         var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
         lock (_requests)
-            _requests.Add((request.Method, request.RequestUri!.PathAndQuery.TrimStart('/'), request.Headers.Authorization?.ToString(), body));
+            _requests.Add((request.Method, request.RequestUri!.PathAndQuery.TrimStart('/'), request.Headers.Authorization?.ToString(), body, request.Headers.IfNoneMatch.FirstOrDefault()?.ToString()));
         return respond(request);
     }
 }
