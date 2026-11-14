@@ -92,6 +92,10 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
     public Task<ApiResponse<T>> GetAsync<T>(string token, string path, CancellationToken ct) =>
         SendAsync<T>(token, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct);
 
+    /// <summary>Una lettura senza token, per le informazioni pubbliche (per esempio l'ultima release di Mira): con il limite basso delle richieste anonime.</summary>
+    public Task<ApiResponse<T>> GetAnonymousAsync<T>(string path, CancellationToken ct) =>
+        SendAsync<T>(null, () => new HttpRequestMessage(HttpMethod.Get, path), JsonOptions, ct);
+
     /// <summary>
     /// Esegue una query GraphQL. GraphQL risponde 200 anche con errori parziali (es. un'organizzazione
     /// con SAML SSO non autorizzata): i dati disponibili restano in `Data`, gli errori in `Errors`.
@@ -133,15 +137,16 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
     }
 
     private async Task<ApiResponse<T>> SendAsync<T>(
-        string token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct)
+        string? token, Func<HttpRequestMessage> build, JsonSerializerOptions options, CancellationToken ct)
     {
         try
         {
             using var request = build();
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            if (token is not null)
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             using var response = await httpClientFactory.CreateClient("github").SendAsync(request, ct);
-            Track(token, response);
+            if (token is not null) Track(token, response);
             var expires = ParseExpiration(response, logger);
             var scopes = ParseScopes(response);
 

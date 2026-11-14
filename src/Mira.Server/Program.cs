@@ -31,6 +31,7 @@ builder.Services.AddSingleton<DashboardService>();
 builder.Services.AddSingleton<IssueService>();
 builder.Services.AddSingleton<NotificationService>();
 builder.Services.AddSingleton<SectionService>();
+builder.Services.AddSingleton(provider => new UpdateService(provider.GetRequiredService<GitHubApi>(), AppVersion.Current));
 
 var app = builder.Build();
 
