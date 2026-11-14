@@ -1,4 +1,11 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Mira.Server.Api;
+using Mira.Server.Services;
 using Mira.Server.Storage;
+using Mira.Server.Tests.Support;
 
 namespace Mira.Server.Tests;
 
@@ -142,5 +149,144 @@ public sealed class SeenStoreTests : IDisposable
         await Task.WhenAll(Enumerable.Range(1, 40).Select(i => store.SetAsync($"https://github.com/acme/app/issues/{i}", Updated, null)));
 
         Assert.Equal(40, (await store.GetAllAsync()).Count);
+    }
+
+    [Fact]
+    public async Task The_comment_count_and_the_hidden_flag_survive_a_new_instance()
+    {
+        await new SeenStore(_dir).SetAsync(Url, Updated, null, comments: 7, hidden: false);
+
+        var entry = Assert.Single(await new SeenStore(_dir).GetAllAsync());
+
+        Assert.Equal(7, entry.Comments);
+        Assert.False(entry.Hidden);
+    }
+
+    [Fact]
+    public async Task An_entry_saved_before_these_fields_existed_still_hides_and_has_no_count()
+    {
+        Directory.CreateDirectory(_dir);
+        await File.WriteAllTextAsync(Path.Combine(_dir, "seen.json"),
+            """[{"Url":"https://github.com/acme/app/issues/1","UpdatedAt":"2026-11-10T10:00:00+00:00","SnoozeUntil":null,"SavedAt":"2099-01-01T00:00:00+00:00"}]""");
+
+        var entry = Assert.Single(await new SeenStore(_dir).GetAllAsync());
+
+        Assert.True(entry.Hidden);
+        Assert.Null(entry.Comments);
+    }
+
+    [Fact]
+    public async Task Baselines_are_added_without_hiding_and_without_touching_existing_entries()
+    {
+        var store = new SeenStore(_dir);
+        await store.SetAsync(Url, Updated, null, comments: 9, hidden: true);
+
+        await store.AddBaselinesAsync(
+        [
+            new SeenBaseline(Url, Updated.AddDays(5), 100),
+            new SeenBaseline("https://github.com/acme/app/issues/2", Updated, 3),
+        ]);
+
+        var entries = (await store.GetAllAsync()).ToDictionary(e => e.Url);
+        Assert.Equal(2, entries.Count);
+        Assert.Equal((9, true, Updated), (entries[Url].Comments, entries[Url].Hidden, entries[Url].UpdatedAt));
+        var added = entries["https://github.com/acme/app/issues/2"];
+        Assert.Equal((3, false, null), (added.Comments, added.Hidden, added.SnoozeUntil));
+    }
+
+    [Fact]
+    public async Task Baselines_with_a_bad_address_or_a_negative_count_are_ignored()
+    {
+        var store = new SeenStore(_dir);
+
+        await store.AddBaselinesAsync(
+        [
+            new SeenBaseline("https://evil.example/x", Updated, 1),
+            new SeenBaseline("https://github.com/acme/app/issues/3", Updated, -4),
+        ]);
+
+        Assert.Empty(await store.GetAllAsync());
+        Assert.False(File.Exists(Path.Combine(_dir, "seen.json")));
+    }
+}
+
+public sealed class SeenEndpointsTests : IAsyncLifetime
+{
+    private WebApplication _app = null!;
+    private HttpClient _client = null!;
+    private SeenStore _store = null!;
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "mira-seen-ep-" + Guid.NewGuid().ToString("N"));
+
+    public async Task InitializeAsync()
+    {
+        _store = new SeenStore(_dir);
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddSingleton(_store);
+        builder.Services.AddSingleton<ISecretStore>(new InMemorySecretStore());
+        builder.Services.AddSingleton(Gh.Api(new FakeHandler(_ => Gh.Status(System.Net.HttpStatusCode.OK))));
+        builder.Services.AddSingleton<AccountService>();
+        builder.Services.AddSingleton<DashboardService>();
+        builder.Services.AddSingleton<IssueService>();
+        builder.Services.AddSingleton<NotificationService>();
+        _app = builder.Build();
+        _app.MapMiraApi();
+        await _app.StartAsync();
+        _client = _app.GetTestClient();
+    }
+
+    public async Task DisposeAsync()
+    {
+        _client.Dispose();
+        await _app.DisposeAsync();
+        if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
+    }
+
+    private static StringContent Json(string json) => new(json, System.Text.Encoding.UTF8, "application/json");
+
+    [Fact]
+    public async Task Put_saves_the_comment_count_and_the_hidden_flag()
+    {
+        var response = await _client.PutAsync("/api/seen", Json(
+            """{"url":"https://github.com/acme/app/issues/1","updatedAt":"2026-11-10T10:00:00Z","snoozeUntil":null,"comments":5,"hidden":false}"""));
+
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+        var entry = Assert.Single(await _store.GetAllAsync());
+        Assert.Equal((5, false), (entry.Comments, entry.Hidden));
+    }
+
+    [Fact]
+    public async Task Put_without_the_hidden_flag_hides_like_before()
+    {
+        await _client.PutAsync("/api/seen", Json("""{"url":"https://github.com/acme/app/issues/1","updatedAt":"2026-11-10T10:00:00Z"}"""));
+
+        Assert.True(Assert.Single(await _store.GetAllAsync()).Hidden);
+    }
+
+    [Fact]
+    public async Task Put_with_a_bad_address_answers_400()
+    {
+        var response = await _client.PutAsync("/api/seen", Json("""{"url":"https://evil.example/x","updatedAt":"2026-11-10T10:00:00Z"}"""));
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty(await _store.GetAllAsync());
+    }
+
+    [Fact]
+    public async Task Baseline_adds_the_missing_entries()
+    {
+        var response = await _client.PostAsync("/api/seen/baseline", Json(
+            """{"items":[{"url":"https://github.com/acme/app/issues/1","updatedAt":"2026-11-10T10:00:00Z","comments":2},{"url":"https://github.com/acme/app/issues/2","updatedAt":"2026-11-10T10:00:00Z","comments":0}]}"""));
+
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(2, (await _store.GetAllAsync()).Count);
+    }
+
+    [Fact]
+    public async Task Baseline_with_an_empty_body_is_harmless()
+    {
+        var response = await _client.PostAsync("/api/seen/baseline", Json("{}"));
+
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);
     }
 }

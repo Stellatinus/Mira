@@ -269,6 +269,8 @@ export const it = {
   'review.newComments.other': '{count} commenti nuovi da quando l’hai segnata come vista',
   'section.reviews.title': 'Stato di review delle tue PR',
   'checks.title': 'Controlli (CI)',
+  'news.comments.one': '{count} commento nuovo',
+  'news.comments.other': '{count} commenti nuovi',
   'checks.badge.success': 'CI riuscita',
   'checks.badge.failure': 'CI fallita',
   'checks.badge.pending': 'CI in corso',

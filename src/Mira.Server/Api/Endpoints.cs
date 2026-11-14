@@ -6,7 +6,9 @@ namespace Mira.Server.Api;
 
 public sealed record AddAccountRequest(string? Token);
 
-public sealed record SeenRequest(string? Url, DateTimeOffset? UpdatedAt, DateTimeOffset? SnoozeUntil);
+public sealed record SeenRequest(string? Url, DateTimeOffset? UpdatedAt, DateTimeOffset? SnoozeUntil, int? Comments = null, bool? Hidden = null);
+
+public sealed record BaselineRequest(List<SeenBaseline>? Items);
 
 public static class Endpoints
 {
@@ -85,7 +87,14 @@ public static class Endpoints
             if (!SeenStore.IsValidUrl(request.Url) || request.UpdatedAt is null)
                 return Results.BadRequest(new { error = new ErrorInfo("seen-invalid") });
 
-            await seen.SetAsync(request.Url!, request.UpdatedAt.Value, request.SnoozeUntil, ct);
+            await seen.SetAsync(request.Url!, request.UpdatedAt.Value, request.SnoozeUntil, request.Comments, request.Hidden ?? true, ct);
+            return Results.NoContent();
+        });
+
+        // Il punto di partenza per contare le novità: aggiunge solo gli elementi senza voce, senza nasconderli.
+        api.MapPost("/seen/baseline", async (BaselineRequest request, SeenStore seen, CancellationToken ct) =>
+        {
+            await seen.AddBaselinesAsync(request.Items ?? [], ct);
             return Results.NoContent();
         });
 

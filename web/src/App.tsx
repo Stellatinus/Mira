@@ -7,6 +7,7 @@ import {
   getSeen,
   markNotificationRead,
   markRepositoryNotificationsRead,
+  postSeenBaseline,
   putSeen,
   unsubscribeNotification,
 } from './api';
@@ -26,7 +27,7 @@ import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
-import { isHidden, threadIdOf, tomorrowMorning } from './seen';
+import { isHidden, newComments, threadIdOf, tomorrowMorning, tracksNews } from './seen';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
 import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
 import type { ViewKey } from './sections';
@@ -95,6 +96,7 @@ export default function App() {
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
   const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  const [seenReady, setSeenReady] = useState(false);
   const [showSeen, setShowSeen] = useState(() => readStored(SHOW_SEEN_KEY, 'false') === 'true');
   // Le viste «Issue» e «Non assegnate» scaricano tutte le pagine alla richiesta, quando si aprono.
   const [extras, setExtras] = useState<Partial<Record<ExtraKey, { data: ExtraSnapshot | null; loading: boolean; error: unknown }>>>({});
@@ -166,9 +168,32 @@ export default function App() {
   // Lo stato «visto» non blocca nulla: se non si legge, semplicemente non si nasconde niente.
   useEffect(() => {
     getSeen()
-      .then((list) => setSeen(new Map(list.map((entry) => [entry.url, entry]))))
+      .then((list) => {
+        setSeen(new Map(list.map((entry) => [entry.url, entry])));
+        setSeenReady(true);
+      })
       .catch(() => undefined);
   }, []);
+
+  // Le tue issue aperte che Mira vede per la prima volta: se ne registra com'erano (quanti commenti), senza nasconderle,
+  // così dalla volta dopo si sa cosa è nuovo. Non si parte finché lo stato non è stato letto, per non sovrascriverlo.
+  useEffect(() => {
+    if (!seenReady || !data) return;
+    const missing = new Map<string, DashboardItem>();
+    for (const item of data.items) {
+      if (tracksNews(item) && !seen.has(item.url)) missing.set(item.url, item);
+    }
+    if (missing.size === 0) return;
+
+    const now = new Date().toISOString();
+    setSeen((current) => {
+      const next = new Map(current);
+      for (const item of missing.values())
+        next.set(item.url, { url: item.url, updatedAt: item.updatedAt, snoozeUntil: null, savedAt: now, comments: item.comments, hidden: false });
+      return next;
+    });
+    postSeenBaseline([...missing.values()].map((i) => ({ url: i.url, updatedAt: i.updatedAt, comments: i.comments }))).catch(() => undefined);
+  }, [seenReady, data, seen]);
 
   useEffect(() => {
     void load();
@@ -316,6 +341,8 @@ export default function App() {
             updatedAt: item.updatedAt,
             snoozeUntil: action === 'snoozed' ? tomorrowMorning().toISOString() : null,
             savedAt: new Date().toISOString(),
+            comments: item.comments,
+            hidden: true,
           };
     const apply = (value: SeenEntry | undefined) =>
       setSeen((current) => {
@@ -327,7 +354,7 @@ export default function App() {
 
     apply(entry);
     try {
-      if (entry) await putSeen(entry.url, entry.updatedAt, entry.snoozeUntil);
+      if (entry) await putSeen(entry.url, entry.updatedAt, entry.snoozeUntil, entry.comments, true);
       else await deleteSeen(item.url);
       say.current.announce(say.current.t(`seen.announce.${action}` as 'seen.announce.seen'));
       // L'elemento sparisce dall'elenco: il pannello non ha più senso e il focus passa al titolo della pagina.
@@ -353,6 +380,14 @@ export default function App() {
 
   function selectItem(id: string, viaKeyboard = false) {
     setSelectedId(id);
+    // Aprire un'issue con commenti nuovi li fa «vedere»: da ora si contano quelli successivi.
+    const item = viewData?.items.find((i) => i.id === id);
+    const entry = item ? seen.get(item.url) : undefined;
+    if (item && entry && tracksNews(item) && newComments(entry, item) > 0) {
+      const acknowledged = { ...entry, comments: item.comments };
+      setSeen((current) => new Map(current).set(item.url, acknowledged));
+      putSeen(entry.url, entry.updatedAt, entry.snoozeUntil, item.comments, entry.hidden).catch(() => undefined);
+    }
     if (viaKeyboard) setPanelFocus((n) => n + 1);
   }
 
