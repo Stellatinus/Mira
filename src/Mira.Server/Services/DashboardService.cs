@@ -80,15 +80,30 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             .ToList();
         tasks.Add(NotificationsAsync(login, token, ct));
         var repositories = RepositoriesAsync(login, token, ct);
+        var reviews = ReviewsAsync(login, token, ct);
 
         var parts = (await Task.WhenAll(tasks)).Concat(await repositories).ToArray();
+        var (reviewInfo, reviewError) = await reviews;
+
+        // Lo stato di review si attacca alle PR dell'utente (sezione «mine-prs»), riconosciute dall'indirizzo.
+        foreach (var part in parts)
+        {
+            for (var i = 0; i < part.Items.Count; i++)
+            {
+                if (part.Items[i] is { Section: "mine-prs" } item && reviewInfo.TryGetValue(item.Url, out var info))
+                    part.Items[i] = item with { Review = info };
+            }
+        }
+
+        var errorList = parts.Where(p => p.Error is not null).Select(p => p.Error!).ToList();
+        if (reviewError is not null) errorList.Add(reviewError);
 
         return new AccountData(
             // I limiti si leggono alla fine: le ricerche e la richiesta GraphQL li hanno appena aggiornati.
             status with { RateLimits = api.RateLimitsFor(token) },
             parts.SelectMany(p => p.Items).ToList(),
             parts.Where(p => p.Total is not null).Select(p => p.Total!).ToList(),
-            parts.Where(p => p.Error is not null).Select(p => p.Error!).ToList());
+            errorList);
     }
 
     private static (string Section, string Query)[] SearchDefinitions(string login) =>
@@ -153,6 +168,48 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
         }
 
         return [RepoPart(login, "repos", viewer.Repos), RepoPart(login, "starred", viewer.Starred)];
+    }
+
+    // Lo stato di review di tutte le PR aperte dell'utente in una sola richiesta GraphQL (la REST ne vorrebbe una per PR).
+    // Le liste annidate sono corte (le ultime 10): il costo resta basso.
+    private const string ReviewsQuery = """
+        query($first: Int!) {
+          viewer {
+            pullRequests(first: $first, states: OPEN, orderBy: {field: UPDATED_AT, direction: DESC}) {
+              nodes {
+                url
+                reviewDecision
+                reviews(last: 10) { nodes { state submittedAt author { login } } }
+                comments(last: 10) { totalCount nodes { createdAt author { login } } }
+              }
+            }
+          }
+        }
+        """;
+
+    /// <summary>Se la richiesta fallisce le PR si vedono lo stesso, senza stato di review, e l'errore compare tra i problemi.</summary>
+    private async Task<(Dictionary<string, ReviewInfo> Info, DashboardError? Error)> ReviewsAsync(string login, string token, CancellationToken ct)
+    {
+        var info = new Dictionary<string, ReviewInfo>(StringComparer.OrdinalIgnoreCase);
+        var response = await api.QueryAsync<GqlPrData>(token, ReviewsQuery, new { first = SearchPageSize }, ct);
+        var list = response.Data?.Data?.Viewer?.PullRequests;
+
+        if (list is null)
+        {
+            var error = !response.Ok ? response.Error : GraphQlError(response.Data?.Errors);
+            return (info, new DashboardError(login, "reviews", error ?? new ErrorInfo("unknown")));
+        }
+
+        foreach (var pr in list.Nodes?.OfType<GqlPr>() ?? [])
+        {
+            info[pr.Url] = new ReviewInfo(
+                pr.ReviewDecision,
+                (pr.Reviews?.Nodes ?? []).OfType<GqlReview>().Select(r => new PrReview(r.Author?.Login, r.State, r.SubmittedAt)).ToList(),
+                (pr.Comments?.Nodes ?? []).OfType<GqlComment>().Select(c => new PrComment(c.Author?.Login, c.CreatedAt)).ToList(),
+                pr.Comments?.TotalCount ?? 0);
+        }
+
+        return (info, null);
     }
 
     private static ErrorInfo GraphQlError(List<GqlError>? errors)

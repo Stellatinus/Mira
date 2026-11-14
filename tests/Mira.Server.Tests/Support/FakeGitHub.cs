@@ -110,6 +110,23 @@ public static class Fixtures
              "owner":{"avatarUrl":"https://avatars.example/{{{owner}}}"},"isFork":false,"parent":null,"unassigned":{"totalCount":1}}
             """;
 
+    public const string NoReviews = """{"data":{"viewer":{"pullRequests":{"nodes":[]}}}}""";
+
+    /// <summary>Lo stato di review di una PR, nella forma della risposta GraphQL.</summary>
+    public static string PullRequestState(string url, string? decision, string[]? reviews = null, string[]? comments = null, int? commentCount = null) =>
+        "{\"url\":\"" + url + "\",\"reviewDecision\":" + (decision is null ? "null" : "\"" + decision + "\"") +
+        ",\"reviews\":{\"nodes\":[" + string.Join(",", reviews ?? []) + "]}" +
+        ",\"comments\":{\"totalCount\":" + (commentCount ?? (comments?.Length ?? 0)) + ",\"nodes\":[" + string.Join(",", comments ?? []) + "]}}";
+
+    public static string Review(string state, string? login, string submittedAt = "2026-11-10T11:00:00Z") =>
+        "{\"state\":\"" + state + "\",\"submittedAt\":\"" + submittedAt + "\",\"author\":" + (login is null ? "null" : "{\"login\":\"" + login + "\"}") + "}";
+
+    public static string Comment(string? login, string createdAt = "2026-11-10T12:00:00Z") =>
+        "{\"createdAt\":\"" + createdAt + "\",\"author\":" + (login is null ? "null" : "{\"login\":\"" + login + "\"}") + "}";
+
+    public static string PullRequests(params string[] states) =>
+        "{\"data\":{\"viewer\":{\"pullRequests\":{\"nodes\":[" + string.Join(",", states) + "]}}}}";
+
     public static string Repositories(string[] repos, string[]? starred = null) =>
         "{\"data\":{\"viewer\":{\"repos\":{\"nodes\":[" + string.Join(",", repos) + "]},\"starred\":{\"nodes\":[" + string.Join(",", starred ?? []) + "]}}}}";
 }
@@ -128,13 +145,31 @@ public sealed class Router
     public Router On(string pathContains, Func<HttpResponseMessage> respond) =>
         On(path => path.Contains(pathContains, StringComparison.Ordinal), _ => respond());
 
+    /// <summary>Una richiesta GraphQL il cui testo contiene `queryContains` (le query di Mira si riconoscono dal nome dei campi).</summary>
+    public Router OnGraphQl(string queryContains, Func<HttpResponseMessage> respond) =>
+        On(path => path == "graphql", request =>
+            (request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? "").Contains(queryContains, StringComparison.Ordinal)
+                ? respond()
+                : FallThrough());
+
+    private static HttpResponseMessage FallThrough()
+    {
+        var response = Gh.Status(System.Net.HttpStatusCode.NotFound);
+        response.Headers.Add("X-Fall-Through", "1");
+        return response;
+    }
+
     public HttpResponseMessage Handle(HttpRequestMessage request)
     {
         var path = Uri.UnescapeDataString(request.RequestUri!.PathAndQuery.TrimStart('/'));
         // Vince l'ultima regola aggiunta: un test parte dalle risposte di base e ne cambia solo alcune.
         foreach (var (match, respond) in Enumerable.Reverse(_routes))
         {
-            if (match(path)) return respond(request);
+            if (!match(path)) continue;
+            var response = respond(request);
+            // Una regola che riconosce l'indirizzo ma non il contenuto lascia la parola alle regole precedenti.
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound && response.Headers.Contains("X-Fall-Through")) continue;
+            return response;
         }
         return Gh.Status(System.Net.HttpStatusCode.NotFound);
     }

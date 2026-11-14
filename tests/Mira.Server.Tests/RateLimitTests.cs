@@ -140,6 +140,7 @@ public class RateLimitTests
         var handler = new Router()
             .On(path => path == "user", _ => Answer("core", 5000, 4999, reset.AddMinutes(59)))
             .On("graphql", () => Gh.Json(Fixtures.Repositories([]), HttpStatusCode.OK, Limits("graphql", 5000, 4990, reset.AddMinutes(59))))
+            .OnGraphQl("reviewDecision", () => Gh.Json(Fixtures.NoReviews, HttpStatusCode.OK, Limits("graphql", 5000, 4990, reset.AddMinutes(59))))
             .On("notifications", () => Gh.Json("[]"))
             .On("search/issues", () => Gh.Json(Fixtures.Search(0), HttpStatusCode.OK, Limits("search", 30, 25, reset)))
             .Handler();

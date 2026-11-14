@@ -78,3 +78,27 @@ public sealed record GhNotification(
 public sealed record GhNotificationSubject(string Title, string? Url, string Type);
 
 public sealed record GhNotificationRepo(string FullName, string? HtmlUrl);
+
+// --- GraphQL: stato delle PR dell'utente ---
+
+public sealed record GqlPrData(GqlPrViewer? Viewer);
+
+public sealed record GqlPrViewer(GqlPrList? PullRequests);
+
+public sealed record GqlPrList(List<GqlPr?>? Nodes);
+
+public sealed record GqlPr(
+    string Url,
+    string? ReviewDecision,
+    GqlReviewList? Reviews,
+    GqlCommentList? Comments);
+
+public sealed record GqlActor(string? Login);
+
+public sealed record GqlReviewList(List<GqlReview?>? Nodes);
+
+public sealed record GqlReview(string State, DateTimeOffset? SubmittedAt, GqlActor? Author);
+
+public sealed record GqlCommentList(int TotalCount, List<GqlComment?>? Nodes);
+
+public sealed record GqlComment(DateTimeOffset CreatedAt, GqlActor? Author);
