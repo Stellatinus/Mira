@@ -75,6 +75,10 @@ Mira usa un **personal access token classic** per ogni account.
 Servono token *classic*: i token fine-grained non danno accesso alle notifiche. Per collegare più account
 ripeti i passi accedendo ogni volta con l'account giusto.
 
+## Avvisi del sistema
+
+Dalle **Impostazioni → Avvisi del sistema** si può chiedere a Mira di mandare una **notifica del browser** quando arriva una **menzione** o una **review richiesta**, scegliendo quali. Sono **spenti di default**; attivandoli il browser chiede il permesso (solo allora). Mira avvisa solo quando è aperta ma **non la stai guardando** (scheda in secondo piano o finestra senza focus), e solo per ciò che è comparso dall'ultimo aggiornamento: non avvisa di quello che c'era già, né di ciò che hai segnato come visto. Cliccando l'avviso si apre la vista giusta.
+
 ## Aggiornamenti
 
 All'apertura Mira chiede a GitHub, **senza token**, qual è l'ultima release del progetto e la confronta con la propria versione (`MAJOR.MINOR.PATCH`, vedi [`docs/RELEASING.md`](docs/RELEASING.md)). Se ce n'è una più nuova lo dice con un avviso (che si chiude, e non ricompare per la stessa versione) e nelle **Impostazioni → Informazioni**, con il link alle note di rilascio. **Non scarica né installa nulla**: per aggiornare si scarica il pacchetto dalla pagina delle release.

@@ -30,6 +30,9 @@ import { ItemsView, lastNumber } from './ItemsView';
 import type { Mode } from './ItemsView';
 import { SettingsView } from './SettingsView';
 import { Sidebar } from './Sidebar';
+import { findNew } from './newItems';
+import { DEFAULT_OS_NOTIFY, loadOsNotify, osPermission, requestOsPermission, saveOsNotify, showNewItems } from './osNotify';
+import type { OsNotifyPrefs, OsPermission } from './osNotify';
 import { isHidden, newComments, threadIdOf, tomorrowMorning, tracksNews } from './seen';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
 import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
@@ -113,6 +116,9 @@ export default function App() {
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
   const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  // Avvisi del sistema (notifiche del browser) per menzioni e review nuove: spenti di default.
+  const [osNotify, setOsNotify] = useState<OsNotifyPrefs>(loadOsNotify);
+  const [osPerm, setOsPerm] = useState<OsPermission>(osPermission);
   // Controllo degli aggiornamenti: all'apertura (se non lo si spegne nelle Impostazioni) e a richiesta. Non scarica nulla.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -140,6 +146,8 @@ export default function App() {
   const [, setTick] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
   const dataRef = useRef<Dashboard | null>(null);
+  const seenRef = useRef<ReadonlyMap<string, SeenEntry>>(new Map());
+  const osNotifyRef = useRef<OsNotifyPrefs>(DEFAULT_OS_NOTIFY);
   const firstLoad = useRef(true);
   const lastLoad = useRef(0);
   const [refreshMinutes, setRefreshMinutes] = useRefreshInterval();
@@ -153,6 +161,15 @@ export default function App() {
     try {
       const next = await getDashboard(force);
       lastLoad.current = Date.now();
+      // Menzioni e review comparse dopo l'ultimo aggiornamento (quello in memoria, o l'ultima fotografia salvata).
+      showNewItems(
+        findNew(dataRef.current, next, (item) => isHidden(seenRef.current.get(item.url), item, Date.now())),
+        osNotifyRef.current,
+        say.current.t,
+        (view) => {
+          window.location.hash = hashFor(view);
+        },
+      );
       setData(next);
       setFromCache(false);
       saveSnapshot(next);
@@ -268,6 +285,8 @@ export default function App() {
   }, [load, refreshMinutes]);
 
   dataRef.current = data;
+  seenRef.current = seen;
+  osNotifyRef.current = osNotify;
   const filter = data?.accounts.some((a) => a.login === storedFilter) ? storedFilter : 'all';
   const alerts = useMemo(() => (data ? accountAlerts(data.accounts, t) : []), [data, t]);
   const attention = useMemo(() => buildAttention(data?.items ?? []), [data]);
@@ -416,6 +435,18 @@ export default function App() {
       say.current.announce(say.current.t('items.loadedMore'));
     }
     setLoadingMore((current) => ({ ...current, [section]: false }));
+  }
+
+  // Attivare gli avvisi chiede il permesso al browser (solo qui, da un clic); se lo si nega restano spenti.
+  async function changeOsNotify(next: OsNotifyPrefs) {
+    let prefs = next;
+    if (next.enabled && !osNotify.enabled) {
+      const permission = osPermission() === 'granted' ? 'granted' : await requestOsPermission();
+      setOsPerm(permission);
+      if (permission !== 'granted') prefs = { ...next, enabled: false };
+    }
+    setOsNotify(prefs);
+    saveOsNotify(prefs);
   }
 
   function changeCheckUpdates(next: boolean) {
@@ -782,6 +813,9 @@ export default function App() {
               onCheckUpdate={() => void runUpdateCheck(true)}
               checkUpdates={checkUpdates}
               onCheckUpdates={changeCheckUpdates}
+              osNotify={osNotify}
+              osPermission={osPerm}
+              onOsNotify={(prefs) => void changeOsNotify(prefs)}
             />
           )}
         </div>
