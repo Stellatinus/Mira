@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, SeenEntry } from './types';
+import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, SectionPage, SeenEntry } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -89,3 +89,7 @@ export const markRepositoryNotificationsRead = (account: string, repo: string) =
   const [owner, name] = repo.split('/');
   return request<void>(notificationUrl(account, `repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/read`), { method: 'POST' });
 };
+
+/** Una pagina in più di una sezione per un account (la dashboard ne scarica solo la prima); `page` parte da 2. */
+export const getSectionPage = (account: string, section: string, page: number) =>
+  request<SectionPage>(`/api/section?account=${encodeURIComponent(account)}&section=${encodeURIComponent(section)}&page=${page}`);

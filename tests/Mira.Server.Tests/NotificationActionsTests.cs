@@ -130,6 +130,7 @@ public sealed class NotificationEndpointsTests : IAsyncLifetime
         builder.Services.AddSingleton<DashboardService>();
         builder.Services.AddSingleton<IssueService>();
         builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddSingleton<SectionService>();
         builder.Services.AddSingleton(new SeenStore(Path.Combine(Path.GetTempPath(), "mira-endpoints-" + Guid.NewGuid().ToString("N"))));
         _app = builder.Build();
         _app.MapMiraApi();

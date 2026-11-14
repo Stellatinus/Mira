@@ -19,8 +19,8 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
 
     // La Search API restituisce al massimo 100 risultati per pagina; ne chiediamo una sola
     // (i più recenti) e mostriamo a parte il totale reale. Le notifiche arrivano al massimo a 50.
-    private const int SearchPageSize = 100;
-    private const int NotificationsPageSize = 50;
+    internal const int SearchPageSize = 100;
+    internal const int NotificationsPageSize = 50;
     private const int ReposPageSize = 100;
     private const int DescriptionMaxLength = 500;
 
@@ -106,7 +106,7 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             errorList);
     }
 
-    private static (string Section, string Query)[] SearchDefinitions(string login) =>
+    internal static (string Section, string Query)[] SearchDefinitions(string login) =>
     [
         ("review", $"is:pr is:open review-requested:{login} archived:false"),
         ("assigned", $"is:open assignee:{login} archived:false"),
@@ -320,24 +320,26 @@ public sealed class DashboardService(ISecretStore store, GitHubApi api)
             return new Part(new List<DashboardItem>(), null, new DashboardError(login, "notifications", response.Error ?? new ErrorInfo("unknown")));
 
         var items = (response.Data ?? new List<GhNotification>())
-            .Select(n => new DashboardItem(
-                $"{login}:notifications:{n.Id}",
-                login,
-                "notifications",
-                NotificationType(n.Subject.Type),
-                n.Subject.Title,
-                n.Repository.FullName,
-                NotificationUrl(n),
-                n.UpdatedAt,
-                null,
-                n.Reason,
-                false,
-                0))
+            .Select(n => ToNotificationItem(login, n))
             .ToList();
         // Una pagina piena significa che potrebbero essercene altre: il totale non è noto.
         int? total = items.Count < NotificationsPageSize ? items.Count : null;
         return new Part(items, new SectionTotal(login, "notifications", total), null);
     }
+
+    internal static DashboardItem ToNotificationItem(string login, GhNotification n) => new(
+        $"{login}:notifications:{n.Id}",
+        login,
+        "notifications",
+        NotificationType(n.Subject.Type),
+        n.Subject.Title,
+        n.Repository.FullName,
+        NotificationUrl(n),
+        n.UpdatedAt,
+        null,
+        n.Reason,
+        false,
+        0);
 
     internal static DashboardItem ToItem(string login, string section, GhIssue issue) => new(
         $"{login}:{section}:{issue.Id}",

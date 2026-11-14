@@ -4,6 +4,7 @@ import {
   deleteSeen,
   getDashboard,
   getIssues,
+  getSectionPage,
   getSeen,
   markNotificationRead,
   markRepositoryNotificationsRead,
@@ -36,7 +37,7 @@ import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview'
 import type { RepoFilters, RepoSort } from './repoview';
 import { RepoFilterMenu } from './RepoFilterMenu';
 import { useTheme } from './theme';
-import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, SeenEntry } from './types';
+import type { Dashboard, DashboardItem, ExtraKey, ExtraSnapshot, Section, SeenEntry } from './types';
 import { useViewModel } from './viewmodel';
 
 const FILTER_KEY = 'mira.accountFilter';
@@ -45,6 +46,18 @@ const REPO_SORT_KEY = 'mira.repoSort';
 const ITEM_SORT_KEY = 'mira.itemSort';
 const SHOW_STARRED_KEY = 'mira.showStarred';
 const SHOW_SEEN_KEY = 'mira.showSeen';
+
+/** Quante voci scarica la dashboard per sezione e account alla prima pagina; la ricerca di GitHub arriva a 10 pagine. */
+const FIRST_PAGE_SIZE: Partial<Record<Section, number>> = { notifications: 50 };
+const DEFAULT_PAGE_SIZE = 100;
+const MAX_PAGES = 10;
+
+/** Le pagine in più già caricate per un account e una sezione. */
+interface MorePages {
+  items: DashboardItem[];
+  pages: number;
+  hasMore: boolean;
+}
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -96,6 +109,10 @@ export default function App() {
   const [showStarred, setShowStarred] = useState(() => readStored(SHOW_STARRED_KEY, 'false') === 'true');
   // Elementi già visti o rimandati (stato locale, salvato dal server): nascosti finché non cambiano.
   const [seen, setSeen] = useState<ReadonlyMap<string, SeenEntry>>(() => new Map());
+  // «Carica altri»: le pagine oltre la prima, per account e sezione («account|sezione»).
+  const [more, setMore] = useState<Record<string, MorePages>>({});
+  const [loadingMore, setLoadingMore] = useState<Partial<Record<Section, boolean>>>({});
+  const [moreError, setMoreError] = useState<Partial<Record<Section, string>>>({});
   const [seenReady, setSeenReady] = useState(false);
   const [showSeen, setShowSeen] = useState(() => readStored(SHOW_SEEN_KEY, 'false') === 'true');
   // Le viste «Issue» e «Non assegnate» scaricano tutte le pagine alla richiesta, quando si aprono.
@@ -131,6 +148,9 @@ export default function App() {
       setFromCache(false);
       saveSnapshot(next);
       setError(null);
+      // Aggiornando si riparte dalla prima pagina: quelle caricate in più potrebbero essere vecchie.
+      setMore({});
+      setMoreError({});
       // Si annuncia l'esito dell'aggiornamento fatto a mano (non quello automatico, che parlerebbe ogni pochi minuti).
       if (force) {
         say.current.announce(
@@ -242,10 +262,13 @@ export default function App() {
     if (extraKey && hasAccounts) void loadExtra(extraKey);
   }, [extraKey, hasAccounts, loadExtra]);
   // Nelle viste complete gli elementi scaricati a parte si uniscono a quelli della dashboard.
-  const viewData = useMemo(
-    () => (data && extra?.data ? { ...data, items: [...data.items, ...extra.data.items], errors: [...data.errors, ...extra.data.errors] } : data),
-    [data, extra?.data],
-  );
+  const moreItems = useMemo(() => Object.values(more).flatMap((m) => m.items), [more]);
+  const viewData = useMemo(() => {
+    if (!data) return data;
+    const items = [...data.items, ...(extra?.data?.items ?? []), ...moreItems];
+    const errors = [...data.errors, ...(extra?.data?.errors ?? [])];
+    return items.length === data.items.length && !extra?.data ? data : { ...data, items, errors };
+  }, [data, extra?.data, moreItems]);
   const model = useViewModel({ data: viewData, view: config, filter, query, attention, repoSort, repoFilters, itemSort, itemFilters, showStarred, seen, showSeen, t });
   // Cercando o filtrando, i conteggi cambiano in silenzio: si dice quanti risultati ci sono, con un po' di ritardo
   // per non parlare a ogni tasto. Un aggiornamento dei dati non cambia gli argomenti dell'effetto e non annuncia nulla.
@@ -322,6 +345,52 @@ export default function App() {
       say.current.announce(say.current.t('notify.error'));
       void load(true);
     }
+  }
+
+  // Gli account per cui una sezione ha ancora pagine da caricare, e quale: la seconda dopo la dashboard, poi le successive.
+  function pagesToLoad(section: Section): { account: string; page: number }[] {
+    const pageSize = FIRST_PAGE_SIZE[section] ?? DEFAULT_PAGE_SIZE;
+    return (data?.accounts ?? [])
+      .filter((a) => a.state === 'ok' && (filter === 'all' || a.login === filter))
+      .flatMap((a) => {
+        const loadedMore = more[`${a.login}|${section}`];
+        if (loadedMore) return loadedMore.hasMore && loadedMore.pages < MAX_PAGES ? [{ account: a.login, page: loadedMore.pages + 1 }] : [];
+        const loaded = (data?.items ?? []).filter((i) => i.account === a.login && i.section === section).length;
+        const total = data?.totals.find((t) => t.account === a.login && t.section === section)?.total ?? null;
+        return loaded >= pageSize && (total === null || total > loaded) ? [{ account: a.login, page: 2 }] : [];
+      });
+  }
+
+  async function loadMore(section: Section) {
+    const todo = pagesToLoad(section);
+    if (todo.length === 0 || loadingMore[section]) return;
+    setLoadingMore((current) => ({ ...current, [section]: true }));
+    setMoreError((current) => ({ ...current, [section]: undefined }));
+
+    const results = await Promise.allSettled(todo.map(({ account, page }) => getSectionPage(account, section, page)));
+    setMore((current) => {
+      const next = { ...current };
+      results.forEach((result, index) => {
+        if (result.status !== 'fulfilled') return;
+        const { account, page } = todo[index];
+        next[`${account}|${section}`] = {
+          items: [...(current[`${account}|${section}`]?.items ?? []), ...result.value.items],
+          pages: page,
+          hasMore: result.value.hasMore,
+        };
+      });
+      return next;
+    });
+
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) {
+      const text = failureText(failed.reason, i18n);
+      setMoreError((current) => ({ ...current, [section]: text }));
+      say.current.announce(text);
+    } else {
+      say.current.announce(say.current.t('items.loadedMore'));
+    }
+    setLoadingMore((current) => ({ ...current, [section]: false }));
   }
 
   function toggleShowSeen() {
@@ -638,6 +707,12 @@ export default function App() {
               model={model}
               seen={seen}
               showSeen={showSeen}
+              more={{
+                can: (section) => pagesToLoad(section).length > 0,
+                loading: (section) => loadingMore[section] === true,
+                error: (section) => moreError[section] ?? null,
+                load: (section) => void loadMore(section),
+              }}
               onSelect={selectItem}
               onManageAccounts={() => chooseView('settings')}
             />

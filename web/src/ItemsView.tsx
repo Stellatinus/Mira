@@ -32,6 +32,13 @@ interface Props {
   attention: Map<string, Attention>;
   /** Gli elementi di ogni sezione, già filtrati e ordinati, con i loro conteggi. */
   model: ViewModel;
+  /** «Carica altri»: se una sezione ha altre pagine su GitHub, se si sta caricando, l'eventuale errore e come caricare. */
+  more: {
+    can: (section: Section) => boolean;
+    loading: (section: Section) => boolean;
+    error: (section: Section) => string | null;
+    load: (section: Section) => void;
+  };
   /** Elementi visti o rimandati e se vanno mostrati comunque (allora portano un'etichetta). */
   seen: SeenMap;
   showSeen: boolean;
@@ -46,7 +53,7 @@ export const lastNumber = (text: string) => Number(/\d+(?=\D*$)/.exec(text)?.[0]
 const sectionTitle = (key: Section) => `section.${key}.title` as 'section.review.title';
 const sectionHint = (key: Section) => `section.${key}.hint` as 'section.review.hint';
 
-export function ItemsView({ data, view, filter, mode, selectedId, attention, model, seen, showSeen, onSelect, onManageAccounts }: Props) {
+export function ItemsView({ data, view, filter, mode, selectedId, attention, model, seen, showSeen, more, onSelect, onManageAccounts }: Props) {
   const i18n = useI18n();
   const { t, errorText } = i18n;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -184,6 +191,16 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
                     ? t('items.showRecent', { count: items.length })
                     : t('items.showAll', { count: items.length })}
               </button>
+            )}
+            {truncated && (isExpanded || items.length <= collapsedCount) && more.can(key) && (
+              <button className="more" aria-disabled={more.loading(key)} onClick={() => !more.loading(key) && more.load(key)}>
+                {more.loading(key) ? t('items.loadingMore') : t('items.loadMore')}
+              </button>
+            )}
+            {more.error(key) && (
+              <p className="truncated warn-text" role="alert">
+                {more.error(key)}
+              </p>
             )}
             {truncated && isExpanded && (
               <p className="truncated muted">

@@ -229,6 +229,7 @@ public sealed class SeenEndpointsTests : IAsyncLifetime
         builder.Services.AddSingleton<DashboardService>();
         builder.Services.AddSingleton<IssueService>();
         builder.Services.AddSingleton<NotificationService>();
+        builder.Services.AddSingleton<SectionService>();
         _app = builder.Build();
         _app.MapMiraApi();
         await _app.StartAsync();

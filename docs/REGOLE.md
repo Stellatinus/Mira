@@ -95,5 +95,6 @@ GitHub concede a ogni account un numero di richieste per finestra di tempo, dive
 ## Limiti da conoscere
 
 - Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.
+- **«Carica altri»:** quando una sezione ha più elementi su GitHub di quelli scaricati, sotto l'elenco compare il pulsante **«Carica altri»**, che legge la **pagina successiva** (100 elementi, 50 per le notifiche) **per ogni account in vista** che ne ha ancora. Si può ripetere fino a **10 pagine** (1000 risultati, il limite della ricerca di GitHub). Ogni pagina costa **una richiesta** (la ricerca concede 30 al minuto, vedi sopra). **Aggiornare riporta alla prima pagina.** Non vale per i **repository** né per i **preferiti**, che hanno una lista a parte (GraphQL) e restano ai primi 100.
 - La ricerca di GitHub concede 30 richieste al minuto: se si aggiorna troppo spesso compare «limite raggiunto» e passa da solo.
 - I filtri dei repository valgono per la vista Repo; quelli di issue, PR e notifiche per la vista in cui sono scelti e si azzerano cambiando vista.

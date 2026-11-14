@@ -87,6 +87,13 @@ export interface DashboardError {
   error: ErrorInfo;
 }
 
+/** Una pagina in più di una sezione per un account («Carica altri»). */
+export interface SectionPage {
+  items: DashboardItem[];
+  total: number | null;
+  hasMore: boolean;
+}
+
 /** Una lista di elementi caricata a parte (viste «Issue» e «Non assegnate»). */
 export interface ExtraSnapshot {
   generatedAt: string;
