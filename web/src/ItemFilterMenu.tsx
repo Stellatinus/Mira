@@ -8,6 +8,7 @@ import { reasonLabel } from './labels';
 import {
   activeItemFilterCount,
   ASSIGNMENT_FILTERS,
+  CI_FILTERS,
   COMMENTS_FILTERS,
   DEFAULT_ITEM_FILTERS,
   DRAFT_FILTERS,
@@ -24,10 +25,12 @@ interface Props {
   facets: { repos: Facet[]; owners: Facet[]; reasons: Facet[]; assignees: Facet[] };
   /** Solo per le issue: «Assegnazione» e «Assegnatario». */
   assignable?: boolean;
+  /** Se qualche PR ha l'esito della CI: compare il filtro «Solo CI rossa». */
+  hasChecks?: boolean;
 }
 
 /** Il pulsante «Filtra» per issue, PR e notifiche, con i gruppi di filtri combinabili tra loro. */
-export function ItemFilterMenu({ filters, onChange, facets, assignable = false }: Props) {
+export function ItemFilterMenu({ filters, onChange, facets, assignable = false, hasChecks = false }: Props) {
   const i18n = useI18n();
   const { t } = i18n;
   const [open, setOpen] = useState(false);
@@ -109,6 +112,16 @@ export function ItemFilterMenu({ filters, onChange, facets, assignable = false }
               onChange={(value) => set('comments', value)}
             />
           </Group>
+          {(hasChecks || filters.ci !== 'all') && (
+            <Group label={t('item.filter.group.ci')}>
+              <Chips
+                label={t('item.filter.group.ci')}
+                value={filters.ci}
+                options={optionsOf('item.filter.ci', CI_FILTERS)}
+                onChange={(value) => set('ci', value)}
+              />
+            </Group>
+          )}
           {facets.reasons.length > 0 && (
             <Group label={t('item.filter.group.reason')} htmlFor="filter-reason">
               <FacetSelect

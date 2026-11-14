@@ -399,6 +399,9 @@ h1, h2, h3, p { margin: 0; }
 .ci-review.approved { background: var(--ok-bg); color: var(--ok); }
 .ci-review.changes { background: var(--danger-bg); color: var(--danger); }
 .ci-review.required { background: var(--warn-bg); color: var(--warn); }
+.ci-review.ci-success { background: var(--ok-bg); color: var(--ok); }
+.ci-review.ci-failure { background: var(--danger-bg); color: var(--danger); }
+.ci-review.ci-pending { background: var(--warn-bg); color: var(--warn); }
 .panel-body > p.ci-review { margin: 0 0 8px; }
 .ci-seen { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 

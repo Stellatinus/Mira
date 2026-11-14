@@ -113,10 +113,22 @@ public static class Fixtures
     public const string NoReviews = """{"data":{"viewer":{"pullRequests":{"nodes":[]}}}}""";
 
     /// <summary>Lo stato di review di una PR, nella forma della risposta GraphQL.</summary>
-    public static string PullRequestState(string url, string? decision, string[]? reviews = null, string[]? comments = null, int? commentCount = null) =>
+    public static string PullRequestState(string url, string? decision, string[]? reviews = null, string[]? comments = null, int? commentCount = null, string? rollup = null) =>
         "{\"url\":\"" + url + "\",\"reviewDecision\":" + (decision is null ? "null" : "\"" + decision + "\"") +
         ",\"reviews\":{\"nodes\":[" + string.Join(",", reviews ?? []) + "]}" +
-        ",\"comments\":{\"totalCount\":" + (commentCount ?? (comments?.Length ?? 0)) + ",\"nodes\":[" + string.Join(",", comments ?? []) + "]}}";
+        ",\"comments\":{\"totalCount\":" + (commentCount ?? (comments?.Length ?? 0)) + ",\"nodes\":[" + string.Join(",", comments ?? []) + "]}" +
+        (rollup is null ? "" : ",\"commits\":{\"nodes\":[{\"commit\":{\"statusCheckRollup\":" + rollup + "}}]}") + "}";
+
+    /// <summary>L'esito complessivo dei controlli dell'ultimo commit (<c>statusCheckRollup</c>).</summary>
+    public static string Rollup(string state, params string[] contexts) =>
+        "{\"state\":\"" + state + "\",\"contexts\":{\"nodes\":[" + string.Join(",", contexts) + "]}}";
+
+    public static string CheckRun(string name, string status, string? conclusion, string? url = "https://github.com/acme/app/runs/1") =>
+        "{\"__typename\":\"CheckRun\",\"name\":\"" + name + "\",\"status\":\"" + status + "\",\"conclusion\":" + (conclusion is null ? "null" : "\"" + conclusion + "\"") +
+        ",\"detailsUrl\":" + (url is null ? "null" : "\"" + url + "\"") + "}";
+
+    public static string StatusContext(string context, string state, string? url = null) =>
+        "{\"__typename\":\"StatusContext\",\"context\":\"" + context + "\",\"state\":\"" + state + "\",\"targetUrl\":" + (url is null ? "null" : "\"" + url + "\"") + "}";
 
     public static string Review(string state, string? login, string submittedAt = "2026-11-10T11:00:00Z") =>
         "{\"state\":\"" + state + "\",\"submittedAt\":\"" + submittedAt + "\",\"author\":" + (login is null ? "null" : "{\"login\":\"" + login + "\"}") + "}";

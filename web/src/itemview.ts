@@ -1,3 +1,4 @@
+import { ciState } from './checks';
 import { ANY, ownerOf } from './repoview';
 import type { ViewKey } from './sections';
 import type { DashboardItem } from './types';
@@ -19,6 +20,10 @@ export const COMMENTS_FILTERS: CommentsFilter[] = ['all', 'with', 'without'];
 export type AssignmentFilter = 'all' | 'mine' | 'others' | 'none';
 export const ASSIGNMENT_FILTERS: AssignmentFilter[] = ['all', 'mine', 'others', 'none'];
 
+/** Solo le PR con la CI rossa (fallita) o tutte. */
+export type CiFilter = 'all' | 'failing';
+export const CI_FILTERS: CiFilter[] = ['all', 'failing'];
+
 export interface ItemFilters {
   /** «Assegnate a te», «ad altri» e «non assegnate» dividono le issue senza resto. */
   assignment: AssignmentFilter;
@@ -28,6 +33,8 @@ export interface ItemFilters {
   /** Vale per le PR: «solo bozze» esclude le issue, «senza bozze» le tiene. */
   draft: DraftFilter;
   comments: CommentsFilter;
+  /** «Solo CI rossa»: le PR con almeno un controllo fallito. */
+  ci: CiFilter;
   /** Repository («owner/nome» in minuscolo), o ANY. */
   repo: string;
   /** Proprietario del repository (in minuscolo), o ANY. */
@@ -42,6 +49,7 @@ export const DEFAULT_ITEM_FILTERS: ItemFilters = {
   type: 'all',
   draft: 'all',
   comments: 'all',
+  ci: 'all',
   repo: ANY,
   owner: ANY,
   reason: ANY,
@@ -75,6 +83,7 @@ export function matchesItemFilters(item: DashboardItem, filters: ItemFilters, mi
   if (filters.draft === 'none' && item.draft) return false;
   if (filters.comments === 'with' && item.comments === 0) return false;
   if (filters.comments === 'without' && item.comments > 0) return false;
+  if (filters.ci === 'failing' && ciState(item.checks) !== 'failure') return false;
   if (filters.repo !== ANY && item.repo.toLowerCase() !== filters.repo) return false;
   if (filters.owner !== ANY && ownerOf(item).toLowerCase() !== filters.owner) return false;
   if (filters.reason !== ANY && item.reason !== filters.reason) return false;

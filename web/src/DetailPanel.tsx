@@ -7,10 +7,11 @@ import { Avatar } from './Avatar';
 import { useI18n } from './i18n';
 import { CheckIcon, ClockIcon, CloseIcon, CopyIcon, DetailIcon, ExternalIcon, EyeIcon, ItemIcon } from './icons';
 import { reasonLabel, typeLabel } from './labels';
+import { ciState } from './checks';
 import { latestPerReviewer, newCommentsSince, reviewBadge } from './review';
 import { canMarkSeen, isHidden } from './seen';
 import { Tile } from './Tile';
-import type { AccountStatus, DashboardItem, SeenEntry } from './types';
+import type { AccountStatus, ChecksInfo, DashboardItem, SeenEntry } from './types';
 
 interface Props {
   item: DashboardItem | null;
@@ -219,6 +220,7 @@ export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen
             <div className="rule" />
 
             {item.review && <ReviewSection item={item} seen={seen} />}
+            {item.checks && <ChecksSection checks={item.checks} />}
 
             {item.type === 'repo' &&
               KINDS.map((kind) => <KindSection key={kind} kind={kind} item={item} attention={attention} />)}
@@ -356,6 +358,36 @@ function ReviewSection({ item, seen }: { item: DashboardItem; seen?: SeenEntry }
         {lastComment && <li>{t('review.lastComment', { who: who(lastComment.login), when: timeAgo(lastComment.at) })}</li>}
         {review.commentCount > 0 && <li>{t('review.comments', { count: review.commentCount })}</li>}
         {fresh !== null && fresh > 0 && <li>{t('review.newComments', { count: fresh })}</li>}
+      </ul>
+      <div className="rule" />
+    </>
+  );
+}
+
+/** L'esito della CI sull'ultimo commit: stato, quanti controlli sono in corso e quali sono falliti (con il link ai dettagli). */
+function ChecksSection({ checks }: { checks: ChecksInfo }) {
+  const { t } = useI18n();
+  const state = ciState(checks);
+
+  return (
+    <>
+      <h3 className="panel-label">{t('checks.title')}</h3>
+      {state && <p className={`ci-review ci-${state}`}>{t(`checks.badge.${state}` as 'checks.badge.success')}</p>}
+      <ul className="kind-lines">
+        <li>{t('checks.total', { count: checks.total })}</li>
+        {checks.pending > 0 && <li>{t('checks.pending', { count: checks.pending })}</li>}
+        {checks.failed.map((check) => (
+          <li key={check.name}>
+            {check.url ? (
+              <a href={check.url} target="_blank" rel="noreferrer">
+                {t('checks.failed', { name: check.name })}
+                <span className="visually-hidden"> ({t('a11y.newTab')})</span>
+              </a>
+            ) : (
+              t('checks.failed', { name: check.name })
+            )}
+          </li>
+        ))}
       </ul>
       <div className="rule" />
     </>

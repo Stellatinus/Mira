@@ -44,6 +44,16 @@ Le tue PR aperte (sezione «Le tue PR aperte» e vista PR) mostrano a che punto 
 - Si guardano le **100 PR aperte aggiornate più di recente**; le reviews e i commenti mostrati sono gli ultimi 10.
 - Se la richiesta fallisce le PR si vedono lo stesso, senza stato di review, e tra i problemi compare «Stato di review delle tue PR».
 
+## Esito della CI sulle tue PR
+
+Insieme allo stato di review (stessa richiesta GraphQL) Mira legge i **controlli dell'ultimo commit** di ogni tua PR aperta:
+
+- **Badge sulla card:** **CI riuscita**, **CI fallita** o **CI in corso**. È lo stato complessivo di GitHub (`statusCheckRollup`); senza controlli non c'è badge.
+- **Pannello dei dettagli → Controlli (CI):** quanti controlli ci sono, quanti sono ancora in corso e **quali sono falliti**, con il link ai dettagli dove GitHub lo dà.
+- **Fallito** vuol dire conclusione `FAILURE`, `TIMED_OUT`, `STARTUP_FAILURE` o `CANCELLED` (per le «check run») e `FAILURE` o `ERROR` (per gli «status» classici). `NEUTRAL`, `SKIPPED` e `ACTION_REQUIRED` non sono falliti.
+- **Filtro «Solo CI rossa»** (nel menu «Filtra» di PR e Home, compare quando ci sono PR con controlli): le PR con almeno un controllo fallito.
+- Si leggono i primi **50 controlli** dell'ultimo commit.
+
 ## Visto e rimandato
 
 Un elemento (issue, PR, notifica, menzione) si può **segnare come visto** o **rimandare a domani** dal pannello dei dettagli, senza toccare GitHub. I repository non si segnano.

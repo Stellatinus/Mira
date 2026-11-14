@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Mira.Server.GitHub;
 
@@ -91,7 +92,8 @@ public sealed record GqlPr(
     string Url,
     string? ReviewDecision,
     GqlReviewList? Reviews,
-    GqlCommentList? Comments);
+    GqlCommentList? Comments,
+    GqlCommitList? Commits = null);
 
 public sealed record GqlActor(string? Login);
 
@@ -102,3 +104,26 @@ public sealed record GqlReview(string State, DateTimeOffset? SubmittedAt, GqlAct
 public sealed record GqlCommentList(int TotalCount, List<GqlComment?>? Nodes);
 
 public sealed record GqlComment(DateTimeOffset CreatedAt, GqlActor? Author);
+
+// --- GraphQL: controlli (CI) dell'ultimo commit di una PR ---
+
+public sealed record GqlCommitList(List<GqlCommitNode?>? Nodes);
+
+public sealed record GqlCommitNode(GqlCommit? Commit);
+
+public sealed record GqlCommit(GqlRollup? StatusCheckRollup);
+
+public sealed record GqlRollup(string State, GqlContextList? Contexts);
+
+public sealed record GqlContextList(List<GqlContext?>? Nodes);
+
+/// <summary>Un controllo: o una «check run» (Name, Conclusion, Status, DetailsUrl) o uno «status» (Context, State, TargetUrl).</summary>
+public sealed record GqlContext(
+    [property: JsonPropertyName("__typename")] string? TypeName,
+    string? Name,
+    string? Conclusion,
+    string? Status,
+    string? DetailsUrl,
+    string? Context,
+    string? State,
+    string? TargetUrl);
