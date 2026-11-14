@@ -37,7 +37,7 @@ public static class Endpoints
             Results.Ok(await accounts.GetStatusesAsync(ct)));
 
         api.MapPost("/accounts", async (
-            AddAccountRequest request, AccountService accounts, DashboardService dashboard, IssueService issues,
+            AddAccountRequest request, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections,
             CancellationToken ct) =>
         {
             var result = await accounts.AddAsync(request.Token, ct);
@@ -46,15 +46,17 @@ public static class Endpoints
 
             dashboard.Invalidate();
             issues.Invalidate();
+            sections.Invalidate();
             return Results.Ok(result.Account);
         });
 
         api.MapDelete("/accounts/{login}", async (
-            string login, AccountService accounts, DashboardService dashboard, IssueService issues, CancellationToken ct) =>
+            string login, AccountService accounts, DashboardService dashboard, IssueService issues, SectionService sections, CancellationToken ct) =>
         {
             await accounts.RemoveAsync(login, ct);
             dashboard.Invalidate();
             issues.Invalidate();
+            sections.Invalidate();
             return Results.NoContent();
         });
 
@@ -63,6 +65,19 @@ public static class Endpoints
             IssueService.Views.Contains(view)
                 ? Results.Ok(await issues.GetAsync(view, refresh == true, ct))
                 : Results.NotFound());
+
+        // Una pagina in più di una sezione per un account («Carica altri»): la dashboard ne scarica solo la prima.
+        api.MapGet("/section", async (string account, string section, int page, SectionService sections, CancellationToken ct) =>
+        {
+            if (!SectionService.IsValidRequest(section, page))
+                return Results.BadRequest(new { error = new ErrorInfo("section-invalid") });
+
+            var (result, error) = await sections.GetAsync(account, section, page, ct);
+            if (result is not null)
+                return Results.Ok(result);
+
+            return Results.Json(new { error }, statusCode: error?.Code == "account-unknown" ? StatusCodes.Status404NotFound : StatusCodes.Status502BadGateway);
+        });
 
         // Azioni sulle notifiche di GitHub, con il token dell'account a cui appartengono.
         var notifications = api.MapGroup("/notifications/{account}");

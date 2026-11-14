@@ -30,6 +30,7 @@ builder.Services.AddSingleton<AccountService>();
 builder.Services.AddSingleton<DashboardService>();
 builder.Services.AddSingleton<IssueService>();
 builder.Services.AddSingleton<NotificationService>();
+builder.Services.AddSingleton<SectionService>();
 
 var app = builder.Build();
 
