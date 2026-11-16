@@ -328,6 +328,17 @@ export default function App() {
     () => (data?.items ?? []).filter((i) => i.section === 'notifications' && (filter === 'all' || i.account === filter)).length,
     [data, filter],
   );
+  // Per ogni account, quanti elementi (senza doppioni) aspettano di essere guardati: review richieste,
+  // assegnati a lui e notifiche non lette.
+  const todoByAccount = useMemo(() => {
+    const urls = new Map<string, Set<string>>();
+    for (const item of data?.items ?? []) {
+      if (item.section !== 'review' && item.section !== 'assigned' && item.section !== 'notifications') continue;
+      if (!urls.has(item.account)) urls.set(item.account, new Set());
+      urls.get(item.account)!.add(item.url);
+    }
+    return Object.fromEntries([...urls].map(([login, set]) => [login, set.size]));
+  }, [data]);
   const isRepoView = config.tools === 'repos';
   const isItemView = config.tools === 'items';
   const extraKey = isExtraView(view) ? view : null;
@@ -671,6 +682,7 @@ export default function App() {
         onFilter={chooseFilter}
         needsAttention={alerts.length > 0}
         unreadNotifications={unreadNotifications}
+        todoByAccount={todoByAccount}
       />
 
       {repoPage !== null ? (

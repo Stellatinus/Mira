@@ -546,3 +546,36 @@ h1, h2, h3, p { margin: 0; }
 .ri-title:hover { text-decoration: underline; }
 .ri-meta { font-size: 12.5px; color: var(--muted); }
 @media (max-width: 700px) { .repo-page { padding: 8px 16px 24px; } }
+/* ---------- Pila degli account: contatore, nome al passaggio, molti account ---------- */
+.stack-count { position: absolute; top: -5px; right: -7px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--c-notifications); color: var(--badge-ink); font-size: 10px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--side); }
+.stack-name { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 10; padding: 4px 9px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); color: var(--text); font-size: 12.5px; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; }
+.stack-avatar:hover .stack-name, .stack-avatar:focus-visible .stack-name { opacity: 1; }
+.stack.many { max-height: 168px; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+.stack.many .stack-avatar { margin-top: -20px; }
+.stack.many .stack-avatar:first-child { margin-top: 0; }
+/* Nella pila che scorre il nome in piano non si vedrebbe (verrebbe tagliato): resta il tooltip del browser. */
+.stack.many .stack-name { display: none; }
+/* ---------- Schermi larghi: layout a bento ---------- */
+/* Sotto 1280px nulla cambia (una colonna). Da lì in su Impostazioni e Home usano una griglia di riquadri di
+   dimensioni diverse; l'ordine nel documento è quello visivo (da sinistra a destra, dall'alto in basso), quindi
+   tastiera e lettori di schermo seguono lo stesso ordine. `minmax(0, 1fr)` evita lo scorrimento orizzontale. */
+@media (min-width: 1280px) {
+  .bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .bento > .card { max-width: none; margin: 0; grid-column: span 6; }
+  .bento.groups { gap: 24px 28px; }
+  .bento.groups > .group { margin: 0; grid-column: span 6; min-width: 0; }
+  .bento.groups > .group:first-child { grid-column: span 12; }
+}
+@media (min-width: 1920px) {
+  .shell { grid-template-columns: 96px minmax(0, 1fr) 420px; }
+  .bento > .card { grid-column: span 4; }
+  .bento.groups > .group { grid-column: span 4; }
+  .bento.groups > .group:first-child { grid-column: span 8; }
+}
+.activity-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.activity-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.activity-name { font-size: 13px; }
+.check-list { display: flex; flex-direction: column; max-height: 160px; overflow-y: auto; scrollbar-width: thin; border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
+.check-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 13px; cursor: pointer; }
+.check-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check-count { color: var(--muted, inherit); opacity: 0.7; font-variant-numeric: tabular-nums; }

@@ -89,7 +89,7 @@ public class NotificationServiceTests
 
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized, "unauthorized")]
-    [InlineData(HttpStatusCode.Forbidden, "rate-limited")]
+    [InlineData(HttpStatusCode.Forbidden, "forbidden")]
     [InlineData(HttpStatusCode.NotFound, "github-http")]
     public async Task A_github_refusal_is_returned_as_a_stable_code(HttpStatusCode status, string code)
     {
@@ -198,7 +198,7 @@ public sealed class NotificationEndpointsTests : IAsyncLifetime
         var response = await _client.PostAsync("/api/notifications/alice/threads/1/read", null);
 
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
-        Assert.Contains("rate-limited", await response.Content.ReadAsStringAsync());
+        Assert.Contains("forbidden", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
