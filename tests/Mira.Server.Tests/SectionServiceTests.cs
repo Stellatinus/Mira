@@ -102,7 +102,7 @@ public class SectionServiceTests
 
         var (page, error) = await service.GetAsync("alice", "review", 2, CancellationToken.None);
         Assert.Null(page);
-        Assert.Equal("rate-limited", error!.Code);
+        Assert.Equal("forbidden", error!.Code);
 
         status = HttpStatusCode.OK;
         var (retry, retryError) = await service.GetAsync("alice", "review", 2, CancellationToken.None);

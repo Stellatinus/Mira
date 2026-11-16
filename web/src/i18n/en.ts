@@ -414,7 +414,8 @@ export const en: Messages = {
   'error.secrets-key-mismatch':
     'Cannot decrypt the tokens: the key does not match. Restore master.key / MIRA_MASTER_KEY, or delete tokens.enc and reconnect your accounts.',
   'error.unauthorized': 'token invalid or expired',
-  'error.rate-limited': 'access denied or request limit reached',
+  'error.rate-limited': 'request limit reached',
+  'error.forbidden': 'access denied (missing permissions or organization authorization)',
   'error.rate-limited.until': 'GitHub rate limit reached: try again after {time}',
   'limits.label': 'Requests to GitHub',
   'limits.core': 'API',

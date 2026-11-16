@@ -166,7 +166,7 @@ public class DashboardServiceTests
 
         var error = Assert.Single(snapshot.Errors);
         Assert.Equal("review", error.Section);
-        Assert.Equal("rate-limited", error.Error.Code);
+        Assert.Equal("forbidden", error.Error.Code);
         Assert.Contains(snapshot.Items, i => i.Section == "assigned");
         Assert.DoesNotContain(snapshot.Totals, t => t.Section == "review");
     }
@@ -369,7 +369,7 @@ public class ReviewStateTests
 
         Assert.Contains(snapshot.Items, i => i.Section == "mine-prs");
         var error = Assert.Single(snapshot.Errors);
-        Assert.Equal(("alice", "reviews", "rate-limited"), (error.Account, error.Section, error.Error.Code));
+        Assert.Equal(("alice", "reviews", "forbidden"), (error.Account, error.Section, error.Error.Code));
     }
 
     [Fact]

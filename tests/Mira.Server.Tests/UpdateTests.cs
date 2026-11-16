@@ -147,7 +147,7 @@ public class UpdateServiceTests
 
     [Theory]
     [InlineData(HttpStatusCode.NotFound, "github-http")]
-    [InlineData(HttpStatusCode.Forbidden, "rate-limited")]
+    [InlineData(HttpStatusCode.Forbidden, "forbidden")]
     [InlineData(HttpStatusCode.InternalServerError, "github-http")]
     public async Task A_github_error_is_reported_and_not_cached(HttpStatusCode status, string code)
     {
