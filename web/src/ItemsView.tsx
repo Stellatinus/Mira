@@ -132,6 +132,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
         </div>
       )}
 
+      <div className={view.key === 'home' ? 'bento groups' : undefined}>
       {view.sections.map((key) => {
         const items = bySection.get(key) ?? [];
         if (items.length === 0) return null;
@@ -211,6 +212,7 @@ export function ItemsView({ data, view, filter, mode, selectedId, attention, mod
           </section>
         );
       })}
+      </div>
 
       {data.errors.length > 0 && (
         <details className="problems">
