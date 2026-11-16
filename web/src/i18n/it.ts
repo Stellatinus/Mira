@@ -424,7 +424,8 @@ export const it = {
   'error.secrets-key-mismatch':
     'Impossibile decifrare i token: la chiave non corrisponde. Ripristina master.key / MIRA_MASTER_KEY, oppure elimina tokens.enc e ricollega gli account.',
   'error.unauthorized': 'token non valido o scaduto',
-  'error.rate-limited': 'accesso negato o limite di richieste raggiunto',
+  'error.rate-limited': 'limite di richieste raggiunto',
+  'error.forbidden': 'accesso negato (permessi mancanti o organizzazione non autorizzata)',
   'error.rate-limited.until': 'limite di richieste di GitHub raggiunto: riprova dopo le {time}',
   'limits.label': 'Richieste a GitHub',
   'limits.core': 'API',
