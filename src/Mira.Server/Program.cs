@@ -13,7 +13,18 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 });
 
 // Solo locale: la dashboard non deve essere raggiungibile da altre macchine.
-builder.WebHost.UseUrls(Environment.GetEnvironmentVariable("MIRA_URLS") ?? "http://127.0.0.1:5080");
+// La porta viene da MIRA_URLS, altrimenti da config.json nella cartella dei dati, altrimenti 5080.
+AppConfig config;
+try
+{
+    config = AppConfig.Load(DataDirectory.Resolve());
+}
+catch (InvalidOperationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 1;
+}
+builder.WebHost.UseUrls(config.ResolveUrls(Environment.GetEnvironmentVariable("MIRA_URLS")));
 
 builder.Services.AddSingleton<ISecretStore>(_ => new EncryptedFileSecretStore(DataDirectory.Resolve()));
 builder.Services.AddSingleton(_ => new SeenStore(DataDirectory.Resolve()));
@@ -53,3 +64,4 @@ app.MapMiraApi();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+return 0;

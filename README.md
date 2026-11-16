@@ -128,6 +128,8 @@ Dal pannello dei dettagli si può segnare un elemento come **visto** o **rimanda
 
 Variabili d'ambiente: `MIRA_URLS` (default `http://127.0.0.1:5080`), `MIRA_DATA_DIR`, `MIRA_MASTER_KEY`.
 
+**File di configurazione:** `config.json` nella cartella dei dati (accanto a `tokens.enc`, non cifrato), per esempio `{ "port": 5081 }`. Oggi c'è solo la porta; Mira ascolta sempre e solo su `127.0.0.1`. La porta si decide così: prima `MIRA_URLS`, poi `config.json`, poi `5080`. Se il file non si legge o la porta non è valida (1-65535), Mira non parte e dice quale file e perché. Il file sta fuori dalla cartella del programma, quindi sopravvive agli aggiornamenti.
+
 ## Roadmap
 
 - [ ] Stato di review delle tue PR (approvata, modifiche richieste, nuovi commenti) tramite GraphQL
