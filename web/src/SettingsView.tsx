@@ -69,7 +69,7 @@ export function SettingsView({
         : t('refresh.hours', { count: minutes / 60 });
 
   return (
-    <>
+    <div className="bento">
       <section className="card">
         <header className="card-head">
           <h2>{t('settings.appearance')}</h2>
@@ -323,6 +323,6 @@ export function SettingsView({
           <input id="check-updates" type="checkbox" checked={checkUpdates} onChange={(e) => onCheckUpdates(e.target.checked)} />
         </div>
       </section>
-    </>
+    </div>
   );
 }

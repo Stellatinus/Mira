@@ -518,6 +518,24 @@ h1, h2, h3, p { margin: 0; }
   .spinning svg { animation: none; opacity: 0.45; }
   .stack-avatar:hover { transform: none; }
 }
+
+/* ---------- Schermi larghi: layout a bento ---------- */
+/* Sotto 1280px nulla cambia (una colonna). Da lì in su Impostazioni e Home usano una griglia di riquadri di
+   dimensioni diverse; l'ordine nel documento è quello visivo (da sinistra a destra, dall'alto in basso), quindi
+   tastiera e lettori di schermo seguono lo stesso ordine. `minmax(0, 1fr)` evita lo scorrimento orizzontale. */
+@media (min-width: 1280px) {
+  .bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .bento > .card { max-width: none; margin: 0; grid-column: span 6; }
+  .bento.groups { gap: 24px 28px; }
+  .bento.groups > .group { margin: 0; grid-column: span 6; min-width: 0; }
+  .bento.groups > .group:first-child { grid-column: span 12; }
+}
+@media (min-width: 1920px) {
+  .shell { grid-template-columns: 96px minmax(0, 1fr) 420px; }
+  .bento > .card { grid-column: span 4; }
+  .bento.groups > .group { grid-column: span 4; }
+  .bento.groups > .group:first-child { grid-column: span 8; }
+}
 .activity-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .activity-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .activity-name { font-size: 13px; }
