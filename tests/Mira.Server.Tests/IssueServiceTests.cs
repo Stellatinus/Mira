@@ -98,7 +98,7 @@ public class IssueServiceTests
 
         Assert.Equal(100, snapshot.Items.Count);
         var error = Assert.Single(snapshot.Errors);
-        Assert.Equal(("alice", "issues", "rate-limited"), (error.Account, error.Section, error.Error.Code));
+        Assert.Equal(("alice", "issues", "forbidden"), (error.Account, error.Section, error.Error.Code));
     }
 
     [Fact]
