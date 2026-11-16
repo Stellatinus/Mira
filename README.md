@@ -37,7 +37,7 @@ cambia luminosità nel tempo, come l'attività dei tuoi repository.
 
 ### Da una release
 
-Dalla pagina delle [release](https://github.com/Stellatinus/Mira/releases) scarica il pacchetto per il tuo sistema (Windows o Linux), estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare nulla. I programmi non sono firmati: Windows può mostrare un avviso la prima volta. Come si fanno le release: [`docs/RELEASING.md`](docs/RELEASING.md).
+Dalla pagina delle [release](https://github.com/Stellatinus/Mira/releases) scarica il pacchetto per il tuo sistema (Windows, Linux o macOS con Apple Silicon), estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare nulla. I programmi non sono firmati: Windows può mostrare un avviso la prima volta; su macOS il primo avvio va sbloccato con `xattr -d com.apple.quarantine Mira.Server`. Come si fanno le release: [`docs/RELEASING.md`](docs/RELEASING.md).
 
 ### Dal sorgente
 
@@ -127,6 +127,8 @@ Dal pannello dei dettagli si può segnare un elemento come **visto** o **rimanda
 - Il server ascolta solo su `127.0.0.1` e rifiuta richieste che non arrivano da localhost.
 
 Variabili d'ambiente: `MIRA_URLS` (default `http://127.0.0.1:5080`), `MIRA_DATA_DIR`, `MIRA_MASTER_KEY`.
+
+**File di configurazione:** `config.json` nella cartella dei dati (accanto a `tokens.enc`, non cifrato), per esempio `{ "port": 5081 }`. Oggi c'è solo la porta; Mira ascolta sempre e solo su `127.0.0.1`. La porta si decide così: prima `MIRA_URLS`, poi `config.json`, poi `5080`. Se il file non si legge o la porta non è valida (1-65535), Mira non parte e dice quale file e perché. Il file sta fuori dalla cartella del programma, quindi sopravvive agli aggiornamenti.
 
 ## Roadmap
 

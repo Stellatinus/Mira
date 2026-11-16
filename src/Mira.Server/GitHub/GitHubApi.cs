@@ -218,13 +218,22 @@ public sealed class GitHubApi(IHttpClientFactory httpClientFactory, ILogger<GitH
         }
     }
 
-    private static ErrorInfo Describe(HttpResponseMessage response) => response.StatusCode switch
+    /// <summary>
+    /// 401 = token non valido; 429, o 403 con limite esaurito o `Retry-After`, = limite di richieste (il dettaglio,
+    /// quando c'è, è il momento ISO 8601 in cui riprovare); qualsiasi altro 403 = permessi mancanti (es. SSO non
+    /// autorizzato). Il resto è un errore HTTP generico.
+    /// </summary>
+    internal static ErrorInfo Describe(HttpResponseMessage response) => response.StatusCode switch
     {
         HttpStatusCode.Unauthorized => new ErrorInfo("unauthorized"),
-        // Il dettaglio, quando c'è, è il momento (ISO 8601) in cui si potrà riprovare.
-        HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests => new ErrorInfo("rate-limited", RetryAt(response)),
+        HttpStatusCode.TooManyRequests => new ErrorInfo("rate-limited", RetryAt(response)),
+        HttpStatusCode.Forbidden when IsRateLimited(response) => new ErrorInfo("rate-limited", RetryAt(response)),
+        HttpStatusCode.Forbidden => new ErrorInfo("forbidden"),
         var status => new ErrorInfo("github-http", ((int)status).ToString()),
     };
+
+    private static bool IsRateLimited(HttpResponseMessage response) =>
+        response.Headers.Contains("Retry-After") || ParseRateLimit(response) is { Remaining: 0 };
 
     /// <summary>Quando riprovare: «Retry-After» (limite secondario) oppure l'azzeramento della finestra se le richieste sono finite.</summary>
     private static string? RetryAt(HttpResponseMessage response)

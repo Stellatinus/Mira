@@ -1,19 +1,22 @@
 import { useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useDismiss } from './dismiss';
-import { Chips, FacetSelect, Group } from './FilterParts';
+import { Chips, FacetChecklist, Group } from './FilterParts';
 import { useI18n } from './i18n';
 import { ChevronDownIcon, FilterIcon } from './icons';
 import {
-  ACTIVITY_FILTERS,
+  ACTIVITY_CHOICES,
+  ACTIVITY_CONDITIONS,
+  ACTIVITY_MODES,
   activeFilterCount,
+  activityCount,
   DEFAULT_REPO_FILTERS,
   NO_LANGUAGE,
   ORIGIN_FILTERS,
   STARRED_FILTERS,
   VISIBILITY_FILTERS,
 } from './repoview';
-import type { RepoFilters } from './repoview';
+import type { ActivityChoice, ActivityCondition, RepoFilters } from './repoview';
 import type { Facet } from './viewmodel';
 
 interface Props {
@@ -39,8 +42,11 @@ export function RepoFilterMenu({ filters, onChange, facets }: Props) {
   const set = <K extends keyof RepoFilters>(key: K, value: RepoFilters[K]) =>
     onChange((current) => ({ ...current, [key]: value }));
 
+  const setActivity = (condition: ActivityCondition, choice: ActivityChoice) =>
+    onChange((current) => ({ ...current, activity: { ...current.activity, [condition]: choice } }));
+
   const optionsOf = <T extends string>(prefix: string, values: T[]) =>
-    values.map((value) => ({ value, label: t(`${prefix}.${value}` as 'repo.filter.activity.any') }));
+    values.map((value) => ({ value, label: t(`${prefix}.${value}` as 'repo.filter.visibility.all') }));
 
   return (
     <div className="dropdown" ref={root}>
@@ -60,12 +66,27 @@ export function RepoFilterMenu({ filters, onChange, facets }: Props) {
       {open && (
         <div className="popover" role="dialog" aria-label={t('repo.filter.label')}>
           <Group label={t('repo.filter.group.activity')}>
-            <Chips
-              label={t('repo.filter.group.activity')}
-              value={filters.activity}
-              options={optionsOf('repo.filter.activity', ACTIVITY_FILTERS)}
-              onChange={(value) => set('activity', value)}
-            />
+            <div className="activity-rows">
+              {ACTIVITY_CONDITIONS.map((condition) => (
+                <div key={condition} className="activity-row">
+                  <span className="activity-name">{t(`repo.filter.activity.${condition}` as 'repo.filter.activity.prs')}</span>
+                  <Chips
+                    label={t(`repo.filter.activity.${condition}` as 'repo.filter.activity.prs')}
+                    value={filters.activity[condition]}
+                    options={optionsOf('repo.filter.choice', ACTIVITY_CHOICES)}
+                    onChange={(value) => setActivity(condition, value)}
+                  />
+                </div>
+              ))}
+            </div>
+            {activityCount(filters.activity) > 1 && (
+              <Chips
+                label={t('repo.filter.mode.label')}
+                value={filters.activityMode}
+                options={optionsOf('repo.filter.mode', ACTIVITY_MODES)}
+                onChange={(value) => set('activityMode', value)}
+              />
+            )}
           </Group>
           <Group label={t('repo.filter.group.visibility')}>
             <Chips
@@ -91,19 +112,19 @@ export function RepoFilterMenu({ filters, onChange, facets }: Props) {
             onChange={(value) => set('starred', value)}
           />
         </Group>
-          <Group label={t('repo.filter.group.language')} htmlFor="filter-language">
-            <FacetSelect
-              id="filter-language"
-              value={filters.language}
+          <Group label={t('repo.filter.group.language')}>
+            <FacetChecklist
+              label={t('repo.filter.group.language')}
+              values={filters.language}
               facets={facets.languages}
               labelOf={(facet) => (facet.value === NO_LANGUAGE ? t('repo.filter.noLanguage') : facet.label)}
               onChange={(value) => set('language', value)}
             />
           </Group>
-          <Group label={t('repo.filter.group.owner')} htmlFor="filter-owner">
-            <FacetSelect
-              id="filter-owner"
-              value={filters.owner}
+          <Group label={t('repo.filter.group.owner')}>
+            <FacetChecklist
+              label={t('repo.filter.group.owner')}
+              values={filters.owner}
               facets={facets.owners}
               labelOf={(facet) => facet.label}
               onChange={(value) => set('owner', value)}

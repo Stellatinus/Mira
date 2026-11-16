@@ -215,7 +215,7 @@ public sealed class ReleaseServiceTests : IDisposable
 
         Assert.Single(snapshot.Items);
         var error = Assert.Single(snapshot.Errors);
-        Assert.Equal(("bob", "releases", "rate-limited"), (error.Account, error.Section, error.Error.Code));
+        Assert.Equal(("bob", "releases", "forbidden"), (error.Account, error.Section, error.Error.Code));
     }
 
     [Fact]

@@ -81,7 +81,7 @@ public class GitHubApiTests
 
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized, "unauthorized", null)]
-    [InlineData(HttpStatusCode.Forbidden, "rate-limited", null)]
+    [InlineData(HttpStatusCode.Forbidden, "forbidden", null)]
     [InlineData(HttpStatusCode.TooManyRequests, "rate-limited", null)]
     [InlineData(HttpStatusCode.InternalServerError, "github-http", "500")]
     [InlineData(HttpStatusCode.NotFound, "github-http", "404")]

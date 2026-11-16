@@ -102,6 +102,17 @@ GitHub concede a ogni account un numero di richieste per finestra di tempo, dive
 - **Richieste condizionali (ETag):** Mira ricorda l'ultima risposta di ogni lettura e la sua «impronta» (ETag). La volta dopo la manda a GitHub (`If-None-Match`): se nulla è cambiato GitHub risponde **304**, senza riscaricare i dati, e **una 304 non conta per il limite di richieste**. Si tengono in memoria al massimo le **200** risposte più recenti (non più grandi di 1 MB ciascuna), separate per account; GraphQL e le azioni non sono condizionali. Mira **non sa** se GitHub risponde 304 anche per le ricerche e le notifiche: se non lo fa, tutto funziona come prima, senza risparmio.
 - I numeri sono quelli dell'**ultima risposta** di ogni risorsa: una finestra il cui azzeramento è già passato conta come piena.
 
+## Regole dei filtri
+
+Valgono per i repository e per issue, PR e notifiche.
+
+1. **Tra gruppi diversi: E.** «Pubblici» + «Linguaggio C#» = pubblici *e* in C#. Più gruppi si usano, più si restringe.
+2. **Scelte che si escludono a vicenda** (visibilità, provenienza, preferiti, tipo, bozza, commenti, assegnazione): scelta singola.
+3. **Scelte che si possono avere insieme** (linguaggio, proprietario, repository, assegnatario, motivo di una notifica): caselle da spuntare, più voci valgono come **O** («C# *o* TypeScript»). Nessuna casella = nessun vincolo.
+4. **Attività dei repository** (PR aperte, issue aperte, issue non assegnate, aspettano te): per ogni condizione si sceglie **Indifferente / Con / Senza**. Se ne sono scelte almeno due compare l'interruttore **«Tutte le condizioni» (E, predefinito) / «Almeno una» (O)**.
+5. **«Senza»** nega la singola condizione («PR aperte *ma senza* issue non assegnate»): non esiste un terzo modo di combinare.
+6. Il numero sul pulsante «Filtri» conta i gruppi attivi (l'Attività conta come uno); «Azzera i filtri» li toglie tutti.
+
 ## Limiti da conoscere
 
 - Nella dashboard, per ogni sezione e account, si scaricano al massimo le **100** voci più recenti (ricerca e liste di GitHub); la vista «Issue» le scarica tutte, fino ai 1000 risultati della ricerca. Il totale vero si vede dove GitHub lo dà («100 di 213»). Chi supera i 100 può vedere un «tue» o un «aspettano te» più basso del vero.

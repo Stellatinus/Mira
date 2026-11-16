@@ -1,11 +1,12 @@
 import { ciState } from './checks';
-import { ANY, ownerOf } from './repoview';
+import { ownerOf } from './repoview';
 import type { ViewKey } from './sections';
 import type { DashboardItem } from './types';
 
 /**
  * Filtri e ordinamento degli elementi (issue, PR, notifiche, menzioni). Funzionano come quelli dei
- * repository: ogni gruppo è a scelta singola e i gruppi si combinano tutti insieme.
+ * repository: tra gruppi diversi vale «E»; assegnatario, repository, proprietario e motivo ammettono più voci («O»).
+ * Vedi docs/REGOLE.md.
  */
 export type TypeFilter = 'all' | 'issue' | 'pr';
 export const TYPE_FILTERS: TypeFilter[] = ['all', 'issue', 'pr'];
@@ -27,39 +28,40 @@ export const CI_FILTERS: CiFilter[] = ['all', 'failing'];
 export interface ItemFilters {
   /** «Assegnate a te», «ad altri» e «non assegnate» dividono le issue senza resto. */
   assignment: AssignmentFilter;
-  /** Un assegnatario preciso (login in minuscolo), o ANY. */
-  assignee: string;
+  /** Assegnatari scelti (login in minuscolo); vuoto = nessun vincolo. */
+  assignee: string[];
   type: TypeFilter;
   /** Vale per le PR: «solo bozze» esclude le issue, «senza bozze» le tiene. */
   draft: DraftFilter;
   comments: CommentsFilter;
   /** «Solo CI rossa»: le PR con almeno un controllo fallito. */
   ci: CiFilter;
-  /** Repository («owner/nome» in minuscolo), o ANY. */
-  repo: string;
-  /** Proprietario del repository (in minuscolo), o ANY. */
-  owner: string;
-  /** Motivo di una notifica (es. "mention"), o ANY. */
-  reason: string;
+  /** Repository scelti («owner/nome» in minuscolo); vuoto = nessun vincolo. */
+  repo: string[];
+  /** Proprietari dei repository scelti (in minuscolo); vuoto = nessun vincolo. */
+  owner: string[];
+  /** Motivi di notifica scelti (es. "mention"); vuoto = nessun vincolo. */
+  reason: string[];
 }
 
 export const DEFAULT_ITEM_FILTERS: ItemFilters = {
   assignment: 'all',
-  assignee: ANY,
+  assignee: [],
   type: 'all',
   draft: 'all',
   comments: 'all',
   ci: 'all',
-  repo: ANY,
-  owner: ANY,
-  reason: ANY,
+  repo: [],
+  owner: [],
+  reason: [],
 };
 
 /** Quanti gruppi di filtri sono attivi (cioè diversi dal predefinito). */
 export function activeItemFilterCount(filters: ItemFilters): number {
-  return (Object.keys(DEFAULT_ITEM_FILTERS) as (keyof ItemFilters)[]).filter(
-    (key) => filters[key] !== DEFAULT_ITEM_FILTERS[key],
-  ).length;
+  return (Object.keys(DEFAULT_ITEM_FILTERS) as (keyof ItemFilters)[]).filter((key) => {
+    const value = filters[key];
+    return Array.isArray(value) ? value.length > 0 : value !== DEFAULT_ITEM_FILTERS[key];
+  }).length;
 }
 
 /**
@@ -76,7 +78,7 @@ export function matchesItemFilters(item: DashboardItem, filters: ItemFilters, mi
   if (filters.assignment === 'none' && assignees.length > 0) return false;
   if (filters.assignment === 'mine' && !assignees.some((a) => mine.has(a))) return false;
   if (filters.assignment === 'others' && !(assignees.length > 0 && !assignees.some((a) => mine.has(a)))) return false;
-  if (filters.assignee !== ANY && !assignees.includes(filters.assignee)) return false;
+  if (filters.assignee.length > 0 && !filters.assignee.some((a) => assignees.includes(a))) return false;
   if (filters.type === 'pr' && item.type !== 'pr') return false;
   if (filters.type === 'issue' && item.type !== 'issue') return false;
   if (filters.draft === 'only' && !item.draft) return false;
@@ -84,9 +86,9 @@ export function matchesItemFilters(item: DashboardItem, filters: ItemFilters, mi
   if (filters.comments === 'with' && item.comments === 0) return false;
   if (filters.comments === 'without' && item.comments > 0) return false;
   if (filters.ci === 'failing' && ciState(item.checks) !== 'failure') return false;
-  if (filters.repo !== ANY && item.repo.toLowerCase() !== filters.repo) return false;
-  if (filters.owner !== ANY && ownerOf(item).toLowerCase() !== filters.owner) return false;
-  if (filters.reason !== ANY && item.reason !== filters.reason) return false;
+  if (filters.repo.length > 0 && !filters.repo.includes(item.repo.toLowerCase())) return false;
+  if (filters.owner.length > 0 && !filters.owner.includes(ownerOf(item).toLowerCase())) return false;
+  if (filters.reason.length > 0 && !(item.reason && filters.reason.includes(item.reason))) return false;
   return true;
 }
 

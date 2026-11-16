@@ -129,7 +129,7 @@ public class RateLimitTests
 
         var response = await api.GetAsync<GhUser>("t", "user", CancellationToken.None);
 
-        Assert.Equal("rate-limited", response.Error!.Code);
+        Assert.Equal("forbidden", response.Error!.Code);
         Assert.Null(response.Error.Detail);
     }
 
