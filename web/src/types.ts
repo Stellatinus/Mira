@@ -176,3 +176,43 @@ export interface Dashboard {
   totals: SectionTotal[];
   errors: DashboardError[];
 }
+
+/** Una milestone di un repository; state: open | closed, progress: 0-100. */
+export interface RepoMilestone {
+  number: number;
+  title: string;
+  description: string | null;
+  dueOn: string | null;
+  state: 'open' | 'closed';
+  url: string;
+  progress: number;
+  openIssues: number;
+  closedIssues: number;
+}
+
+/** Una PR o issue aperta nella pagina di un repository. */
+export interface RepoPageItem {
+  number: number;
+  title: string;
+  url: string;
+  updatedAt: string;
+  author: string | null;
+  draft: boolean;
+  comments: number;
+  assignees: string[];
+  milestone: number | null;
+}
+
+/** La pagina di un repository: prTotal e issueTotal sono i totali veri, oltre agli elementi scaricati. */
+export interface RepoPageData {
+  generatedAt: string;
+  repo: string;
+  url: string;
+  description: string | null;
+  private: boolean;
+  milestones: RepoMilestone[];
+  prs: RepoPageItem[];
+  prTotal: number;
+  issues: RepoPageItem[];
+  issueTotal: number;
+}

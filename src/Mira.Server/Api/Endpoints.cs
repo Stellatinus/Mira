@@ -103,6 +103,19 @@ public static class Endpoints
         api.MapGet("/releases", async (bool? refresh, ReleaseService releases, CancellationToken ct) =>
             Results.Ok(await releases.GetAsync(refresh == true, ct)));
 
+        // La pagina personalizzata di un repository: milestone, PR aperte e tutte le issue aperte.
+        api.MapGet("/repo/{owner}/{name}", async (string owner, string name, string? account, bool? refresh, RepoPageService repoPages, CancellationToken ct) =>
+        {
+            if (!RepoPageService.IsValidRepoPart(owner) || !RepoPageService.IsValidRepoPart(name))
+                return Results.BadRequest(new { error = new ErrorInfo("repo-invalid") });
+
+            var (page, error) = await repoPages.GetAsync(owner, name, account, refresh == true, ct);
+            if (page is not null)
+                return Results.Ok(page);
+
+            return Results.Json(new { error }, statusCode: error?.Code is "repo-unavailable" or "account-unknown" ? StatusCodes.Status404NotFound : StatusCodes.Status502BadGateway);
+        });
+
         api.MapGet("/follow", async (FollowStore follow, CancellationToken ct) => Results.Ok(await follow.GetAsync(ct)));
 
         api.MapPut("/follow", async (FollowRequest request, FollowStore follow, ReleaseService releases, CancellationToken ct) =>

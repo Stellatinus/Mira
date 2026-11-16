@@ -42,3 +42,12 @@ export function viewFromHash(hash: string = window.location.hash): ViewKey | nul
   const match = /^#\/([\w-]+)\/?$/.exec(hash);
   return VIEWS.find((v) => v.key === match?.[1])?.key ?? null;
 }
+
+/** L'hash della pagina di un repository: `#/repo/proprietario/nome`. */
+export const repoHash = (repo: string): string => `#/repo/${repo}`;
+
+/** Il repository indicato dall'hash (`#/repo/proprietario/nome`), oppure null. */
+export function repoFromHash(hash: string = window.location.hash): string | null {
+  const match = /^#\/repo\/([\w.-]+)\/([\w.-]+)\/?$/.exec(hash);
+  return match ? `${match[1]}/${match[2]}` : null;
+}

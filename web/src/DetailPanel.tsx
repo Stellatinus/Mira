@@ -10,6 +10,7 @@ import { reasonLabel, typeLabel } from './labels';
 import { ciState } from './checks';
 import { latestPerReviewer, newCommentsSince, reviewBadge } from './review';
 import { canMarkSeen, isHidden } from './seen';
+import { repoHash } from './sections';
 import { Tile } from './Tile';
 import type { AccountStatus, ChecksInfo, DashboardItem, SeenEntry } from './types';
 
@@ -255,6 +256,9 @@ export function DetailPanel({ item, accounts, starredBy, attention, seen, onSeen
           )}
           {item.type === 'repo' && (
             <div className="seen-box" role="group" aria-label={t('follow.group')}>
+              <a className="btn" href={repoHash(item.repo)}>
+                <ItemIcon type="repo" size={14} /> {t('repoPage.open2')}
+              </a>
               <button className="btn" aria-pressed={followed} onClick={() => onFollow(!followed)}>
                 <ItemIcon type="release" size={14} /> {followed ? t('follow.stop') : t('follow.start')}
               </button>

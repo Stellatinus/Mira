@@ -33,6 +33,7 @@ builder.Services.AddSingleton<NotificationService>();
 builder.Services.AddSingleton<SectionService>();
 builder.Services.AddSingleton(_ => new FollowStore(DataDirectory.Resolve()));
 builder.Services.AddSingleton<ReleaseService>();
+builder.Services.AddSingleton<RepoPageService>();
 builder.Services.AddSingleton(provider => new UpdateService(provider.GetRequiredService<GitHubApi>(), AppVersion.Current));
 
 var app = builder.Build();
