@@ -125,6 +125,7 @@ public sealed class RenewEndpointTests : IAsyncLifetime
         builder.Services.AddSingleton<SectionService>();
         builder.Services.AddSingleton(new FollowStore(Path.Combine(Path.GetTempPath(), "mira-follow-" + Guid.NewGuid().ToString("N"))));
         builder.Services.AddSingleton<ReleaseService>();
+        builder.Services.AddSingleton<RepoPageService>();
         builder.Services.AddSingleton(provider => new UpdateService(provider.GetRequiredService<Mira.Server.GitHub.GitHubApi>(), "1.2.0"));
         builder.Services.AddSingleton(new SeenStore(Path.Combine(Path.GetTempPath(), "mira-renew-" + Guid.NewGuid().ToString("N"))));
         _app = builder.Build();

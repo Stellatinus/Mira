@@ -40,7 +40,8 @@ import { DEFAULT_OS_NOTIFY, loadOsNotify, osPermission, requestOsPermission, sav
 import type { OsNotifyPrefs, OsPermission } from './osNotify';
 import { isHidden, newComments, threadIdOf, tomorrowMorning, tracksNews } from './seen';
 import { loadSnapshot, saveSnapshot } from './snapshot-cache';
-import { hashFor, isExtraView, VIEWS, viewFromHash } from './sections';
+import { RepoPage } from './RepoPage';
+import { hashFor, isExtraView, repoFromHash, VIEWS, viewFromHash } from './sections';
 import type { ViewKey } from './sections';
 import { useRefreshInterval } from './refresh';
 import { DEFAULT_REPO_FILTERS, DEFAULT_REPO_SORT, REPO_SORTS } from './repoview';
@@ -109,6 +110,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   // La vista sta nell'URL (hash): segnalibri, Indietro e ricarica funzionano.
   const [view, setView] = useState<ViewKey>(() => viewFromHash() ?? 'home');
+  // La pagina di un repository (`#/repo/proprietario/nome`) sostituisce il contenuto della vista.
+  const [repoPage, setRepoPage] = useState<string | null>(() => repoFromHash());
   const [storedFilter, setStoredFilter] = useState(() => readStored(FILTER_KEY, 'all'));
   const [mode, setMode] = useState<Mode>(() => {
     const saved = readStored(MODE_KEY, 'grid');
@@ -629,6 +632,7 @@ export default function App() {
   // Un hash che non è una vista (come `#sec-review`) non cambia nulla.
   useEffect(() => {
     const onHash = () => {
+      setRepoPage(repoFromHash());
       const next = viewFromHash();
       if (next !== null) applyView(next);
     };
@@ -681,6 +685,9 @@ export default function App() {
         todoByAccount={todoByAccount}
       />
 
+      {repoPage !== null ? (
+        <RepoPage key={repoPage} repo={repoPage} onBack={() => chooseView(view)} />
+      ) : (
       <main className="main" id="main" tabIndex={-1} ref={mainRef}>
         <header className="main-head">
           <h1 ref={headingRef} tabIndex={-1}>
@@ -886,8 +893,9 @@ export default function App() {
           )}
         </div>
       </main>
+      )}
 
-      {showItems && (
+      {showItems && repoPage === null && (
         <DetailPanel
           item={selected}
           accounts={selectedAccounts}

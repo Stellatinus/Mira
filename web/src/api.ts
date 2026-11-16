@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, ErrorInfo, ExtraKey, ExtraSnapshot, FollowList, SectionPage, SeenEntry, UpdateInfo } from './types';
+import type { AccountStatus, Dashboard, RepoPageData, ErrorInfo, ExtraKey, ExtraSnapshot, FollowList, SectionPage, SeenEntry, UpdateInfo } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -114,3 +114,9 @@ export const putFollow = (repo: string, follow: boolean) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ repo, follow }),
   });
+
+/** La pagina di un repository («proprietario/nome»): milestone, PR aperte e issue aperte. */
+export const getRepoPage = (repo: string, refresh = false) => {
+  const [owner, name] = repo.split('/');
+  return request<RepoPageData>(`/api/repo/${encodeURIComponent(owner)}/${encodeURIComponent(name)}${refresh ? '?refresh=true' : ''}`);
+};

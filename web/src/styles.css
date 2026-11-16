@@ -519,6 +519,33 @@ h1, h2, h3, p { margin: 0; }
   .stack-avatar:hover { transform: none; }
 }
 
+/* ---------- Pagina di un repository ---------- */
+.repo-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.repo-head h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repo-ext { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: inherit; }
+.repo-page { padding: 8px 32px 32px; }
+.repo-desc { margin: 8px 0 4px; color: var(--muted); max-width: 70ch; }
+.repo-section { display: flex; align-items: center; gap: 8px; margin: 22px 0 10px; font-size: 15px; font-weight: 600; }
+.repo-foot { margin-top: 20px; font-size: 12.5px; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 8px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+.tl-item { position: relative; padding-left: 18px; }
+.tl-item.closed { opacity: 0.65; }
+.tl-dot { position: absolute; left: -15px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--main); }
+.tl-dot.overdue { background: var(--c-notifications); }
+.tl-body { display: flex; flex-direction: column; gap: 4px; }
+.tl-title { font-weight: 600; color: var(--text); text-decoration: none; }
+.tl-title:hover { text-decoration: underline; }
+.tl-meta { font-size: 12.5px; color: var(--muted); }
+.tl-bar { height: 6px; max-width: 360px; border-radius: 3px; background: var(--card); overflow: hidden; }
+.tl-bar span { display: block; height: 100%; background: var(--accent); }
+.tl-desc { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
+.repo-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.repo-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border-radius: 10px; background: var(--card); }
+.ri-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ri-title { color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+.ri-title:hover { text-decoration: underline; }
+.ri-meta { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 700px) { .repo-page { padding: 8px 16px 24px; } }
 /* ---------- Pila degli account: contatore, nome al passaggio, molti account ---------- */
 .stack-count { position: absolute; top: -5px; right: -7px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--c-notifications); color: var(--badge-ink); font-size: 10px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--side); }
 .stack-name { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 10; padding: 4px 9px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); color: var(--text); font-size: 12.5px; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; }

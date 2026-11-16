@@ -142,3 +142,46 @@ public sealed record GqlReleaseRepoList(List<GqlReleaseRepo?>? Nodes);
 public sealed record GqlReleaseRepo(string NameWithOwner, bool IsPrivate, GqlLatestRelease? LatestRelease);
 
 public sealed record GqlLatestRelease(string? Name, string TagName, string Url, DateTimeOffset? PublishedAt, string? Description);
+
+// --- GraphQL: pagina di un repository (milestone, PR e issue aperte) ---
+
+public sealed record GqlRepoPageData(GqlRepoPageRepo? Repository);
+
+public sealed record GqlRepoPageRepo(
+    string NameWithOwner,
+    string Url,
+    string? Description,
+    bool IsPrivate,
+    GqlMilestoneList? Milestones,
+    GqlPagedItems? PullRequests,
+    GqlPagedItems? Issues);
+
+public sealed record GqlMilestoneList(List<GqlMilestone?>? Nodes);
+
+public sealed record GqlMilestone(
+    int Number,
+    string Title,
+    string? Description,
+    DateTimeOffset? DueOn,
+    string State,
+    string Url,
+    double ProgressPercentage,
+    GqlCount? Open,
+    GqlCount? Closed);
+
+public sealed record GqlPagedItems(int TotalCount, List<GqlPageItem?>? Nodes);
+
+public sealed record GqlPageItem(
+    int Number,
+    string Title,
+    string Url,
+    DateTimeOffset UpdatedAt,
+    bool? IsDraft,
+    GqlActor? Author,
+    GqlCount? Comments,
+    GqlActorList? Assignees,
+    GqlMilestoneRef? Milestone);
+
+public sealed record GqlActorList(List<GqlActor?>? Nodes);
+
+public sealed record GqlMilestoneRef(int Number);
