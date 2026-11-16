@@ -34,6 +34,7 @@ export const it = {
   'nav.filterGroup': 'Filtra per account',
   'nav.allAccounts': 'Tutti gli account',
   'nav.accountActive': '{login} (clicca per mostrare tutti)',
+  'nav.accountTodo': '{count} da guardare',
   'nav.accountOnly': 'Mostra solo {login}',
 
   'view.home.label': 'Home',

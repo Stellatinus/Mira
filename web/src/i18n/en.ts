@@ -27,6 +27,7 @@ export const en: Messages = {
   'nav.filterGroup': 'Filter by account',
   'nav.allAccounts': 'All accounts',
   'nav.accountActive': '{login} (click to show all)',
+  'nav.accountTodo': '{count} to look at',
   'nav.accountOnly': 'Show only {login}',
 
   'view.home.label': 'Home',

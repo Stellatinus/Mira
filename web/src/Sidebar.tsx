@@ -26,9 +26,14 @@ interface Props {
   needsAttention: boolean;
   /** Quante notifiche non lette ci sono (col filtro per account), per il numerino sulla voce Notifiche. */
   unreadNotifications: number;
+  /** Per account: quanti elementi aspettano di essere guardati. */
+  todoByAccount: Record<string, number>;
 }
 
-export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttention, unreadNotifications }: Props) {
+/** Oltre questo numero di account la pila si stringe e scorre. */
+const MANY_ACCOUNTS = 4;
+
+export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttention, unreadNotifications, todoByAccount }: Props) {
   const { t } = useI18n();
 
   return (
@@ -86,9 +91,10 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
             <UsersIcon size={18} />
           </button>
         )}
-        <div className="stack" role="group" aria-label={t('nav.filterGroup')}>
+        <div className={accounts.length > MANY_ACCOUNTS ? 'stack many' : 'stack'} role="group" aria-label={t('nav.filterGroup')}>
           {accounts.map((account) => {
             const active = filter === account.login;
+            const todo = todoByAccount[account.login] ?? 0;
             return (
               <button
                 key={account.login}
@@ -102,6 +108,16 @@ export function Sidebar({ view, onView, accounts, filter, onFilter, needsAttenti
                 onClick={() => onFilter(active ? 'all' : account.login)}
               >
                 <Avatar account={account} size={36} />
+                {todo > 0 && (
+                  <span className="stack-count" aria-hidden="true">
+                    {todo > 99 ? '99+' : todo}
+                  </span>
+                )}
+                {/* Il nome si apre accanto all'avatar al passaggio del mouse o col focus. */}
+                <span className="stack-name" aria-hidden="true">
+                  {account.login}
+                </span>
+                {todo > 0 && <span className="visually-hidden">{t('nav.accountTodo', { count: todo })}</span>}
               </button>
             );
           })}
