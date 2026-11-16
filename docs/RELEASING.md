@@ -33,11 +33,11 @@ git push origin v1.0.0
 [`.github/workflows/release.yml`](../.github/workflows/release.yml), per ogni tag `v*.*.*`:
 
 1. controlla che il tag sia nel formato giusto;
-2. compila il frontend e pubblica il server come **programma autonomo** (non serve installare .NET) per **Windows** (`win-x64`, `.zip`) e **Linux** (`linux-x64`, `.tar.gz`); la versione dentro il programma è quella del tag;
+2. compila il frontend e pubblica il server come **programma autonomo** (non serve installare .NET) per **Windows** (`win-x64`, `.zip`), **Linux** (`linux-x64`, `.tar.gz`) e **macOS** su Apple Silicon (`osx-arm64`, `.tar.gz`); la versione dentro il programma è quella del tag;
 3. **prova il pacchetto**: lo avvia da un'altra cartella, controlla che risponda con la versione giusta e che serva il frontend;
-4. crea la release con i due pacchetti, un file `SHA256SUMS.txt` con le somme di controllo e le **note generate dalle PR fuse** dall'ultima release.
+4. crea la release con i tre pacchetti, un file `SHA256SUMS.txt` con le somme di controllo e le **note generate dalle PR fuse** dall'ultima release.
 
-macOS non è compreso (come nella CI). I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta.
+macOS è compreso solo per **Apple Silicon** (non Intel) e solo nei pacchetti: la CI di compilazione resta su Linux e Windows. I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta; su macOS il primo avvio è bloccato finché non si toglie la quarantena con `xattr -d com.apple.quarantine Mira.Server`.
 
 La versione è visibile nell'app, in **Impostazioni → Informazioni**; compilando dal sorgente compare `0.0.0-dev`, per distinguerla da una release.
 

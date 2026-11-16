@@ -3,7 +3,7 @@
 # Come si fa una release: si crea un tag nel formato vMAJOR.MINOR.PATCH (es. v1.0.0). Vedi docs/RELEASING.md.
 #
 # Cosa succede:
-#  - push di un tag v*.*.*: si compila il frontend e il server per Windows e Linux (programma autonomo,
+#  - push di un tag v*.*.*: si compila il frontend e il server per Windows, Linux e macOS (programma autonomo,
 #    non serve installare .NET), si prova che parta e risponda, si crea la release su GitHub con i pacchetti,
 #    le somme di controllo e le note generate dalle PR fuse;
 #  - pull request che tocca questo file o il progetto: stessa compilazione e stessa prova, ma senza creare
@@ -30,8 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # macOS NON è incluso, come nella CI (scelta del progetto, novembre 2026). Per aggiungerlo basta una riga
-        # con `os: macos-latest`, `rid: osx-arm64`, `archive: tar.gz`.
+        # macOS (Apple Silicon) è incluso nei pacchetti; la CI di compilazione resta solo su Linux e Windows.
         include:
           - os: ubuntu-latest
             rid: linux-x64
@@ -39,6 +38,9 @@ jobs:
           - os: windows-latest
             rid: win-x64
             archive: zip
+          - os: macos-latest
+            rid: osx-arm64
+            archive: tar.gz
     steps:
       - uses: actions/checkout@v4
 
@@ -91,12 +93,12 @@ jobs:
           cat > "publish/${{ steps.version.outputs.name }}/AVVIO.txt" <<'EOF'
           Mira - dashboard GitHub multi-account
 
-          1. Avvia Mira.Server (su Linux: ./Mira.Server).
+          1. Avvia Mira.Server (su Linux e macOS: ./Mira.Server).
           2. Apri http://127.0.0.1:5080 nel browser.
           3. Dalle Impostazioni collega i tuoi account con un token (la pagina spiega come crearlo).
 
           Mira ascolta solo sul tuo computer. I token restano cifrati nella tua cartella di configurazione
-          (Windows: %APPDATA%\Mira, Linux: ~/.config/Mira). Documentazione: https://github.com/Stellatinus/Mira
+          (Windows: %APPDATA%\Mira, Linux e macOS: ~/.config/Mira). Documentazione: https://github.com/Stellatinus/Mira
           EOF
 
       # Prova vera: il programma parte da una cartella diversa dalla sua, serve il frontend e dichiara la versione.
@@ -119,7 +121,7 @@ jobs:
           curl -fsS http://127.0.0.1:5099/ | grep -q 'id="root"'
           kill "$PID" || true
 
-      - name: Archivio (Linux)
+      - name: Archivio (Linux e macOS)
         if: matrix.archive == 'tar.gz'
         run: tar -czf "${{ steps.version.outputs.name }}.tar.gz" -C publish "${{ steps.version.outputs.name }}"
 
@@ -167,9 +169,9 @@ jobs:
           ## Come si usa
           Scarica il pacchetto per il tuo sistema, estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare .NET. Dettagli in `AVVIO.txt` dentro il pacchetto.
 
-          I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta. Per controllare il file scaricato, confronta la somma con `SHA256SUMS.txt`.
+          I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta e macOS blocca il primo avvio. Per controllare il file scaricato, confronta la somma con `SHA256SUMS.txt`.
 
-          macOS non è compreso in questa versione.
+          Su macOS (Apple Silicon) il programma non è firmato né notarizzato: al primo avvio il sistema lo blocca. Per aprirlo, dal terminale: `xattr -d com.apple.quarantine Mira.Server` (e `chmod +x Mira.Server` se serve), poi `./Mira.Server`.
           EOF
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
