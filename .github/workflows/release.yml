@@ -146,6 +146,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      # Serve a Sigstore per firmare «senza chiave» con l'identità di questo workflow.
+      id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -155,6 +157,31 @@ jobs:
       - name: Somme di controllo
         working-directory: pacchetti
         run: sha256sum * > SHA256SUMS.txt
+
+      # Firma «keyless» (Sigstore): nessuna chiave da custodire; la firma lega il file all'identità di questo
+      # workflow su questo repository e al tag. Ogni file ha il suo bundle `.sigstore.json` (firma, certificato e
+      # prova nel registro pubblico). Si firma anche SHA256SUMS.txt.
+      - uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: Firma i pacchetti e le somme di controllo
+        working-directory: pacchetti
+        run: |
+          for f in *; do
+            cosign sign-blob --yes --bundle "$f.sigstore.json" "$f"
+          done
+
+      # Prova subito che le firme si verifichino come le verificherà l'utente: se fallisce, non si pubblica nulla.
+      - name: Verifica le firme appena create
+        working-directory: pacchetti
+        run: |
+          for f in $(ls | grep -v '\.sigstore\.json$'); do
+            cosign verify-blob "$f" \
+              --bundle "$f.sigstore.json" \
+              --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@${GITHUB_REF}" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          done
 
       - name: Crea la release
         env:
@@ -169,7 +196,9 @@ jobs:
           ## Come si usa
           Scarica il pacchetto per il tuo sistema, estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare .NET. Dettagli in `AVVIO.txt` dentro il pacchetto.
 
-          I programmi **non sono firmati**: Windows può mostrare un avviso di SmartScreen la prima volta e macOS blocca il primo avvio. Per controllare il file scaricato, confronta la somma con `SHA256SUMS.txt`.
+          I pacchetti sono **firmati con Sigstore** (identità di questo workflow, nessuna chiave da custodire): accanto a ogni file c'è il suo `.sigstore.json`. Come verificare: <https://github.com/Stellatinus/Mira/blob/main/docs/RELEASING.md#verificare-un-pacchetto>. La somma in `SHA256SUMS.txt` protegge da un download corrotto; la firma da un file che non esce da questo workflow.
+
+          Il programma **non è firmato come eseguibile** (nessun certificato di firma del codice): Windows può mostrare un avviso di SmartScreen la prima volta e macOS blocca il primo avvio.
 
           Su macOS (Apple Silicon) il programma non è firmato né notarizzato: al primo avvio il sistema lo blocca. Per aprirlo, dal terminale: `xattr -d com.apple.quarantine Mira.Server` (e `chmod +x Mira.Server` se serve), poi `./Mira.Server`.
           EOF
