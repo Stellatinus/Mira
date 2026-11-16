@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
-import { useI18n } from './i18n';
 import { RadioGroup } from './RadioGroup';
-import { ANY } from './repoview';
 import type { Facet } from './viewmodel';
 
 export function Group({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
@@ -30,35 +28,34 @@ export function Chips<T extends string>({
   return <RadioGroup className="chip-row" itemClass="chip" label={label} value={value} options={options} onChange={onChange} />;
 }
 
-/** Un elenco a tendina di scelte con il numero di repository accanto; «Tutti» in cima. */
-export function FacetSelect({
-  id,
-  value,
+/** Una scelta multipla: caselle da spuntare, con il numero di elementi accanto. Più voci valgono come «O». */
+export function FacetChecklist({
+  label,
+  values,
   facets,
   labelOf,
   onChange,
 }: {
-  id: string;
-  value: string;
+  label: string;
+  values: string[];
   facets: Facet[];
   labelOf: (facet: Facet) => string;
-  onChange: (value: string) => void;
+  onChange: (values: string[]) => void;
 }) {
-  const { t } = useI18n();
-  // Se la scelta attuale non c'è più nell'elenco (es. dopo aver cambiato account) resta comunque visibile.
-  const shown =
-    value === ANY || facets.some((facet) => facet.value === value)
-      ? facets
-      : [...facets, { value, label: value, count: 0 }];
+  // Se una scelta attuale non c'è più nell'elenco (es. dopo aver cambiato account) resta comunque visibile.
+  const missing = values.filter((v) => !facets.some((f) => f.value === v)).map((v) => ({ value: v, label: v, count: 0 }));
+  const toggle = (value: string) =>
+    onChange(values.includes(value) ? values.filter((v) => v !== value) : [...values, value]);
 
   return (
-    <select id={id} className="select full" value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value={ANY}>{t('repo.filter.any')}</option>
-      {shown.map((facet) => (
-        <option key={facet.value} value={facet.value}>
-          {labelOf(facet)} · {facet.count}
-        </option>
+    <div className="check-list" role="group" aria-label={label}>
+      {[...facets, ...missing].map((facet) => (
+        <label key={facet.value} className="check-row">
+          <input type="checkbox" checked={values.includes(facet.value)} onChange={() => toggle(facet.value)} />
+          <span className="check-text">{labelOf(facet)}</span>
+          <span className="check-count">{facet.count}</span>
+        </label>
       ))}
-    </select>
+    </div>
   );
 }

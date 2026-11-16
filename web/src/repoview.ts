@@ -10,9 +10,17 @@ export type RepoSort = 'updated' | 'name' | 'stars' | 'prs' | 'issues' | 'attent
 export const REPO_SORTS: RepoSort[] = ['updated', 'name', 'stars', 'prs', 'issues', 'attention'];
 export const DEFAULT_REPO_SORT: RepoSort = 'updated';
 
-/** Cosa c'è di aperto in un repository. */
-export type ActivityFilter = 'any' | 'prs' | 'issues' | 'open' | 'unassigned' | 'needs' | 'none';
-export const ACTIVITY_FILTERS: ActivityFilter[] = ['any', 'prs', 'issues', 'open', 'unassigned', 'needs', 'none'];
+/** Le condizioni di «Attività»: cosa può esserci di aperto in un repository. */
+export type ActivityCondition = 'prs' | 'issues' | 'unassigned' | 'needs';
+export const ACTIVITY_CONDITIONS: ActivityCondition[] = ['prs', 'issues', 'unassigned', 'needs'];
+
+/** Per ogni condizione: ignorata (`off`), il repository deve averla (`with`) o non averla (`without`). */
+export type ActivityChoice = 'off' | 'with' | 'without';
+export const ACTIVITY_CHOICES: ActivityChoice[] = ['off', 'with', 'without'];
+
+/** Come si combinano le condizioni scelte: tutte insieme (E) o almeno una (O). */
+export type ActivityMode = 'all' | 'any';
+export const ACTIVITY_MODES: ActivityMode[] = ['all', 'any'];
 
 export type VisibilityFilter = 'all' | 'public' | 'private';
 export const VISIBILITY_FILTERS: VisibilityFilter[] = ['all', 'public', 'private'];
@@ -29,34 +37,53 @@ export const ANY = 'all';
 export const NO_LANGUAGE = '(nessuno)';
 
 /**
- * I filtri dei repository. Ogni gruppo è a scelta singola e i gruppi si combinano tutti insieme
- * («pubblici» e «con issue non assegnate» e «linguaggio C#»).
+ * I filtri dei repository. Tra gruppi diversi vale sempre «E». Visibilità e provenienza sono a scelta
+ * singola; linguaggio e proprietario ammettono più voci (valgono come «O»); le condizioni di
+ * «Attività» si combinano con «Tutte» (E) o «Almeno una» (O). Vedi docs/REGOLE.md.
  */
 export interface RepoFilters {
-  activity: ActivityFilter;
+  activity: Record<ActivityCondition, ActivityChoice>;
+  activityMode: ActivityMode;
   visibility: VisibilityFilter;
   origin: OriginFilter;
   starred: StarredFilter;
-  /** Linguaggio principale, o ANY, o NO_LANGUAGE. */
-  language: string;
-  /** Utente o organizzazione proprietari (in minuscolo), o ANY. */
-  owner: string;
+  /** Linguaggi principali scelti (anche NO_LANGUAGE); vuoto = nessun vincolo. */
+  language: string[];
+  /** Utenti o organizzazioni proprietari scelti (in minuscolo); vuoto = nessun vincolo. */
+  owner: string[];
 }
 
+export const DEFAULT_ACTIVITY: Record<ActivityCondition, ActivityChoice> = {
+  prs: 'off',
+  issues: 'off',
+  unassigned: 'off',
+  needs: 'off',
+};
+
 export const DEFAULT_REPO_FILTERS: RepoFilters = {
-  activity: 'any',
+  activity: DEFAULT_ACTIVITY,
+  activityMode: 'all',
   visibility: 'all',
   origin: 'all',
   starred: 'all',
-  language: ANY,
-  owner: ANY,
+  language: [],
+  owner: [],
 };
 
-/** Quanti gruppi di filtri sono attivi (cioè diversi dal predefinito). */
+/** Quante condizioni di «Attività» sono scelte. */
+export const activityCount = (activity: RepoFilters['activity']) =>
+  ACTIVITY_CONDITIONS.filter((c) => activity[c] !== 'off').length;
+
+/** Quanti gruppi di filtri sono attivi (cioè diversi dal predefinito); «Attività» conta come un gruppo. */
 export function activeFilterCount(filters: RepoFilters): number {
-  return (Object.keys(DEFAULT_REPO_FILTERS) as (keyof RepoFilters)[]).filter(
-    (key) => filters[key] !== DEFAULT_REPO_FILTERS[key],
-  ).length;
+  return (
+    (activityCount(filters.activity) > 0 ? 1 : 0) +
+    (filters.visibility !== 'all' ? 1 : 0) +
+    (filters.origin !== 'all' ? 1 : 0) +
+    (filters.starred !== 'all' ? 1 : 0) +
+    (filters.language.length > 0 ? 1 : 0) +
+    (filters.owner.length > 0 ? 1 : 0)
+  );
 }
 
 /** Il proprietario di un repository: la parte prima della barra di «owner/nome». */
@@ -69,23 +96,29 @@ const needsOf = (attention?: Attention) => (attention?.pr.needs ?? 0) + (attenti
 const prsOf = (item: DashboardItem, attention?: Attention) => indicator(item, attention, 'pr').count;
 const issuesOf = (item: DashboardItem, attention?: Attention) => indicator(item, attention, 'issue').count;
 
-function matchesActivity(item: DashboardItem, activity: ActivityFilter, attention?: Attention): boolean {
-  switch (activity) {
+function hasCondition(item: DashboardItem, condition: ActivityCondition, attention?: Attention): boolean {
+  switch (condition) {
     case 'prs':
       return prsOf(item, attention) > 0;
     case 'issues':
       return issuesOf(item, attention) > 0;
-    case 'open':
-      return prsOf(item, attention) + issuesOf(item, attention) > 0;
     case 'unassigned':
       return item.unassignedIssues > 0;
     case 'needs':
       return needsOf(attention) > 0;
-    case 'none':
-      return prsOf(item, attention) + issuesOf(item, attention) === 0;
-    default:
-      return true;
   }
+}
+
+/** Le condizioni scelte si combinano con E («Tutte») o O («Almeno una»); «senza» nega la singola condizione. */
+function matchesActivity(
+  item: DashboardItem,
+  filters: Pick<RepoFilters, 'activity' | 'activityMode'>,
+  attention?: Attention,
+): boolean {
+  const chosen = ACTIVITY_CONDITIONS.filter((c) => filters.activity[c] !== 'off');
+  if (chosen.length === 0) return true;
+  const results = chosen.map((c) => hasCondition(item, c, attention) === (filters.activity[c] === 'with'));
+  return filters.activityMode === 'any' ? results.some(Boolean) : results.every(Boolean);
 }
 
 /** Vero se il repository passa tutti i filtri attivi. `starred` dice se è tra i preferiti dell'account. */
@@ -95,15 +128,15 @@ export function matchesRepoFilters(
   attention: Attention | undefined,
   starred: boolean,
 ): boolean {
-  if (!matchesActivity(item, filters.activity, attention)) return false;
+  if (!matchesActivity(item, filters, attention)) return false;
   if (filters.visibility === 'public' && item.private) return false;
   if (filters.visibility === 'private' && !item.private) return false;
   if (filters.origin === 'fork' && !item.fork) return false;
   if (filters.origin === 'original' && item.fork) return false;
   if (filters.starred === 'yes' && !starred) return false;
   if (filters.starred === 'no' && starred) return false;
-  if (filters.language !== ANY && (item.language ?? NO_LANGUAGE) !== filters.language) return false;
-  if (filters.owner !== ANY && ownerOf(item).toLowerCase() !== filters.owner) return false;
+  if (filters.language.length > 0 && !filters.language.includes(item.language ?? NO_LANGUAGE)) return false;
+  if (filters.owner.length > 0 && !filters.owner.includes(ownerOf(item).toLowerCase())) return false;
   return true;
 }
 

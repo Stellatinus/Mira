@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useDismiss } from './dismiss';
-import { Chips, FacetSelect, Group } from './FilterParts';
+import { Chips, FacetChecklist, Group } from './FilterParts';
 import { useI18n } from './i18n';
 import { ChevronDownIcon, FilterIcon } from './icons';
 import { reasonLabel } from './labels';
@@ -76,10 +76,10 @@ export function ItemFilterMenu({ filters, onChange, facets, assignable = false, 
                 />
               </Group>
               {facets.assignees.length > 0 && (
-                <Group label={t('item.filter.group.assignee')} htmlFor="filter-assignee">
-                  <FacetSelect
-                    id="filter-assignee"
-                    value={filters.assignee}
+                <Group label={t('item.filter.group.assignee')}>
+                  <FacetChecklist
+                    label={t('item.filter.group.assignee')}
+                    values={filters.assignee}
                     facets={facets.assignees}
                     labelOf={(facet) => facet.label}
                     onChange={(value) => set('assignee', value)}
@@ -123,29 +123,29 @@ export function ItemFilterMenu({ filters, onChange, facets, assignable = false, 
             </Group>
           )}
           {facets.reasons.length > 0 && (
-            <Group label={t('item.filter.group.reason')} htmlFor="filter-reason">
-              <FacetSelect
-                id="filter-reason"
-                value={filters.reason}
+            <Group label={t('item.filter.group.reason')}>
+              <FacetChecklist
+                label={t('item.filter.group.reason')}
+                values={filters.reason}
                 facets={facets.reasons}
                 labelOf={(facet) => reasonLabel(facet.value, i18n)}
                 onChange={(value) => set('reason', value)}
               />
             </Group>
           )}
-          <Group label={t('item.filter.group.repo')} htmlFor="filter-item-repo">
-            <FacetSelect
-              id="filter-item-repo"
-              value={filters.repo}
+          <Group label={t('item.filter.group.repo')}>
+            <FacetChecklist
+              label={t('item.filter.group.repo')}
+              values={filters.repo}
               facets={facets.repos}
               labelOf={(facet) => facet.label}
               onChange={(value) => set('repo', value)}
             />
           </Group>
-          <Group label={t('repo.filter.group.owner')} htmlFor="filter-item-owner">
-            <FacetSelect
-              id="filter-item-owner"
-              value={filters.owner}
+          <Group label={t('repo.filter.group.owner')}>
+            <FacetChecklist
+              label={t('repo.filter.group.owner')}
+              values={filters.owner}
               facets={facets.owners}
               labelOf={(facet) => facet.label}
               onChange={(value) => set('owner', value)}
