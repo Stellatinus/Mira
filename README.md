@@ -39,6 +39,18 @@ cambia luminosità nel tempo, come l'attività dei tuoi repository.
 
 Dalla pagina delle [release](https://github.com/Stellatinus/Mira/releases) scarica il pacchetto per il tuo sistema (Windows, Linux o macOS con Apple Silicon), estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare nulla. I pacchetti sono firmati con Sigstore (come verificarli: [`docs/RELEASING.md`](docs/RELEASING.md#verificare-un-pacchetto)); l'eseguibile no, quindi Windows può mostrare un avviso la prima volta e su macOS il primo avvio va sbloccato con `xattr -d com.apple.quarantine Mira.Server`. Come si fanno le release: [`docs/RELEASING.md`](docs/RELEASING.md).
 
+### App desktop (Windows)
+
+Accanto al pacchetto del server c'è **Mira Desktop** (`Mira-Desktop-…-win-x64.zip`): la stessa dashboard in una finestra dedicata, con il server dentro l'app. Estrai e avvia `Mira.exe`.
+
+- Una sola istanza: riavviarla porta in primo piano la finestra già aperta.
+- La **X** della finestra la manda nella **tray** (l'icona accanto all'orologio); da lì «Apri Mira» la riapre e «Esci» chiude davvero Mira.
+- In **Impostazioni → App desktop** puoi attivare «Avvia Mira all'accesso»: Mira parte nascosta, nella tray.
+- La porta è quella di sempre (`MIRA_URLS`, poi `config.json`, poi 5080), sempre solo su `127.0.0.1`. Se è occupata, la finestra lo dice.
+- Il pacchetto del server (`Mira.Server`) resta supportato e identico.
+
+Dal sorgente (serve il carico di lavoro MAUI: `dotnet workload install maui`): compila il frontend come sotto, poi `dotnet run --project src/Mira.Desktop`.
+
 ### Dal sorgente
 
 Servono .NET 10 SDK e Node.js.

@@ -35,7 +35,17 @@ export const getDashboard = (refresh = false) =>
 export const getIssues = (view: ExtraKey, refresh = false) =>
   request<ExtraSnapshot>(`${view === 'releases' ? '/api/releases' : `/api/issues/${view}`}${refresh ? '?refresh=true' : ''}`);
 
-export const getVersion = () => request<{ version: string }>('/api/version');
+/** Le opzioni del guscio desktop; `available` è false nel programma autonomo e nel browser. */
+export const getDesktop = () => request<{ available: boolean; autostart: boolean }>('/api/desktop');
+
+export const setAutostart = (enabled: boolean) =>
+  request<{ available: boolean; autostart: boolean }>('/api/desktop/autostart', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+
+export const getVersion =() => request<{ version: string }>('/api/version');
 
 export const addAccount = (token: string) =>
   request<AccountStatus>('/api/accounts', {

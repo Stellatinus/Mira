@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getVersion } from './api';
+import { ApiError, getDesktop, getVersion, setAutostart } from './api';
 import { AccountsView } from './AccountsView';
 import { useI18n } from './i18n';
 import { RadioGroup } from './RadioGroup';
@@ -55,11 +55,25 @@ export function SettingsView({
   const [cleared, setCleared] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
 
+  // Le opzioni dell'app desktop: senza guscio desktop (server autonomo, browser) non c'è nulla da mostrare.
+  const [desktop, setDesktop] = useState<{ available: boolean; autostart: boolean } | null>(null);
+  const [autostartError, setAutostartError] = useState<string | null>(null);
+
   useEffect(() => {
     getVersion()
       .then((v) => setVersion(v.version))
       .catch(() => setVersion(null));
+    getDesktop()
+      .then(setDesktop)
+      .catch(() => setDesktop(null));
   }, []);
+
+  const changeAutostart = (enabled: boolean) => {
+    setAutostartError(null);
+    setAutostart(enabled)
+      .then(setDesktop)
+      .catch((e: unknown) => setAutostartError(e instanceof ApiError ? errorText(e.info) : errorText({ code: 'unknown' })));
+  };
 
   const refreshLabel = (minutes: number) =>
     minutes === 0
@@ -266,6 +280,28 @@ export function SettingsView({
           </fieldset>
         )}
       </section>
+
+      {desktop?.available && (
+        <section className="card">
+          <header className="card-head">
+            <h2>{t('desktop.title')}</h2>
+          </header>
+          <div className="setting">
+            <div className="setting-text">
+              <label htmlFor="autostart" className="strong">
+                {t('desktop.autostart')}
+              </label>
+              <p className="muted small">{t('desktop.autostartHint')}</p>
+              {autostartError && (
+                <p className="warn-text small" role="alert">
+                  {autostartError}
+                </p>
+              )}
+            </div>
+            <input id="autostart" type="checkbox" checked={desktop.autostart} onChange={(e) => changeAutostart(e.target.checked)} />
+          </div>
+        </section>
+      )}
 
       <AccountsView accounts={accounts} onChanged={onAccountsChanged} />
 
