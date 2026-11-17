@@ -32,6 +32,8 @@ public sealed class WindowsIntegration : IDesktopIntegration
             key.DeleteValue(ValueName, throwOnMissingValue: false);
     }
 
+    public void RequestExit() => WindowsShell.Quit();
+
     /// <summary>Se l'avvio all'accesso è attivo ma punta a un'altra cartella (Mira è stata spostata), lo riallinea.</summary>
     public void RefreshAutostartPath()
     {

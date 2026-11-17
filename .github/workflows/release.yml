@@ -20,6 +20,7 @@ on:
       - 'src/Mira.Server/Mira.Server.csproj'
       - 'src/Mira.Desktop/**'
       - 'src/Mira.Desktop.Tray/**'
+      - 'src/Mira.Updater/**'
 
 # Di base il token può solo leggere; il job che pubblica la release chiede il permesso di scrivere.
 permissions:
@@ -195,6 +196,22 @@ jobs:
           -p:Version=${{ steps.version.outputs.version }}
           --output "publish/${{ steps.version.outputs.name }}"
 
+      # Il programma di appoggio dell'aggiornamento dall'interno (#92): un solo file autonomo e ridotto (~11 MB), accanto a
+      # Mira.exe. Il server lo copia in una cartella temporanea e lo lancia per sostituire i file mentre Mira è chiusa.
+      - name: Pubblica il programma di appoggio dell'aggiornamento
+        shell: bash
+        run: >
+          dotnet publish src/Mira.Updater
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:Version=${{ steps.version.outputs.version }}
+          --output updater-out
+
+      - name: Metti il programma di appoggio nel pacchetto
+        shell: bash
+        run: cp updater-out/Mira.Updater.exe "publish/${{ steps.version.outputs.name }}/Mira.Updater.exe"
+
       # Dentro l'app il server è una libreria: il suo eseguibile (non autonomo) non serve e confonderebbe.
       - name: Togli l'eseguibile del server dal pacchetto
         shell: bash
@@ -230,6 +247,10 @@ jobs:
           echo
           grep -q '"version":"${{ steps.version.outputs.version }}"' versione.json
           curl -fsS http://127.0.0.1:5099/api/desktop | grep -q '"available":true'
+          # Il pacchetto estratto in una cartella scrivibile può aggiornarsi dall'interno (c'è Mira.exe e il programma di appoggio).
+          curl -fsS http://127.0.0.1:5099/api/update/install | tee installa.json
+          echo
+          grep -q '"supported":true' installa.json
           curl -fsS http://127.0.0.1:5099/ | grep -q 'id="root"'
           taskkill //F //IM Mira.exe || true
 

@@ -129,7 +129,10 @@ public sealed record GqlContext(
     string? TargetUrl);
 
 /// <summary>L'ultima release pubblicata di un repository (solo i campi che servono).</summary>
-public sealed record GhRelease(string TagName, string? Name, string HtmlUrl, bool Prerelease, bool Draft, DateTimeOffset? PublishedAt);
+public sealed record GhRelease(string TagName, string? Name, string HtmlUrl, bool Prerelease, bool Draft, DateTimeOffset? PublishedAt, List<GhAsset>? Assets = null);
+
+/// <summary>Un file allegato a una release (pacchetto, somme di controllo, firma).</summary>
+public sealed record GhAsset(string Name, long Size, string BrowserDownloadUrl);
 
 // --- GraphQL: ultima release dei repository seguiti ---
 

@@ -216,3 +216,29 @@ export interface RepoPageData {
   issues: RepoPageItem[];
   issueTotal: number;
 }
+
+/** L'esito dell'ultimo aggiornamento dall'interno, scritto dal programma di appoggio. */
+export interface UpdateLastResult {
+  version: string;
+  ok: boolean;
+  /** Updated, RestoredPrevious, NotChanged o Broken. */
+  result: string;
+  error: string | null;
+  at: string;
+}
+
+/** Lo stato dell'aggiornamento dall'interno (solo nell'app desktop). */
+export interface InstallStatus {
+  supported: boolean;
+  reason: string | null;
+  state: 'idle' | 'downloading' | 'verifying' | 'extracting' | 'restarting' | 'failed';
+  version: string | null;
+  percent: number | null;
+  error: ErrorInfo | null;
+  lastResult: UpdateLastResult | null;
+}
+
+/** Le preferenze che valgono per tutta Mira, salvate nella cartella dei dati. */
+export interface UserSettings {
+  checkUpdatesOnStart: boolean;
+}

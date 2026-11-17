@@ -29,6 +29,10 @@ public sealed class UpdateService(GitHubApi api, string currentVersion, string r
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private UpdateInfo? _cache;
+    private GhRelease? _cachedRelease;
+
+    /// <summary>L'ultima release letta (con i suoi file), se il controllo è riuscito: serve a chi scarica l'aggiornamento.</summary>
+    public GhRelease? LatestRelease => _cachedRelease;
 
     public async Task<UpdateInfo> GetAsync(bool force, CancellationToken ct)
     {
@@ -42,6 +46,7 @@ public sealed class UpdateService(GitHubApi api, string currentVersion, string r
             var info = await CheckAsync(ct);
             // Un errore non si tiene: al prossimo controllo si riprova.
             if (info.Error is null) _cache = info;
+            else _cachedRelease = null;
             return info;
         }
         finally
@@ -63,6 +68,7 @@ public sealed class UpdateService(GitHubApi api, string currentVersion, string r
             return new UpdateInfo(currentVersion, null, null, null, false, now, response.Error ?? new ErrorInfo("unknown"));
 
         var release = response.Data;
+        _cachedRelease = release;
         if (release.Draft || !SemVer.TryParse(release.TagName, out var latest))
             return new UpdateInfo(currentVersion, null, null, null, false, now, new ErrorInfo("update-unreadable"));
 

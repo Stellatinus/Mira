@@ -4,6 +4,7 @@ using Mira.Server.GitHub;
 using Mira.Server.Models;
 using Mira.Server.Services;
 using Mira.Server.Storage;
+using Mira.Server.Updates;
 
 namespace Mira.Server;
 
@@ -41,6 +42,12 @@ public static class MiraHost
             client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
             client.Timeout = TimeSpan.FromSeconds(20);
         });
+        // I pacchetti degli aggiornamenti si scaricano da github.com (e dai suoi CDN, seguendo i redirect): nessun token.
+        builder.Services.AddHttpClient("update", client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mira/0.1 (+https://github.com/Stellatinus/Mira)");
+            client.Timeout = TimeSpan.FromMinutes(30);
+        });
         builder.Services.AddSingleton<GitHubApi>();
         builder.Services.AddSingleton<AccountService>();
         builder.Services.AddSingleton<DashboardService>();
@@ -51,6 +58,15 @@ public static class MiraHost
         builder.Services.AddSingleton<ReleaseService>();
         builder.Services.AddSingleton<RepoPageService>();
         builder.Services.AddSingleton(provider => new UpdateService(provider.GetRequiredService<GitHubApi>(), AppVersion.Current));
+        builder.Services.AddSingleton(_ => new SettingsStore(DataDirectory.Resolve()));
+        builder.Services.AddSingleton<IUpdateLauncher, ProcessUpdateLauncher>();
+        builder.Services.AddSingleton(provider => new UpdateInstaller(
+            provider.GetRequiredService<UpdateService>(),
+            provider.GetRequiredService<IHttpClientFactory>(),
+            provider.GetService<IDesktopIntegration>(),
+            InstallLocation.Current(),
+            DataDirectory.Resolve(),
+            provider.GetRequiredService<IUpdateLauncher>()));
 
         configureServices?.Invoke(builder.Services);
 

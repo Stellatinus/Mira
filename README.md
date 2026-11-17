@@ -47,6 +47,7 @@ Accanto al pacchetto del server c'è **Mira Desktop** (`Mira-Desktop-…-win-x64
 - La **X** della finestra la manda nella **tray** (l'icona accanto all'orologio); da lì «Apri Mira» la riapre e «Esci» chiude davvero Mira.
 - In **Impostazioni → App desktop** puoi attivare «Avvia Mira all'accesso»: Mira parte nascosta, nella tray.
 - La porta è quella di sempre (`MIRA_URLS`, poi `config.json`, poi 5080), sempre solo su `127.0.0.1`. Se è occupata, la finestra lo dice.
+- **Aggiornamento dall'interno**: in **Impostazioni → Informazioni**, quando c'è una release stabile più nuova, compare «Aggiorna» (vedi [Aggiornamenti](#aggiornamenti)).
 - Il pacchetto del server (`Mira.Server`) resta supportato e identico.
 
 Dal sorgente (serve il carico di lavoro MAUI: `dotnet workload install maui`): compila il frontend come sotto, poi `dotnet run --project src/Mira.Desktop`.
@@ -99,9 +100,14 @@ Dalle **Impostazioni → Avvisi del sistema** si può chiedere a Mira di mandare
 
 ## Aggiornamenti
 
-All'apertura Mira chiede a GitHub, **senza token**, qual è l'ultima release del progetto e la confronta con la propria versione (`MAJOR.MINOR.PATCH`, vedi [`docs/RELEASING.md`](docs/RELEASING.md)). Se ce n'è una più nuova lo dice con un avviso (che si chiude, e non ricompare per la stessa versione) e nelle **Impostazioni → Informazioni**, con il link alle note di rilascio. **Non scarica né installa nulla**: per aggiornare si scarica il pacchetto dalla pagina delle release.
+**Avviso.** Se attivi «Controlla se ci sono nuove release all'avvio» (**Impostazioni → Informazioni**, **spenta di base**), all'apertura Mira chiede a GitHub, **senza token**, qual è l'ultima release stabile e la confronta con la propria versione (`MAJOR.MINOR.PATCH`, vedi [`docs/RELEASING.md`](docs/RELEASING.md)). Se ce n'è una più nuova lo dice con un avviso (che si chiude, e non ricompare per la stessa versione) e nelle Impostazioni, con il link alle note di rilascio. «Controlla ora» lo fa a richiesta. La scelta è salvata nella cartella dei dati (`settings.json`), quindi vale sia per il server autonomo sia per l'app desktop. Una versione compilata dal sorgente (`0.0.0-dev`) non ha niente da controllare; le pre-release non si propongono a chi ha una stabile.
 
-Il controllo si spegne dalle Impostazioni («Controlla gli aggiornamenti all'apertura»); «Controlla ora» lo fa a richiesta. Una versione compilata dal sorgente (`0.0.0-dev`) non ha niente da controllare; una versione di prova (`1.3.0-rc.1`) viene avvisata della stabile che la segue, ma le pre-release non si propongono a chi ha una stabile.
+**Aggiornare da Mira (solo app desktop per Windows).** Con una release più nuova compare il pulsante **«Aggiorna»**. Non parte mai da solo: chiede conferma, poi mostra lo stato (scarico con progresso, verifica, riavvio). Il server scarica il pacchetto `Mira-Desktop-…-win-x64.zip` della release indicata dall'avviso in una cartella temporanea, lo **verifica**, lo estrae **accanto** all'installazione e un piccolo programma di appoggio (`Mira.Updater.exe`, nel pacchetto) aspetta che Mira si chiuda, mette da parte la versione vecchia (cartella `…previous`, ne resta una sola), mette al suo posto la nuova e riavvia Mira. Se la nuova non risponde su `/api/version` entro 45 secondi, **ripristina la vecchia** e al prossimo avvio Mira lo dice. I dati (`%APPDATA%\Mira`) non si toccano mai.
+
+- **Dove**: serve poter scrivere nella cartella che contiene quella di Mira. Per non chiedere i permessi di amministratore, il posto giusto è una cartella tua (per esempio `%LOCALAPPDATA%\Mira`); in `Program Files` Mira **rifiuta** e spiega perché: si aggiorna a mano.
+- **Cosa protegge la verifica**: il pacchetto deve avere la somma SHA-256 elencata in `SHA256SUMS.txt` della stessa release. Questo protegge da un download **corrotto o troncato**. **Non protegge** da una release compromessa (la somma sta sulla stessa pagina del pacchetto), e **Mira non controlla la firma Sigstore**: verificarla da .NET senza `cosign` richiederebbe di portare dentro Mira le radici di fiducia di Sigstore, che ruotano. La firma resta verificabile a mano ([come](docs/RELEASING.md#verificare-un-pacchetto)).
+- **SmartScreen**: i programmi non hanno una firma del codice, quindi Windows può mostrare l'avviso anche dopo un aggiornamento.
+- Il server autonomo (`Mira.Server`), Linux e macOS non si aggiornano da soli: l'avviso resta, si scarica il pacchetto dalla pagina delle release.
 
 ## Tema e lingua
 

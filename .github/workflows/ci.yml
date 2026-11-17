@@ -4,7 +4,8 @@
 #  - frontend: installa le dipendenze (npm ci) e compila (npm run build), che include il controllo
 #    dei tipi di TypeScript e quindi anche le traduzioni mancanti; poi le prove della logica e i contrasti dei colori (WCAG AA);
 #  - backend: compila il server .NET trattando gli avvisi come errori e ne esegue i test (xUnit, senza rete);
-#  - desktop: compila su Windows il guscio desktop (.NET MAUI, src/Mira.Desktop) con gli avvisi come errori.
+#  - desktop: compila su Windows il guscio desktop (.NET MAUI, src/Mira.Desktop) con gli avvisi come errori;
+#  - aggiornamento: su Windows, con processi veri, aggiorna da una versione di prova alla successiva e prova il ripristino.
 #
 # Gli stessi comandi si lanciano in locale: vedi CONTRIBUTING.md.
 name: CI
@@ -75,6 +76,10 @@ jobs:
       - name: Compila (gli avvisi sono errori)
         run: dotnet build src/Mira.Server --configuration Release -warnaserror
 
+      # Il programma di appoggio dell'aggiornamento dall'interno (#92).
+      - name: Compila il programma di appoggio (gli avvisi sono errori)
+        run: dotnet build src/Mira.Updater --configuration Release -warnaserror
+
       # Test del backend con un GitHub finto (tests/Mira.Server.Tests): niente rete, niente token.
       - name: Prova il backend
         run: dotnet test tests/Mira.Server.Tests --configuration Release
@@ -111,3 +116,33 @@ jobs:
 
       - name: Compila il guscio desktop (gli avvisi sono errori)
         run: dotnet build src/Mira.Desktop --configuration Release -warnaserror
+
+  # L'aggiornamento dall'interno (#92), provato con processi veri su Windows: un Mira 0.0.1 si chiude, il programma di
+  # appoggio mette al suo posto la 0.0.2, la riavvia e controlla /api/version; poi un secondo scenario in cui la nuova non
+  # risponde e si ripristina la vecchia. Usa il server autonomo come «Mira» (vedi tests/update-e2e/prova-aggiornamento.ps1).
+  update-e2e:
+    name: Aggiornamento (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Compila il frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Prova l'aggiornamento e il ripristino
+        shell: pwsh
+        run: ./tests/update-e2e/prova-aggiornamento.ps1

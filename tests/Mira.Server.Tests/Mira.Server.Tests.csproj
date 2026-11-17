@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Mira.Server\Mira.Server.csproj" />
+    <!-- Il programma di appoggio dell'aggiornamento: la sua logica (sostituzione e ripristino) si prova qui. -->
+    <ProjectReference Include="..\..\src\Mira.Updater\Mira.Updater.csproj" />
   </ItemGroup>
 
   <ItemGroup>
