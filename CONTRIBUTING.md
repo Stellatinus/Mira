@@ -31,6 +31,12 @@ dotnet build src/Mira.Server --configuration Release -warnaserror
 dotnet test tests/Mira.Server.Tests --configuration Release   # test del backend (xUnit, senza rete)
 ```
 
+Il guscio desktop (`src/Mira.Desktop`, solo Windows) ha bisogno del carico di lavoro MAUI (`dotnet workload install maui`) e del frontend già compilato:
+
+```bash
+dotnet build src/Mira.Desktop --configuration Release -warnaserror
+```
+
 Se questi comandi passano, passa anche la CI.
 
 ## Cosa fa la CI
@@ -41,6 +47,8 @@ Il workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) parte a ogni 
 |---|---|---|
 | **Frontend** | Linux | `npm ci`, `npm run build` (compila TypeScript e Vite; un testo che manca in una lingua fa fallire la compilazione) `npm test` (la logica del frontend) e `npm run contrast` (i colori di `styles.css` rispettano il contrasto WCAG AA nei due temi) |
 | **Backend** | Linux e Windows | `dotnet build` con gli avvisi come errori e `dotnet test` (i test del backend, con un GitHub finto: niente rete né token) |
+
+| **Desktop** | Windows | compila il guscio desktop (`src/Mira.Desktop`, .NET MAUI) con gli avvisi come errori |
 
 **macOS non è controllato**, di proposito: per ora si controllano solo Linux e Windows. Per aggiungerlo si inserisce `macos-latest` nell'elenco `os` del job `backend`.
 

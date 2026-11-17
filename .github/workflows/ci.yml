@@ -3,7 +3,8 @@
 # Cosa controlla:
 #  - frontend: installa le dipendenze (npm ci) e compila (npm run build), che include il controllo
 #    dei tipi di TypeScript e quindi anche le traduzioni mancanti; poi le prove della logica e i contrasti dei colori (WCAG AA);
-#  - backend: compila il server .NET trattando gli avvisi come errori e ne esegue i test (xUnit, senza rete).
+#  - backend: compila il server .NET trattando gli avvisi come errori e ne esegue i test (xUnit, senza rete);
+#  - desktop: compila su Windows il guscio desktop (.NET MAUI, src/Mira.Desktop) con gli avvisi come errori.
 #
 # Gli stessi comandi si lanciano in locale: vedi CONTRIBUTING.md.
 name: CI
@@ -77,3 +78,36 @@ jobs:
       # Test del backend con un GitHub finto (tests/Mira.Server.Tests): niente rete, niente token.
       - name: Prova il backend
         run: dotnet test tests/Mira.Server.Tests --configuration Release
+
+  # Il guscio desktop (#16): una finestra .NET MAUI che avvia il server dentro il proprio processo.
+  # Solo Windows, per ora; Android si aggiungerà con un suo job.
+  desktop:
+    name: Desktop (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Il guscio incorpora il frontend compilato (finisce in src/Mira.Server/wwwroot).
+      - name: Compila il frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Installa solo i carichi di lavoro che servono al progetto (MAUI per Windows).
+      - name: Carichi di lavoro MAUI
+        run: dotnet workload restore src/Mira.Desktop/Mira.Desktop.csproj
+
+      - name: Compila il guscio desktop (gli avvisi sono errori)
+        run: dotnet build src/Mira.Desktop --configuration Release -warnaserror

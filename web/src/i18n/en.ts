@@ -312,6 +312,11 @@ export const en: Messages = {
   'settings.refreshLabel': 'Refresh data every',
   'settings.refreshHint':
     'GitHub limits searches to 30 per minute, so intervals under 5 minutes are not offered. You can always refresh by hand with the button at the top.',
+  'desktop.title': 'Desktop app',
+  'desktop.autostart': 'Start Mira when I sign in',
+  'desktop.autostartHint':
+    'Mira opens by itself, in the system tray, when you sign in to your computer. The window stays closed until you open it from the icon.',
+  'error.autostart-failed': 'Could not change start at sign-in: the system refused the change.',
   'settings.about': 'About',
   'settings.version': 'Version',
   'settings.releases': 'What’s new and downloads',

@@ -319,6 +319,11 @@ export const it = {
   'settings.refreshLabel': 'Aggiorna i dati ogni',
   'settings.refreshHint':
     'GitHub limita le ricerche a 30 al minuto, per questo non si scende sotto i 5 minuti. Puoi sempre aggiornare a mano con il pulsante in alto.',
+  'desktop.title': 'App desktop',
+  'desktop.autostart': 'Avvia Mira all’accesso',
+  'desktop.autostartHint':
+    'Mira si apre da sola, nella barra delle applicazioni, quando accedi al computer. La finestra resta chiusa finché non la apri dall’icona.',
+  'error.autostart-failed': 'Impossibile cambiare l’avvio all’accesso: il sistema ha rifiutato la modifica.',
   'settings.about': 'Informazioni',
   'settings.version': 'Versione',
   'settings.releases': 'Novità e download',

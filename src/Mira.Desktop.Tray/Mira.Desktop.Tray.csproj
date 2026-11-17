@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    L'icona nella tray di Windows (NotifyIcon di Windows Forms). Sta in un progetto a parte perché usare
+    Windows Forms dentro il progetto MAUI/WinUI rompe la compilazione dei file XAML (errore MC6000).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Mira.Desktop.Tray</RootNamespace>
+  </PropertyGroup>
+
+</Project>

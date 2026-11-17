@@ -4,7 +4,8 @@
 #
 # Cosa succede:
 #  - push di un tag v*.*.*: si compila il frontend e il server per Windows, Linux e macOS (programma autonomo,
-#    non serve installare .NET), si prova che parta e risponda, si crea la release su GitHub con i pacchetti,
+#    non serve installare .NET) e l'app desktop per Windows, si prova che partano e rispondano, si crea la release
+#    su GitHub con i pacchetti,
 #    le somme di controllo e le note generate dalle PR fuse;
 #  - pull request che tocca questo file o il progetto: stessa compilazione e stessa prova, ma senza creare
 #    nessuna release (serve a controllare che il workflow funzioni prima di fonderlo).
@@ -17,6 +18,8 @@ on:
     paths:
       - '.github/workflows/release.yml'
       - 'src/Mira.Server/Mira.Server.csproj'
+      - 'src/Mira.Desktop/**'
+      - 'src/Mira.Desktop.Tray/**'
 
 # Di base il token può solo leggere; il job che pubblica la release chiede il permesso di scrivere.
 permissions:
@@ -137,9 +140,113 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # L'app desktop per Windows (#16): finestra .NET MAUI con il server dentro. Pacchetto a parte, accanto a quello del server;
+  # finisce nella stessa cartella `pacchetti` del job `release`, quindi ha somme di controllo e firma Sigstore come gli altri.
+  build-desktop:
+    name: Pacchetto desktop (win-x64)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versione
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Il tag «$GITHUB_REF_NAME» non è nel formato vMAJOR.MINOR.PATCH (es. v1.0.0)"
+              exit 1
+            fi
+          else
+            VERSION="0.0.0-prova"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=Mira-Desktop-$VERSION-win-x64" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Compila il frontend (finisce in src/Mira.Server/wwwroot)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Carichi di lavoro MAUI
+        run: dotnet workload restore src/Mira.Desktop/Mira.Desktop.csproj
+
+      - name: Pubblica l'app desktop autonoma
+        shell: bash
+        run: >
+          dotnet publish src/Mira.Desktop
+          --configuration Release
+          --framework net10.0-windows10.0.19041.0
+          --runtime win-x64
+          --self-contained true
+          -p:Version=${{ steps.version.outputs.version }}
+          --output "publish/${{ steps.version.outputs.name }}"
+
+      # Dentro l'app il server è una libreria: il suo eseguibile (non autonomo) non serve e confonderebbe.
+      - name: Togli l'eseguibile del server dal pacchetto
+        shell: bash
+        run: rm -f "publish/${{ steps.version.outputs.name }}/Mira.Server.exe" "publish/${{ steps.version.outputs.name }}/Mira.Server.runtimeconfig.json"
+
+      - name: Istruzioni di avvio nel pacchetto
+        shell: bash
+        run: |
+          cat > "publish/${{ steps.version.outputs.name }}/AVVIO.txt" <<'EOF'
+          Mira Desktop - dashboard GitHub multi-account, come app per Windows
+
+          1. Avvia Mira.exe: si apre la finestra di Mira e compare l'icona nella tray.
+          2. La X della finestra la manda nella tray; per uscire usa «Esci» dal menu dell'icona.
+          3. Dalle Impostazioni collega i tuoi account con un token e, se vuoi, attiva «Avvia Mira all'accesso».
+
+          Il server di Mira gira dentro l'app e ascolta solo sul tuo computer (127.0.0.1, porta 5080 o quella di
+          MIRA_URLS / config.json). I dati restano in %APPDATA%\Mira. Documentazione: https://github.com/Stellatinus/Mira
+          EOF
+
+      # Prova vera: l'app parte da una cartella diversa dalla sua, il server interno risponde con la versione giusta
+      # e serve il frontend.
+      - name: Prova che l'app parta e risponda
+        shell: bash
+        run: |
+          export MIRA_URLS=http://127.0.0.1:5099
+          export MIRA_DATA_DIR="$RUNNER_TEMP/mira-dati"
+          "./publish/${{ steps.version.outputs.name }}/Mira.exe" &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:5099/api/version >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5099/api/version | tee versione.json
+          echo
+          grep -q '"version":"${{ steps.version.outputs.version }}"' versione.json
+          curl -fsS http://127.0.0.1:5099/api/desktop | grep -q '"available":true'
+          curl -fsS http://127.0.0.1:5099/ | grep -q 'id="root"'
+          taskkill //F //IM Mira.exe || true
+
+      - name: Archivio
+        shell: pwsh
+        run: Compress-Archive -Path "publish/${{ steps.version.outputs.name }}" -DestinationPath "${{ steps.version.outputs.name }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacchetto-desktop-win-x64
+          path: ${{ steps.version.outputs.name }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
   release:
     name: Pubblica la release
-    needs: build
+    needs: [build, build-desktop]
     # Solo per i tag: sulle pull request si prova la compilazione e basta.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -197,6 +304,8 @@ jobs:
           Scarica il pacchetto per il tuo sistema, estrailo e avvia `Mira.Server`; poi apri <http://127.0.0.1:5080>. Non serve installare .NET. Dettagli in `AVVIO.txt` dentro il pacchetto.
 
           I pacchetti sono **firmati con Sigstore** (identità di questo workflow, nessuna chiave da custodire): accanto a ogni file c'è il suo `.sigstore.json`. Come verificare: <https://github.com/Stellatinus/Mira/blob/main/docs/RELEASING.md#verificare-un-pacchetto>. La somma in `SHA256SUMS.txt` protegge da un download corrotto; la firma da un file che non esce da questo workflow.
+
+          Per Windows c'è anche **Mira Desktop** (`Mira-Desktop-…-win-x64.zip`): la stessa dashboard in una finestra dedicata, con icona nella tray e avvio all'accesso opzionale; estrai e avvia `Mira.exe`.
 
           Il programma **non è firmato come eseguibile** (nessun certificato di firma del codice): Windows può mostrare un avviso di SmartScreen la prima volta e macOS blocca il primo avvio.
 

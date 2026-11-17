@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mira.Desktop.MainPage"
+             Title="Mira">
+
+    <Grid>
+        <!-- Finché il server non risponde: il logo e, se non parte, il motivo. -->
+        <VerticalStackLayout x:Name="StatusPanel" VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="32">
+            <Image Source="logo.png" WidthRequest="96" HeightRequest="96" SemanticProperties.Description="Mira" />
+            <Label x:Name="StatusLabel" HorizontalTextAlignment="Center" MaximumWidthRequest="520" />
+            <Button x:Name="QuitButton" IsVisible="False" HorizontalOptions="Center" Clicked="OnQuitClicked" />
+        </VerticalStackLayout>
+
+        <WebView x:Name="Web" IsVisible="False" Navigating="OnNavigating" />
+    </Grid>
+
+</ContentPage>

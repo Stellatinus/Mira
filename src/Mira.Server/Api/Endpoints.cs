@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Mira.Server.Models;
 using Mira.Server.Services;
 using Mira.Server.Storage;
@@ -9,6 +10,10 @@ public sealed record AddAccountRequest(string? Token);
 public sealed record SeenRequest(string? Url, DateTimeOffset? UpdatedAt, DateTimeOffset? SnoozeUntil, int? Comments = null, bool? Hidden = null);
 
 public sealed record BaselineRequest(List<SeenBaseline>? Items);
+
+public sealed record AutostartRequest(bool Enabled);
+
+public sealed record DesktopStatus(bool Available, bool Autostart);
 
 public sealed record FollowRequest(string? Repo, bool? Follow);
 
@@ -174,6 +179,25 @@ public static class Endpoints
             Results.Ok(await updates.GetAsync(refresh == true, ct)));
 
         api.MapGet("/version", () => Results.Ok(new { version = AppVersion.Current }));
+
+        // Le opzioni del guscio desktop: nel programma autonomo `available` è false e l'interfaccia le nasconde.
+        api.MapGet("/desktop", ([FromServices] IDesktopIntegration? desktop) =>
+            Results.Ok(new DesktopStatus(desktop is not null, desktop?.AutostartEnabled ?? false)));
+
+        api.MapPut("/desktop/autostart", (AutostartRequest request, [FromServices] IDesktopIntegration? desktop) =>
+        {
+            if (desktop is null)
+                return Results.NotFound();
+            try
+            {
+                desktop.SetAutostart(request.Enabled);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                return Results.Json(new { error = new ErrorInfo("autostart-failed") }, statusCode: StatusCodes.Status500InternalServerError);
+            }
+            return Results.Ok(new DesktopStatus(true, desktop.AutostartEnabled));
+        });
 
         api.MapGet("/dashboard", async (bool? refresh, DashboardService dashboard, CancellationToken ct) =>
             Results.Ok(await dashboard.GetAsync(refresh == true, ct)));

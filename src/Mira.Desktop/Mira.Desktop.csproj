@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il guscio desktop di Mira (#16): una finestra .NET MAUI con una WebView che mostra l'interfaccia, il server di
+    Mira avviato dentro lo stesso processo (MiraHost), l'icona nella tray e l'avvio all'accesso.
+    Per ora solo Windows. Android (APK, per le notifiche e il collegamento a un server) si aggiungerà qui:
+    basta il target net10.0-android e una cartella Platforms/Android; il codice comune sta in questa cartella,
+    quello di Windows in Platforms/Windows.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">net10.0-windows10.0.19041.0</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Mira.Desktop</RootNamespace>
+    <AssemblyName>Mira</AssemblyName>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+    <ApplicationTitle>Mira</ApplicationTitle>
+    <ApplicationId>io.github.stellatinus.mira</ApplicationId>
+    <!-- Compilando dal sorgente non è una release; il workflow delle release la sostituisce con quella del tag. -->
+    <Version>0.0.0-dev</Version>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <!-- Senza pacchetto MSIX: un eseguibile che si avvia da qualunque cartella, come il server autonomo. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <!-- Mira.Server è un eseguibile ma qui lo si usa come libreria dentro un processo autonomo. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <ApplicationIcon>Resources\AppIcon\mira.ico</ApplicationIcon>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Resources\AppIcon\mira.ico" Link="mira.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.png" Color="#00000000" />
+    <MauiImage Include="Resources\Images\logo.png" Resize="False" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Il server di Mira, avviato dentro questo processo. -->
+    <ProjectReference Include="..\Mira.Server\Mira.Server.csproj" />
+    <!-- L'icona nella tray (Windows Forms vive in un progetto a parte). -->
+    <ProjectReference Include="..\Mira.Desktop.Tray\Mira.Desktop.Tray.csproj" />
+  </ItemGroup>
+
+  <!-- Il frontend compilato (web/ → npm run build) sta in Mira.Server/wwwroot: va accanto all'eseguibile. -->
+  <ItemGroup>
+    <!-- Content e non None: MAUI toglie i .css dagli elementi None (li tratta come stili suoi). -->
+    <Content Include="..\Mira.Server\wwwroot\**" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="ControllaFrontend" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('..\Mira.Server\wwwroot\index.html')" Text="Manca il frontend: esegui prima «npm ci &amp;&amp; npm run build» nella cartella web." />
+  </Target>
+
+</Project>
