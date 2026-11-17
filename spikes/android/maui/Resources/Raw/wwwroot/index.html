@@ -1,7 +1,30 @@
 <!doctype html><html><body><pre id="o">...</pre>
 <script src="_framework/hybridwebview.js"></script>
 <script>
-// In produzione fetch('/api/...') andrebbe reindirizzata: qui si prova solo il ponte JS -> .NET.
-window.addEventListener('HybridWebViewMessageReceived', () => {});
-HybridWebView.InvokeDotNet('Api', ['/api/version']).then(r => document.getElementById('o').textContent = JSON.stringify(r));
+// Shim iniettato dalla shell (index.html di MAUI): il frontend continua a chiamare fetch('/api/...').
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+  if (!url.pathname.startsWith('/api/')) return nativeFetch(input, init);
+  const r = await HybridWebView.InvokeDotNet('Api', [(init.method || 'GET').toUpperCase(), url.pathname + url.search, init.body ?? null]);
+  return new Response(r.body, { status: r.status, headers: { 'Content-Type': 'application/json' } });
+};
+</script>
+<script>
+const out = [];
+const log = (k, v) => { out.push(k + ' = ' + v); document.getElementById('o').textContent = out.join('\n'); HybridWebView.InvokeDotNet('Report', [k + ' = ' + v]); };
+async function t(name, path, init) {
+  try { const r = await fetch(path, init); log(name, r.status + ' ' + (await r.text())); }
+  catch (e) { log(name, 'ERRORE ' + e); }
+}
+(async () => {
+  await t('GET', '/api/version');
+  await t('GET query', '/api/issues/assigned?refresh=true');
+  await t('PUT json', '/api/seen', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ url: 'https://x/y', updatedAt: '2026-01-01T00:00:00Z' }) });
+  await t('POST json', '/api/accounts', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token: 'abc' }) });
+  await t('DELETE', '/api/seen?url=x', { method: 'DELETE' });
+  const r = await HybridWebView.InvokeDotNet('Selftest', []);
+  log('Selftest', JSON.stringify(r));
+  HybridWebView.InvokeDotNet('Report', ['FINE']);
+})();
 </script></body></html>

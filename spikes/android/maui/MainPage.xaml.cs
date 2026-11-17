@@ -12,27 +12,44 @@ public partial class MainPage : ContentPage
         {
             if (!e.Uri.AbsolutePath.StartsWith("/api/")) return;
             e.Handled = true;
-            var json = System.Text.Json.JsonSerializer.Serialize(new { version = Mira.Server.AppVersion.Current });
+            var json = System.Text.Json.JsonSerializer.Serialize(new { method = e.Method, path = e.Uri.PathAndQuery, version = Mira.Server.AppVersion.Current });
             e.SetResponse(200, "OK", "application/json", new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)));
         };
     }
 }
 
-/// <summary>Il ponte: il JS chiama Api(path) e il .NET risponde senza passare da HTTP.</summary>
+/// <summary>Ponte JS -> .NET e prove a runtime (log su logcat, tag MIRA).</summary>
 public sealed class ApiBridge
 {
-    public object Api(string path) => path == "/api/version" ? new { version = Mira.Server.AppVersion.Current } : new { error = "todo" };
-}
-#if KESTREL
-public static class KestrelProbe
-{
-    public static void Start()
+    public object Api(string method, string path, string? body) =>
+        new { status = 200, body = System.Text.Json.JsonSerializer.Serialize(new { method, path, bodyLength = body?.Length ?? -1, body }) };
+
+    public void Report(string line) => Android.Util.Log.Info("MIRA", line);
+
+    public async Task<object> Selftest()
     {
-        var b = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
-        b.WebHost.UseUrls("http://127.0.0.1:5080");
-        var app = b.Build();
-        Microsoft.AspNetCore.Builder.EndpointRouteBuilderExtensions.MapGet(app, "/api/version", () => "ok");
-        Task.Run(() => app.Run());
+        var res = new Dictionary<string, string>();
+        try
+        {
+            await SecureStorage.Default.SetAsync("mira-test", "segreto");
+            res["SecureStorage"] = await SecureStorage.Default.GetAsync("mira-test") ?? "null";
+        }
+        catch (Exception ex) { res["SecureStorage"] = "ERRORE " + ex.GetType().Name + ": " + ex.Message; }
+        try
+        {
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Mira-spike");
+            res["GitHub"] = (await http.GetStringAsync("https://api.github.com/rate_limit"))[..80];
+        }
+        catch (Exception ex) { res["GitHub"] = "ERRORE " + ex.GetType().Name + ": " + ex.Message; }
+        try
+        {
+            var dir = Mira.Server.Storage.DataDirectory.Resolve();
+            var store = new EncryptedFileSecretStore(Path.Combine(dir, "t"));
+            await store.SaveAsync("a", "b");
+            res["DataDir"] = dir + " / EncryptedFileSecretStore=" + (await store.LoadAllAsync())["a"];
+        }
+        catch (Exception ex) { res["DataDir"] = "ERRORE " + ex.GetType().Name + ": " + ex.Message; }
+        return res;
     }
 }
-#endif
