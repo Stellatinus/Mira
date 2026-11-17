@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Mira.Server.Models;
 using Mira.Server.Services;
 using Mira.Server.Storage;
+using Mira.Server.Updates;
 
 namespace Mira.Server.Api;
 
@@ -14,6 +15,10 @@ public sealed record BaselineRequest(List<SeenBaseline>? Items);
 public sealed record AutostartRequest(bool Enabled);
 
 public sealed record DesktopStatus(bool Available, bool Autostart);
+
+public sealed record InstallUpdateRequest(string? Version);
+
+public sealed record SettingsRequest(bool? CheckUpdatesOnStart);
 
 public sealed record FollowRequest(string? Repo, bool? Follow);
 
@@ -177,6 +182,35 @@ public static class Endpoints
         // Esiste una release più nuova? Si legge solo alla richiesta e non scarica nulla.
         api.MapGet("/update", async (bool? refresh, UpdateService updates, CancellationToken ct) =>
             Results.Ok(await updates.GetAsync(refresh == true, ct)));
+
+        // L'aggiornamento dall'interno (solo guscio desktop): stato, avvio (dopo la conferma dell'utente) e chiusura dell'esito.
+        api.MapGet("/update/install", ([FromServices] UpdateInstaller installer) => Results.Ok(installer.GetStatus()));
+
+        api.MapPost("/update/install", async (InstallUpdateRequest request, HttpContext context, [FromServices] UpdateInstaller installer, CancellationToken ct) =>
+        {
+            var healthUrl = $"{context.Request.Scheme}://{context.Request.Host}/api/version";
+            var error = await installer.StartAsync(request.Version, healthUrl, ct);
+            return error is null
+                ? Results.Accepted(value: installer.GetStatus())
+                : Results.Json(new { error = new ErrorInfo(error) }, statusCode: error == "update-busy" ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest);
+        });
+
+        api.MapDelete("/update/install/result", ([FromServices] UpdateInstaller installer) =>
+        {
+            installer.DismissLastResult();
+            return Results.NoContent();
+        });
+
+        // Preferenze che valgono per tutta Mira (non solo per il browser): oggi, il controllo degli aggiornamenti all'apertura.
+        api.MapGet("/settings", async ([FromServices] SettingsStore settings, CancellationToken ct) => Results.Ok(await settings.GetAsync(ct)));
+
+        api.MapPut("/settings", async (SettingsRequest request, [FromServices] SettingsStore settings, CancellationToken ct) =>
+        {
+            var current = await settings.GetAsync(ct);
+            var next = current with { CheckUpdatesOnStart = request.CheckUpdatesOnStart ?? current.CheckUpdatesOnStart };
+            await settings.SetAsync(next, ct);
+            return Results.Ok(next);
+        });
 
         api.MapGet("/version", () => Results.Ok(new { version = AppVersion.Current }));
 

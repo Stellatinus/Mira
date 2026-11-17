@@ -579,3 +579,8 @@ h1, h2, h3, p { margin: 0; }
 .check-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 13px; cursor: pointer; }
 .check-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .check-count { color: var(--muted, inherit); opacity: 0.7; font-variant-numeric: tabular-nums; }
+
+/* Aggiornamento dall'interno (Impostazioni → Aggiornamenti) */
+.update-box { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.update-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.setting-text progress { width: 100%; max-width: 360px; margin-top: 6px; accent-color: var(--accent); }

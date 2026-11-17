@@ -9,6 +9,8 @@ import {
   getSectionPage,
   getSeen,
   getUpdate,
+  getSettings,
+  putSettings,
   markNotificationRead,
   markRepositoryNotificationsRead,
   postSeenBaseline,
@@ -60,7 +62,6 @@ const SHOW_SEEN_KEY = 'mira.showSeen';
 const HOME_KEY = 'mira.home';
 /** Le sezioni della Home, nell'ordine di sempre. */
 const HOME_SECTIONS = (VIEWS.find((v) => v.key === 'home')?.sections ?? []) as Section[];
-const CHECK_UPDATES_KEY = 'mira.checkUpdates';
 const UPDATE_DISMISSED_KEY = 'mira.updateDismissed';
 
 /** Quante voci scarica la dashboard per sezione e account alla prima pagina; la ricerca di GitHub arriva a 10 pagine. */
@@ -141,7 +142,8 @@ export default function App() {
   // Controllo degli aggiornamenti: all'apertura (se non lo si spegne nelle Impostazioni) e a richiesta. Non scarica nulla.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [checkUpdates, setCheckUpdates] = useState(() => readStored(CHECK_UPDATES_KEY, 'true') !== 'false');
+  // Spenta di base; si legge dalle preferenze salvate nella cartella dei dati (valgono anche per il programma autonomo).
+  const [checkUpdates, setCheckUpdates] = useState(false);
   const [dismissedUpdate, setDismissedUpdate] = useState(() => readStored(UPDATE_DISMISSED_KEY, ''));
   // Release seguite: i repository aggiunti a mano o tolti (i preferiti si seguono di base).
   const [follow, setFollow] = useState<FollowList>({ added: [], muted: [] });
@@ -242,6 +244,12 @@ export default function App() {
     } finally {
       setCheckingUpdate(false);
     }
+  }, []);
+
+  useEffect(() => {
+    getSettings()
+      .then((settings) => setCheckUpdates(settings.checkUpdatesOnStart))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -517,7 +525,7 @@ export default function App() {
 
   function changeCheckUpdates(next: boolean) {
     setCheckUpdates(next);
-    writeStored(CHECK_UPDATES_KEY, String(next));
+    putSettings({ checkUpdatesOnStart: next }).catch(() => setCheckUpdates(!next));
   }
 
   function dismissUpdate() {

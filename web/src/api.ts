@@ -1,4 +1,4 @@
-import type { AccountStatus, Dashboard, RepoPageData, ErrorInfo, ExtraKey, ExtraSnapshot, FollowList, SectionPage, SeenEntry, UpdateInfo } from './types';
+import type { AccountStatus, Dashboard, RepoPageData, ErrorInfo, ExtraKey, ExtraSnapshot, FollowList, SectionPage, SeenEntry, UpdateInfo, InstallStatus, UserSettings } from './types';
 
 /** Errore di una chiamata al backend: porta il codice, che l'interfaccia traduce. */
 export class ApiError extends Error {
@@ -113,6 +113,28 @@ export const getSectionPage = (account: string, section: string, page: number) =
   request<SectionPage>(`/api/section?account=${encodeURIComponent(account)}&section=${encodeURIComponent(section)}&page=${page}`);
 
 /** Esiste una release più nuova? Il server lo chiede a GitHub (senza token) e non scarica nulla. */
+/** Lo stato dell'aggiornamento dall'interno (nel programma autonomo `supported` è false). */
+export const getInstallStatus = () => request<InstallStatus>('/api/update/install');
+
+/** Avvia l'aggiornamento alla versione indicata: da chiamare solo dopo la conferma dell'utente. */
+export const startInstall = (version: string) =>
+  request<InstallStatus>('/api/update/install', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ version }),
+  });
+
+export const dismissInstallResult = () => request<void>('/api/update/install/result', { method: 'DELETE' });
+
+export const getSettings = () => request<UserSettings>('/api/settings');
+
+export const putSettings = (settings: Partial<UserSettings>) =>
+  request<UserSettings>('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+
 export const getUpdate = (refresh = false) => request<UpdateInfo>(`/api/update${refresh ? '?refresh=true' : ''}`);
 
 /** I repository seguiti per le release oltre ai preferiti, e quelli tolti. */

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il programma di appoggio dell'aggiornamento (#92). Mira non può sostituire i propri file mentre gira (Windows non lo
+    permette): il server scarica e verifica il pacchetto, lo estrae accanto all'installazione e lancia questo programma
+    da una copia in una cartella temporanea. Lui aspetta che Mira si chiuda, mette da parte la versione vecchia, mette
+    al suo posto la nuova, riavvia Mira e, se la nuova non risponde su /api/version, rimette la vecchia.
+    Non tocca mai la cartella dei dati (%APPDATA%\Mira). Si pubblica come file unico autonomo, vedi release.yml.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Mira.Updater</RootNamespace>
+    <AssemblyName>Mira.Updater</AssemblyName>
+    <Version>0.0.0-dev</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Pubblicato come file unico autonomo e ridotto (vedi release.yml): niente riflessione, quindi niente rischi con il trimming. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- I test provano la logica dell'aggiornamento e del ripristino senza lanciare processi veri. -->
+    <InternalsVisibleTo Include="Mira.Server.Tests" />
+  </ItemGroup>
+
+</Project>

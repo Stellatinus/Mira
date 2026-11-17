@@ -28,6 +28,7 @@ npm run contrast   # contrasti dei colori (WCAG AA), nei due temi
 # backend: compilazione con gli avvisi trattati come errori
 cd ..
 dotnet build src/Mira.Server --configuration Release -warnaserror
+dotnet build src/Mira.Updater --configuration Release -warnaserror   # il programma di appoggio dell'aggiornamento
 dotnet test tests/Mira.Server.Tests --configuration Release   # test del backend (xUnit, senza rete)
 ```
 
@@ -35,6 +36,12 @@ Il guscio desktop (`src/Mira.Desktop`, solo Windows) ha bisogno del carico di la
 
 ```bash
 dotnet build src/Mira.Desktop --configuration Release -warnaserror
+```
+
+Su Windows, la prova dell'aggiornamento con processi veri (la CI la esegue nel job «Aggiornamento (Windows)»; serve il frontend compilato):
+
+```bash
+pwsh tests/update-e2e/prova-aggiornamento.ps1
 ```
 
 Se questi comandi passano, passa anche la CI.

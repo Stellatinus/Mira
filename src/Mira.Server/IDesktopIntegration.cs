@@ -11,4 +11,7 @@ public interface IDesktopIntegration
 
     /// <summary>Attiva o disattiva l'avvio all'accesso. Può lanciare se il sistema lo rifiuta.</summary>
     void SetAutostart(bool enabled);
+
+    /// <summary>Chiude Mira per davvero (non nella tray): lo chiede l'aggiornamento, che deve sostituire i file in uso.</summary>
+    void RequestExit();
 }

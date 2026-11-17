@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, getDesktop, getVersion, setAutostart } from './api';
 import { AccountsView } from './AccountsView';
+import { InstallUpdate } from './InstallUpdate';
 import { useI18n } from './i18n';
 import { RadioGroup } from './RadioGroup';
 import { REFRESH_OPTIONS } from './refresh';
@@ -349,6 +350,7 @@ export function SettingsView({
             {t('update.check')}
           </button>
         </div>
+        <InstallUpdate update={update} />
         <div className="setting">
           <div className="setting-text">
             <label htmlFor="check-updates" className="strong">

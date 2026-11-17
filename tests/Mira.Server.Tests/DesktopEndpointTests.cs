@@ -17,6 +17,10 @@ public sealed class DesktopEndpointTests
         public bool AutostartEnabled { get; private set; }
         public bool Fail { get; set; }
 
+        public void RequestExit()
+        {
+        }
+
         public void SetAutostart(bool enabled)
         {
             if (Fail)
@@ -42,6 +46,17 @@ public sealed class DesktopEndpointTests
         builder.Services.AddSingleton<Mira.Server.Services.RepoPageService>();
         builder.Services.AddSingleton(provider => new Mira.Server.Services.UpdateService(provider.GetRequiredService<Mira.Server.GitHub.GitHubApi>(), "1.2.0"));
         builder.Services.AddSingleton(new Mira.Server.Storage.SeenStore(Path.Combine(Path.GetTempPath(), "mira-desktop-" + Guid.NewGuid().ToString("N"))));
+        var dataDir = Path.Combine(Path.GetTempPath(), "mira-data-" + Guid.NewGuid().ToString("N"));
+        builder.Services.AddSingleton(new Mira.Server.Storage.SettingsStore(dataDir));
+        builder.Services.AddSingleton<Mira.Server.Updates.IUpdateLauncher, Mira.Server.Updates.ProcessUpdateLauncher>();
+        builder.Services.AddHttpClient();
+        builder.Services.AddSingleton(provider => new Mira.Server.Updates.UpdateInstaller(
+            provider.GetRequiredService<Mira.Server.Services.UpdateService>(),
+            provider.GetRequiredService<IHttpClientFactory>(),
+            provider.GetService<IDesktopIntegration>(),
+            new Mira.Server.Updates.InstallLocation(Path.Combine(dataDir, "non-installata")),
+            dataDir,
+            provider.GetRequiredService<Mira.Server.Updates.IUpdateLauncher>()));
         if (desktop is not null)
             builder.Services.AddSingleton(desktop);
         var app = builder.Build();
@@ -88,5 +103,50 @@ public sealed class DesktopEndpointTests
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Contains("autostart-failed", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Checking_for_updates_at_startup_is_off_by_default_and_the_choice_is_saved()
+    {
+        var (app, client) = await StartAsync(null);
+        await using var _ = app;
+
+        var initial = await client.GetFromJsonAsync<Mira.Server.Storage.UserSettings>("/api/settings");
+        Assert.False(initial!.CheckUpdatesOnStart);
+
+        var put = await client.PutAsJsonAsync("/api/settings", new SettingsRequest(true));
+        Assert.True((await put.Content.ReadFromJsonAsync<Mira.Server.Storage.UserSettings>())!.CheckUpdatesOnStart);
+        Assert.True((await client.GetFromJsonAsync<Mira.Server.Storage.UserSettings>("/api/settings"))!.CheckUpdatesOnStart);
+
+        // Una richiesta senza il campo non cambia niente.
+        await client.PutAsJsonAsync("/api/settings", new SettingsRequest(null));
+        Assert.True((await client.GetFromJsonAsync<Mira.Server.Storage.UserSettings>("/api/settings"))!.CheckUpdatesOnStart);
+    }
+
+    [Fact]
+    public async Task The_standalone_server_reports_that_in_app_update_is_not_supported_and_refuses_it()
+    {
+        var (app, client) = await StartAsync(null);
+        await using var _ = app;
+
+        var status = await client.GetFromJsonAsync<Mira.Server.Updates.InstallStatus>("/api/update/install");
+        Assert.False(status!.Supported);
+        Assert.Equal("update-desktop-only", status.Reason);
+
+        var response = await client.PostAsJsonAsync("/api/update/install", new InstallUpdateRequest("9.9.9"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_desktop_shell_refuses_to_update_when_it_is_not_an_installed_package()
+    {
+        var (app, client) = await StartAsync(new FakeDesktop());
+        await using var _ = app;
+
+        var status = await client.GetFromJsonAsync<Mira.Server.Updates.InstallStatus>("/api/update/install");
+
+        Assert.False(status!.Supported);
+        // O non c'è un pacchetto per questo sistema, o (da sorgente) Mira.exe non è in questa cartella.
+        Assert.Contains(status.Reason, new[] { "update-unsupported-os", "update-not-installed" });
     }
 }
