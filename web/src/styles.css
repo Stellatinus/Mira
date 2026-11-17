@@ -560,15 +560,18 @@ h1, h2, h3, p { margin: 0; }
    dimensioni diverse; l'ordine nel documento è quello visivo (da sinistra a destra, dall'alto in basso), quindi
    tastiera e lettori di schermo seguono lo stesso ordine. `minmax(0, 1fr)` evita lo scorrimento orizzontale. */
 @media (min-width: 1280px) {
-  .bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
-  .bento > .card { max-width: none; margin: 0; grid-column: span 6; }
+  .bento.groups { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  /* Impostazioni: colonne indipendenti (come una muratura). Ogni riquadro va nella colonna più bassa, quindi le
+     altezze si pareggiano da sole e non restano vuoti accanto a un riquadro alto. Il focus scende lungo le colonne. */
+  .bento:not(.groups) { column-count: 2; column-gap: 16px; }
+  .bento:not(.groups) > .card { max-width: none; margin: 0 0 16px; break-inside: avoid; }
   .bento.groups { gap: 24px 28px; }
   .bento.groups > .group { margin: 0; grid-column: span 6; min-width: 0; }
   .bento.groups > .group:first-child { grid-column: span 12; }
 }
 @media (min-width: 1920px) {
   .shell { grid-template-columns: 96px minmax(0, 1fr) 420px; }
-  .bento > .card { grid-column: span 4; }
+  .bento:not(.groups) { column-count: 3; }
   .bento.groups > .group { grid-column: span 4; }
   .bento.groups > .group:first-child { grid-column: span 8; }
 }
