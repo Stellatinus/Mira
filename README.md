@@ -112,7 +112,7 @@ Dalle **Impostazioni → Avvisi del sistema** si può chiedere a Mira di mandare
 ## Tema e lingua
 
 Dalle **Impostazioni** (il pulsante `•••` sopra gli avatar, in basso a sinistra) si sceglie il tema
-(Sistema, Scuro, Chiaro), la lingua dell'interfaccia (Italiano, English) e ogni quanto Mira si aggiorna da
+(Sistema, Scuro, Chiaro), la lingua dell'interfaccia (Italiano, English, 日本語) e ogni quanto Mira si aggiorna da
 sola (mai, 5, 10, 15, 30 minuti o 1 ora; di default 5). Non si scende sotto i 5 minuti perché la Search API di
 GitHub concede 30 richieste al minuto per utente. Le scelte restano nel browser.
 
