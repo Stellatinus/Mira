@@ -63,7 +63,7 @@ La CI non usa token di GitHub e non avvia il programma: controlla che il codice 
 
 ## Regole del progetto
 
-- I testi dell'interfaccia stanno in `web/src/i18n`: ogni testo nuovo va scritto in **italiano e in inglese** (il compilatore avvisa se ne manca uno). Per aggiungere una lingua, vedi il README.
+- I testi dell'interfaccia stanno in `web/src/i18n`: ogni testo nuovo va scritto in **italiano, inglese e giapponese** (il compilatore avvisa se ne manca uno). Per aggiungere una lingua, vedi il README.
 - Il backend non scrive frasi per l'utente: manda codici (`token-invalid`…) che il frontend traduce.
 - Mai committare token, `master.key` o `tokens.enc`.
 

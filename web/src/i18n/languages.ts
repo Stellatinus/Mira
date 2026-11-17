@@ -1,5 +1,6 @@
 import { en } from './en';
 import { it } from './it';
+import { ja } from './ja';
 import type { Messages } from './it';
 
 export interface Language {
@@ -21,6 +22,7 @@ export interface Language {
 export const LANGUAGES: Language[] = [
   { code: 'it', name: 'Italiano', locale: 'it-IT', messages: it },
   { code: 'en', name: 'English', locale: 'en-GB', messages: en },
+  { code: 'ja', name: '日本語', locale: 'ja-JP', messages: ja },
 ];
 
 export const DEFAULT_LANGUAGE = 'it';
