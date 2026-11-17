@@ -1,0 +1,7 @@
+<!doctype html><html><body><pre id="o">...</pre>
+<script src="_framework/hybridwebview.js"></script>
+<script>
+// In produzione fetch('/api/...') andrebbe reindirizzata: qui si prova solo il ponte JS -> .NET.
+window.addEventListener('HybridWebViewMessageReceived', () => {});
+HybridWebView.InvokeDotNet('Api', ['/api/version']).then(r => document.getElementById('o').textContent = JSON.stringify(r));
+</script></body></html>

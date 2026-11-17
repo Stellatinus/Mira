@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationId>it.mira.spike.kestrel</ApplicationId>
+    <!-- Cartella con le DLL gestite estratte dal pacchetto Microsoft.AspNetCore.App.Runtime.linux-arm64 -->
+    <AspNetDlls>$(TEMP)\aspnetrt\runtimes\linux-arm64\lib\net10.0\</AspNetDlls>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(AspNetDlls)*.dll" Private="true" />
+  </ItemGroup>
+</Project>
